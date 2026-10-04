@@ -109,6 +109,28 @@ h1 b{font-weight:700}
 .prog i{position:absolute;inset:0 auto 0 0;background:var(--fi);border-radius:99px;width:0;transition:width 1.1s cubic-bezier(.2,.8,.2,1) .25s}
 .more{position:absolute;top:8px;right:14px;width:40px;height:30px;display:grid;place-items:center;color:var(--fi)}
 .more svg{width:20px;height:20px}
+.panel{display:flex;align-items:center;gap:18px;background:var(--f1);border-radius:30px;padding:18px;margin-bottom:12px;animation:rise .55s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i,0) * 70ms)}
+.panel h4{margin:2px 4px 12px;font-size:17px;font-weight:600}
+.ring{position:relative;width:120px;height:120px;flex:none}
+.ring svg{width:100%;height:100%}
+.ring .arc{transition:stroke-dashoffset 1.2s cubic-bezier(.2,.9,.25,1)}
+.ring span{position:absolute;inset:0;display:grid;place-content:center;text-align:center;font-size:12px;color:var(--ink2);font-weight:500}
+.ring b{display:block;font-size:30px;color:var(--ink);letter-spacing:-.03em;font-weight:700}
+.kp{display:grid;gap:10px;flex:1}
+.kp div{display:flex;align-items:baseline;gap:8px;font-size:13px;color:var(--ink2);font-weight:500}
+.kp b{font-size:22px;color:var(--ink);font-weight:700}
+.prow,.te{display:flex;align-items:center;gap:12px;width:100%;padding:10px 4px;text-align:left;transition:transform .2s}
+.prow+.prow,.te+.te{border-top:1px solid color-mix(in srgb,var(--ink) 8%,transparent)}
+.pi{width:40px;height:40px;border-radius:12px;overflow:hidden;flex:none;display:grid;place-items:center;background:color-mix(in srgb,var(--ink) 10%,transparent);font-weight:700}
+.pi img{width:100%;height:100%;display:block}
+.pm{flex:1;min-width:0}
+.pm b{display:block;font-size:15px;font-weight:600}
+.pm>span:not(.pb){display:block;font-size:13px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pb{display:block;height:6px;border-radius:99px;background:color-mix(in srgb,var(--ink) 12%,transparent);margin-top:7px;overflow:hidden}
+.pb i{display:block;height:100%;width:0;border-radius:99px;background:var(--ink);transition:width 1.1s cubic-bezier(.2,.9,.25,1) .2s}
+.prow em,.te em{font-style:normal;font-weight:700;font-size:14px;flex:none}
+.te em{font-weight:500;color:var(--ink2);font-size:12.5px}
+.te{animation:rise .5s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i) * 50ms)}
 .empty{text-align:center;color:var(--ink2);padding:40px 0;font-size:14px}
 
 /* navegación inferior */
@@ -184,7 +206,18 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:13px;background:var(--bg
 const PROJECTS=[
  {id:"jetta",name:"Mi Jetta MK6",desc:"Tablero, servicio, testigos y fallas",href:"jetta/",status:"live",prio:true,by:"Diego",progress:72,icon:"jetta/icons/icon.svg",updated:"2026-10-04"},
  {id:"finanzas",name:"Mis Finanzas",desc:"Gastos, presupuesto, ahorro y asistente",href:"finanzas/",status:"live",prio:true,by:"Diego",progress:60,icon:"finanzas/icons/icon.svg",updated:"2026-10-04"},
+ {id:"habitos",name:"Ritmo",desc:"Hábitos diarios y semanales con un toque",href:"habitos/",status:"live",prio:true,by:"Diego",progress:55,icon:"habitos/icons/icon.svg",updated:"2026-10-04"},
  {id:"idea",name:"Laboratorio de ideas",desc:"Pruebas rápidas de UI y prototipos",status:"future",prio:false,by:"Diego",progress:0,letter:"L",updated:"2026-10-04"}
+];
+/* Bitácora de cambios: alimenta la vista "Recientes" */
+const LOG=[
+ {p:"habitos",d:"2026-10-04",t:"Nace Ritmo: reloj del día, cápsulas de hábitos, semana y progreso"},
+ {p:"finanzas",d:"2026-10-04",t:"Tus 4 tarjetas en el inicio y cartera tipo Wallet"},
+ {p:"finanzas",d:"2026-10-04",t:"Nuevo estilo claro/oscuro compartido con las demás apps"},
+ {p:"finanzas",d:"2026-10-04",t:"Primera versión: gráficas, presupuesto y asistente"},
+ {p:"jetta",d:"2026-10-04",t:"Rediseño del inicio y puntos de revisión"},
+ {p:"jetta",d:"2026-10-04",t:"Se vuelve app instalable para iPhone"},
+ {p:"hub",d:"2026-10-04",t:"Selector de proyectos con carpetas"}
 ];
 const STATUS={live:["Activo"],future:["Futuro"],done:["Terminado"]};
 const $=s=>document.querySelector(s);
@@ -203,6 +236,8 @@ function visible(){
 function render(){
   $("#nLive").textContent=PROJECTS.filter(p=>p.status!=="done").length;
   const l=visible();
+  if(view==="stats"){renderStats(l);return}
+  if(view==="recent"){renderRecent();return}
   $("#list").innerHTML=l.length?l.map((p,i)=>`<div class="folder${i%3===1?" dark":""}" style="--i:${i}" role="link" tabindex="0" aria-label="${p.name}" data-id="${p.id}">
     <div class="f-top"><div class="tab"><span class="st">${svg(ICON.glass)}${STATUS[p.status][0]}</span><span class="tr">${svg(ICON.trend)}</span></div>
       <div class="by">Creado por <b>${p.by}</b><span class="mini">${p.by[0]}</span></div></div>
@@ -210,7 +245,22 @@ function render(){
       <span class="f-main"><b>${p.name}</b><span>${view==="stats"?p.progress+"% de avance":p.desc}</span><span class="prog"><i data-w="${p.progress}"></i></span></span>
       <button class="more" data-more="${p.id}" aria-label="Opciones de ${p.name}">${svg(ICON.dots,1)}</button></div></div>`).join("")
     :`<p class="empty">Ningún proyecto con estos filtros.</p>`;
-  requestAnimationFrame(()=>requestAnimationFrame(()=>document.querySelectorAll(".prog i").forEach(i=>i.style.width=Math.max(2,i.dataset.w)+"%")));
+  grow();
+}
+const grow=()=>requestAnimationFrame(()=>requestAnimationFrame(()=>document.querySelectorAll("[data-w]").forEach(i=>i.style.width=Math.max(2,i.dataset.w)+"%")));
+/* Vista Avance: resumen de todos los proyectos */
+function renderStats(l){
+  const live=PROJECTS.filter(p=>p.status==="live"),avg=Math.round(PROJECTS.reduce((a,p)=>a+p.progress,0)/PROJECTS.length);
+  const C=2*Math.PI*52;
+  $("#list").innerHTML=`<div class="panel" style="--i:0"><div class="ring"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="var(--line)" stroke-width="12"/><circle class="arc" cx="60" cy="60" r="52" fill="none" stroke="var(--ink)" stroke-width="12" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C}" data-off="${C*(1-avg/100)}" transform="rotate(-90 60 60)"/></svg><span><b>${avg}%</b>avance total</span></div>
+    <div class="kp"><div><b>${PROJECTS.length}</b>proyectos</div><div><b>${live.length}</b>activos</div><div><b>${LOG.length}</b>cambios</div></div></div>
+    <div class="panel" style="--i:1;display:block"><h4>Avance por proyecto</h4>${l.map(p=>`<button class="prow" data-id2="${p.id}"><span class="pi">${p.icon?`<img src="${p.icon}" alt="">`:p.letter}</span><span class="pm"><b>${p.name}</b><span class="pb"><i data-w="${p.progress}"></i></span></span><em>${p.progress}%</em></button>`).join("")}</div>`;
+  grow();requestAnimationFrame(()=>requestAnimationFrame(()=>{const a=document.querySelector(".arc");if(a)a.style.strokeDashoffset=a.dataset.off}));
+}
+/* Vista Recientes: bitácora de cambios */
+function renderRecent(){
+  const P=id=>PROJECTS.find(p=>p.id===id)||{name:"Diapps",letter:"D"};
+  $("#list").innerHTML=`<div class="panel" style="--i:0;display:block"><h4>Lo último que cambió</h4><div class="tl">${LOG.map((e,i)=>{const p=P(e.p);return `<button class="te" style="--i:${i}" ${p.href?`data-id2="${p.id}"`:""}><span class="pi">${p.icon?`<img src="${p.icon}" alt="">`:p.letter}</span><span class="pm"><b>${p.name}</b><span>${e.t}</span></span><em>${new Date(e.d+"T12:00").toLocaleDateString("es-MX",{day:"numeric",month:"short"})}</em></button>`}).join("")}</div></div>`;
 }
 
 let tt;function toast(t){const e=$("#toast");e.textContent=t;e.classList.add("on");clearTimeout(tt);tt=setTimeout(()=>e.classList.remove("on"),1800)}
@@ -229,7 +279,8 @@ document.addEventListener("click",e=>{
     t.classList.add("opening");setTimeout(()=>location.href=p.href,170);return}
   if(t=g("[data-close]")){closeSheet();return}
   if(t=g("[data-f]")){const f=t.dataset.f;filters.has(f)?filters.delete(f):filters.add(f);t.setAttribute("aria-pressed",filters.has(f));render();return}
-  if(t=g("[data-v]")){view=t.dataset.v;document.querySelectorAll("[data-v]").forEach(b=>b.removeAttribute("aria-current"));t.setAttribute("aria-current","page");render();toast({stats:"Ordenado por avance",folders:"Todos los proyectos",recent:"Más recientes primero"}[view]);return}
+  if(t=g("[data-v]")){view=t.dataset.v;document.querySelectorAll("[data-v]").forEach(b=>b.removeAttribute("aria-current"));t.setAttribute("aria-current","page");render();return}
+  if(t=g("[data-id2]")){const p=PROJECTS.find(x=>x.id===t.dataset.id2);if(p&&p.href){t.style.transform="scale(.97)";setTimeout(()=>location.href=p.href,150)}return}
   if(g("#sort")){sortMode=(sortMode+1)%SORTS.length;if(view!=="folders")$('[data-v="folders"]').click();render();toast(SORTS[sortMode][0]);return}
   if(g("#newp")){openSheet(`<h3>Nuevo proyecto</h3><p>Cada proyecto vive en su propia carpeta de este repo, por ejemplo <code>/mi-app/</code>, y aparece aquí como una carpeta.</p><p>Pídeme la app nueva y la agrego al selector. Cuando un proyecto crezca, se puede mover a su propio repo.</p><div class="btns"><button class="btn dark" data-close>Entendido</button></div>`);return}
   if(g("#bell")){openSheet(`<h3>Novedades</h3><div class="rows"><div><span>Mi Jetta MK6</span><span>Rediseño del inicio</span></div><div><span>Mis Finanzas</span><span>Proyecto nuevo</span></div><div><span>Diapps</span><span>Selector de proyectos</span></div></div><div class="btns"><button class="btn dark" data-close>Listo</button></div>`);$("#bell .dot").hidden=true;return}
