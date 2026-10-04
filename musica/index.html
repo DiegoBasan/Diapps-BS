@@ -80,6 +80,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-of
 .vid iframe,.vid #yt{position:absolute;inset:0;width:100%;height:100%;border:0}
 .vid .ph{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:#9a9aa2;font-size:13.5px;padding:16px;background:radial-gradient(120% 120% at 30% 20%,#2a2a2e,#0b0b0c)}
 .vid .ph b{display:block;color:#fff;font-size:15px;margin-bottom:4px}
+.ytbtn{display:inline-block;margin-top:10px;padding:8px 16px;border-radius:999px;background:#fff;color:#111;font-weight:800;font-size:13.5px;text-decoration:none}
 .vid .audio{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#fff;background:radial-gradient(120% 120% at 30% 20%,#33332f,#0b0b0c)}
 .vid .audio .eq{display:flex;gap:4px;align-items:flex-end;height:34px}
 .vid .audio .eq i{width:6px;border-radius:3px;background:var(--lime);height:30%;animation:eq 1s ease-in-out infinite alternate;animation-play-state:paused}
@@ -168,6 +169,12 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-of
 .fb .cell.open{background:transparent;height:38px}
 .fb .cell.open::after{height:5px;background:var(--ink2)}
 .fb .cell.dim{opacity:.28}
+.fb .cell.capo::after{height:7px;border-radius:4px;background:var(--ink);opacity:.85}
+.analysis .src{color:var(--ink2);font-weight:600}
+.lnk{margin-top:6px;font-weight:800;text-decoration:underline;text-underline-offset:3px;font-size:13px}
+.keys{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:6px 0 12px}
+.keys button{padding:10px 0;border-radius:12px;background:var(--card2);font-weight:800;font-size:13.5px}
+.keys button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 .fb .inl{position:absolute;left:-6px;top:50%;margin-top:-6px;width:12px;height:12px;border-radius:50%;background:var(--fret);z-index:1}
 .fb .cell .n{z-index:2}
 .n{position:relative;z-index:1;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:800;background:var(--card);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line2);animation:npop .5s var(--spring) both;animation-delay:calc(var(--d,0) * 6ms)}
@@ -194,6 +201,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-of
 .field{margin-top:14px}
 .field>.lbl{display:block;margin-bottom:8px}
 .lbl{font-size:12.5px;color:var(--ink2);font-weight:500}
+#sheetBody>span.lbl{display:block;margin:4px 0 2px}
 .field input,.field textarea{width:100%;border:0;border-radius:16px;background:var(--card2);padding:13px 14px;outline:none}
 .field textarea{min-height:120px;resize:vertical;line-height:1.5;font-family:ui-monospace,Menlo,monospace;font-size:15px}
 .btns{display:flex;gap:10px;margin-top:18px}
@@ -247,7 +255,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-of
   </section>
 
   <section class="card rise" style="--i:2">
-    <div class="ch"><div><div class="ey">Toca un acorde para verlo en el diapasón</div><h2>Acordes</h2></div><span class="chip key" id="keyChip">—</span></div>
+    <div class="ch"><div><div class="ey">Toca un acorde para verlo en el diapasón</div><h2>Acordes</h2></div><button class="chip key press" id="keyChip" aria-label="Cambiar tonalidad">—</button></div>
     <div class="chords" id="chords"></div>
     <div class="secs" id="secs"></div>
     <div class="analysis" id="analysis"></div>
@@ -283,10 +291,34 @@ let useFlats=false;
 const nn=i=>(useFlats?FLATS:NOTES)[((i%12)+12)%12];
 const QUAL={"":[0,4,7],m:[0,3,7],"7":[0,4,7,10],m7:[0,3,7,10],maj7:[0,4,7,11],dim:[0,3,6],dim7:[0,3,6,9],m7b5:[0,3,6,10],aug:[0,4,8],sus2:[0,2,7],sus4:[0,5,7],"6":[0,4,7,9],m6:[0,3,7,9],"9":[0,4,7,10,2],add9:[0,4,7,2],"5":[0,7],"7sus4":[0,5,7,10]};
 const QNAME={"":"mayor",m:"menor","7":"séptima",m7:"menor 7",maj7:"mayor 7",dim:"disminuido",dim7:"dism. 7",m7b5:"semidism.",aug:"aumentado",sus2:"sus2",sus4:"sus4","6":"sexta",m6:"menor 6","9":"novena",add9:"add9","5":"quinta (power)","7sus4":"7sus4"};
-function parseChord(s){const m=String(s).trim().match(/^([A-G])([#b]?)(maj7|M7|m7b5|min7|min|mi|maj|m|dim7|dim|°|aug|\+|sus2|sus4|add9|7sus4|7|9|6|m6|5)?(?:\/([A-G][#b]?))?$/);
-  if(!m)return null;let q=m[3]||"";q={M7:"maj7",min7:"m7",min:"m",mi:"m",maj:"","°":"dim","+":"aug"}[q]??q;if(m[3]==="m6")q="m6";
-  const root=pc(m[1]+m[2]);return {root,q,bass:m[4]?pc(m[4]):null}}
-const chordName=c=>nn(c.root)+c.q+(c.bass!=null?"/"+nn(c.bass):"");
+/* Lee cualquier cifrado común: Em7, F#m7b5, Cmaj9, Bbadd9, A7sus4, D/F#, C(add9), Gsus, E5, Bø, Am(maj7)…
+   La calidad se reduce a una de QUAL para diagramas y análisis; "txt" conserva lo que escribió la fuente para mostrarlo. */
+function parseChord(s){
+  const m=String(s).trim().replace(/♯/g,"#").replace(/♭/g,"b").match(/^([A-G])([#b]?)([^/\s]*)(?:\/([A-G][#b]?))?$/);
+  if(!m)return null;const raw=m[3].replace(/[()]/g,""),q=chordQ(raw);if(q==null)return null;
+  return {root:pc(m[1]+m[2]),q,bass:m[4]?pc(m[4]):null,txt:raw===q?undefined:raw}}
+function chordQ(x){
+  if(x===""||/^(maj|M|Maj|major)$/.test(x))return "";
+  if(/^(m|mi|min|-)(maj7|M7|Maj7|maj9)$/.test(x))return "m";            // menor con 7a mayor: se trata como menor
+  if(/^(m7b5|m7-5|min7b5|ø7?|-7b5)$/.test(x))return "m7b5";
+  if(/^(m|mi|min|-)$/.test(x))return "m";
+  if(/^(m|mi|min|-)(7|9|11|13)$/.test(x))return "m7";
+  if(/^(m|mi|min|-)(6|69|6\/9)$/.test(x))return "m6";
+  if(/^(m|mi|min|-)(add9|add2|2)$/.test(x))return "m";
+  if(/^(dim7|°7|o7)$/.test(x))return "dim7";
+  if(/^(dim|°|o)$/.test(x))return "dim";
+  if(/^(aug|\+|\+5|#5|aug7|\+7|7#5|7\+5)$/.test(x))return "aug";
+  if(/^(maj7|M7|Maj7|Δ|Δ7|ma7|maj9|M9|maj11|maj13|maj7#11)$/.test(x))return "maj7";
+  if(/^(7sus4?|9sus4?|11|7sus2)$/.test(x))return "7sus4";
+  if(/^sus4?$/.test(x))return "sus4";
+  if(/^sus2$/.test(x))return "sus2";
+  if(/^(add9|add2|2)$/.test(x))return "add9";
+  if(/^(6|69|6\/9|6add9)$/.test(x))return "6";
+  if(/^9$/.test(x))return "9";
+  if(/^(7|13|7b9|7#9|7b13|7#11|9b5|7alt|13b9)$/.test(x))return "7";
+  if(/^5$/.test(x))return "5";
+  return null}
+const chordName=c=>nn(c.root)+(c.txt??c.q)+(c.bass!=null?"/"+nn(c.bass):"");
 const chordTones=c=>(QUAL[c.q]||QUAL[""]).map(i=>(c.root+i)%12);
 const SCALES={
  pmin:{n:"Pentatónica menor",iv:[0,3,5,7,10],deg:["1","b3","4","5","b7"]},
@@ -298,19 +330,23 @@ const SCALES={
  mix:{n:"Mixolidia",iv:[0,2,4,5,7,9,10],deg:["1","2","3","4","5","6","b7"]},
  harm:{n:"Menor armónica",iv:[0,2,3,5,7,8,11],deg:["1","2","b3","4","5","b6","7"]}
 };
-/* Detecta la tonalidad: compara los acordes con las 24 tonalidades (diatónicos, primer/último acorde y frecuencia) */
-function detectKey(chs){
+/* Tonalidad: puntúa las 24 tonalidades con los acordes (diatónicos, raíz en la escala, tónica al inicio/final) */
+const triOf=q=>["m","m7","m6"].includes(q)?"m":["dim","m7b5","dim7"].includes(q)?"dim":"";
+function keyScore(chs,t,mode){
   const MAJ=[[0,""],[2,"m"],[4,"m"],[5,""],[7,""],[9,"m"],[11,"dim"]],MIN=[[0,"m"],[2,"dim"],[3,""],[5,"m"],[7,"m"],[7,""],[8,""],[10,""]];
-  const tri=q=>["m","m7","m6","min"].includes(q)?"m":["dim","m7b5","dim7"].includes(q)?"dim":"";
-  let best=null;
-  for(let t=0;t<12;t++)for(const mode of ["major","minor"]){
-    const set=mode==="major"?MAJ:MIN,scale=(mode==="major"?SCALES.ion:SCALES.aeo).iv.map(i=>(t+i)%12);let s=0;
-    chs.forEach((c,i)=>{const r=(c.root-t+12)%12;if(set.some(([d,q])=>d===r&&q===tri(c.q)))s+=2;else if(scale.includes(c.root))s+=.5;else s-=1;
-      if(r===0&&tri(c.q)===(mode==="major"?"":"m"))s+=i===0?2.5:i===chs.length-1?2:.6});
-    if(!best||s>best.s)best={t,mode,s};
-  }
-  return best;
-}
+  const set=mode==="major"?MAJ:MIN,scale=(mode==="major"?SCALES.ion:SCALES.aeo).iv.map(i=>(t+i)%12);let s=0;
+  chs.forEach((c,i)=>{const r=(c.root-t+12)%12,tq=triOf(c.q);
+    if(["sus2","sus4","7sus4","5"].includes(c.q)){if(scale.includes(c.root))s+=1.2;else s-=1}       // sin tercera: no dice si es mayor o menor
+    else if(set.some(([d,q])=>d===r&&q===tq))s+=2;else if(scale.includes(c.root))s+=.5;else s-=1;
+    if(r===0&&(tq===(mode==="major"?"":"m")||c.q==="5"))s+=i===0?2.5:i===chs.length-1?2:.6});
+  return s}
+function detectKey(chs){let best=null;for(let t=0;t<12;t++)for(const mode of ["major","minor"]){const s=keyScore(chs,t,mode);if(!best||s>best.s)best={t,mode,s}}return best}
+function parseKey(x){x=String(x||"").trim().replace(/♯/g,"#").replace(/♭/g,"b");
+  const sol=x.match(/^(do|re|mi|fa|sol|la|si)\s*([#b]?)(.*)$/i);
+  const m=sol?[0,"CDEFGAB"["do re mi fa sol la si".split(" ").indexOf(sol[1].toLowerCase())],sol[2],sol[3]]:x.match(/^([A-Ga-g])([#b]?)(.*)$/);if(!m)return null;
+  const t=pc(m[1].toUpperCase()+m[2]);if(t<0)return null;
+  return {t,mode:/^\s*(m|min|-)(?![a-z])|minor|menor|moll/i.test(m[3])?"minor":"major"}}
+const parseTune=x=>{x=String(x||"").toLowerCase();return /medio|half|semitono|\beb\b|-1/.test(x)?-1:/un tono|whole|d standard|-2|tono completo/.test(x)?-2:0};
 function shapesFor(c){
   // posiciones abiertas comunes (de 6a a 1a cuerda; -1 = no se toca)
   const OPEN={"C":[-1,3,2,0,1,0],"D":[-1,-1,0,2,3,2],"E":[0,2,2,1,0,0],"G":[3,2,0,0,0,3],"A":[-1,0,2,2,2,0],"Am":[-1,0,2,2,1,0],"Em":[0,2,2,0,0,0],"Dm":[-1,-1,0,2,3,1],
@@ -362,57 +398,82 @@ let tt;function toast(m,ms=2200){const e=$("#toast");e.textContent=m;e.classList
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const fmt=t=>{t=Math.max(0,t||0);return `${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,"0")}`};
 
+/* Afinación y cejilla: los acordes se guardan "como se tocan" (formas). Lo que suena = forma + cejilla + afinación.
+   Ej. Wonderwall: formas Em7 G Dsus4 A7sus4 con cejilla 2 → suena F#m7 A Esus4 B7sus4 (F# menor). */
+const mv=(c,d)=>({...c,root:(c.root+d+120)%12,bass:c.bass!=null?(c.bass+d+120)%12:null});
+const flatsFor=k=>k.mode==="major"?FLAT_KEYS.has(k.t):FLAT_KEYS.has((k.t+3)%12);
+let flatsPlayed=false;
+const shapeName=c=>{const o=useFlats;useFlats=flatsPlayed;const r=chordName(c);useFlats=o;return r};
+const TUNE_N={0:"Estándar","-1":"Medio tono abajo","-2":"Un tono abajo"};
 function analyze(){
-  const s=song(),all=s.sections.flatMap(x=>x.c).map(parseChord).filter(Boolean).map(c=>({...c,root:(c.root+transpose+12)%12,bass:c.bass!=null?(c.bass+transpose+12)%12:null}));
-  const k=all.length?detectKey(all):{t:9,mode:"minor"};
-  useFlats=k.mode==="major"?FLAT_KEYS.has(k.t):FLAT_KEYS.has((k.t+3)%12);
-  const uniq=[];all.forEach(c=>{if(!uniq.some(u=>u.root===c.root&&u.q===c.q))uniq.push(c)});
-  // escalas sugeridas según los acordes
-  const rel=x=>(x-k.t+12)%12,has=(d,q)=>all.some(c=>rel(c.root)===d&&(q==null||((["m","m7"].includes(c.q))?"m":["","7","maj7","6","9","add9","sus4","sus2","5"].includes(c.q)?"M":c.q)===q));
-  const dom7=all.filter(c=>c.q==="7").length>=2;
+  const s=song(),capo=s.capo||0,tune=s.tune||0,sh=capo+tune;
+  const played=s.sections.flatMap(x=>x.c).map(parseChord).filter(Boolean).map(c=>mv(c,transpose));
+  const all=played.map(c=>mv(c,sh));
+  const det=all.length?detectKey(all):{t:9,mode:"minor",s:0};
+  let k=det,src="acordes";
+  const man=parseKey(s.keyFix),ai=parseKey(s.aiKey);
+  if(man){k={t:(man.t+transpose+12)%12,mode:man.mode};src="manual"}
+  else if(ai&&all.length){
+    // La IA a veces da la tonalidad de las formas (sin contar la cejilla): se prueban las dos y gana la que cuadra con los acordes
+    const c1={t:(ai.t+transpose+12)%12,mode:ai.mode},c2={t:(ai.t+transpose+sh+120)%12,mode:ai.mode};
+    const s1=keyScore(all,c1.t,c1.mode),s2=sh?keyScore(all,c2.t,c2.mode):-1e9,c=s2>s1?c2:c1;
+    if(Math.max(s1,s2)>=det.s-Math.max(2,all.length*.15))src=(c.t===det.t&&c.mode===det.mode)?"ambos":"ia",k=c;
+  }
+  useFlats=flatsFor(k);flatsPlayed=flatsFor({t:(k.t-sh+120)%12,mode:k.mode});
+  const uniq=[];played.forEach(c=>{if(!uniq.some(u=>u.root===c.root&&u.q===c.q))uniq.push(c)});
+  // escalas sugeridas según los acordes (como suenan)
+  const rel=x=>(x-k.t+12)%12,has=(d,q)=>all.some(c=>rel(c.root)===d&&(q==null||((["m","m7","m6"].includes(c.q))?"m":["","7","maj7","6","9","add9","sus4","sus2","5","7sus4"].includes(c.q)?"M":c.q)===q));
+  const dom7=all.filter(c=>c.q==="7"||c.q==="9").length>=2;
   const sug=k.mode==="minor"
     ?[["pmin","Para el solo"],dom7?["blues","Sabor blues"]:null,["aeo","Melodía"],has(7,"M")?["harm","Sobre el V mayor"]:null,has(5,"M")?["dor","IV mayor"]:null].filter(Boolean)
     :[["pmaj","Para el solo"],["ion","Melodía"],has(10,"M")||dom7?["mix","bVII / dominantes"]:null,["pmin","Rock/blues"],dom7?["blues","Blues"]:null].filter(Boolean);
-  return {s,all,uniq,k,sug};
+  return {s,all,played,uniq,k,sug,capo,tune,sh,src,det};
 }
 function keyName(k){return `${ES[nn(k.t)]||nn(k.t)} ${k.mode==="major"?"mayor":"menor"}`}
+/* Raíz real de cada escala dentro de la tonalidad (todas quedan dentro de la armadura salvo las de color) */
+function scaleRoot(k,sc){
+  if(k.mode==="minor")return {pmin:k.t,blues:k.t,aeo:k.t,dor:k.t,harm:k.t,pmaj:(k.t+3)%12,ion:(k.t+3)%12,mix:(k.t+10)%12}[sc];
+  return {pmaj:k.t,ion:k.t,mix:k.t,pmin:k.t,blues:k.t,aeo:(k.t+9)%12,harm:(k.t+9)%12,dor:(k.t+2)%12}[sc];
+}
 
 /* ======================= Render ======================= */
 function render(){
-  const A=analyze(),{s,uniq,k,sug}=A;
-  if(!scaleK||!sug.some(x=>x[0]===scaleK))scaleK=sug[0][0];
-  // raíz de la escala: las escalas "menores" en tonalidad menor parten de la tónica; las "mayores" de la relativa mayor, y viceversa.
-  // En tonalidad mayor, pentatónica menor y blues se tocan desde la tónica (sonido rock/blues).
-  const minorish=["pmin","blues","aeo","dor","harm"].includes(scaleK);
-  const realRoot=k.mode==="minor"?(minorish?k.t:(k.t+3)%12):(minorish?(["pmin","blues"].includes(scaleK)?k.t:(k.t+9)%12):k.t);
+  const A=analyze(),{s,uniq,k,sug,capo,tune,sh,src}=A;
+  if(!scaleK||!SCALES[scaleK])scaleK=sug[0][0];
+  const realRoot=scaleRoot(k,scaleK);
   const SC=SCALES[scaleK],scaleSet=SC.iv.map(i=>(realRoot+i)%12);
-  $("#sTitle").textContent=s.title;$("#sArtist").textContent=[s.artist,s.bpm?`${s.bpm} bpm`:null].filter(Boolean).join(" · ");
-  $("#keyChip").textContent=nn(k.t)+(k.mode==="minor"?"m":"")+" · "+keyName(k);
+  $("#sTitle").textContent=s.title;$("#sArtist").textContent=[s.artist,s.bpm?`${s.bpm} bpm`:null,capo?`cejilla ${capo}`:null,tune?TUNE_N[tune].toLowerCase():null].filter(Boolean).join(" · ");
+  $("#keyChip").textContent=nn(k.t)+(k.mode==="minor"?"m":"")+" · "+keyName(k)+(src==="manual"?" ✓":"");
   if(!selChord||!uniq.some(u=>u.root===selChord.root&&u.q===selChord.q))selChord=null;
-  $("#chords").innerHTML=uniq.map((c,i)=>`<button class="chd press" style="--i:${i}" data-ch="${c.root}|${c.q}" aria-pressed="${!!selChord&&selChord.root===c.root&&selChord.q===c.q}"><b>${chordName({...c,bass:null})}</b><small>${QNAME[c.q]||c.q}</small>${chordSVG(c)}</button>`).join("");
+  $("#chords").innerHTML=uniq.map((c,i)=>`<button class="chd press" style="--i:${i}" data-ch="${c.root}|${c.q}" aria-pressed="${!!selChord&&selChord.root===c.root&&selChord.q===c.q}"><b>${shapeName({...c,bass:null})}</b><small>${sh?"suena "+chordName({...mv(c,sh),bass:null}):(QNAME[c.q]||c.q)}</small>${chordSVG(c)}</button>`).join("");
   let fiCount=0;
-  $("#secs").innerHTML=s.sections.map(sec=>`<div class="sec"><span>${esc(sec.n)}</span><div>${sec.c.map(x=>{const c=parseChord(x);if(!c)return `<button disabled>${esc(x)}</button>`;const t={...c,root:(c.root+transpose+12)%12,bass:c.bass!=null?(c.bass+transpose+12)%12:null};return `<button data-ch="${t.root}|${t.q}" data-fi="${fiCount++}" aria-pressed="${!!selChord&&selChord.root===t.root&&selChord.q===t.q}">${chordName(t)}</button>`}).join("")}</div></div>`).join("");
-  // análisis
-  const outside=uniq.filter(c=>chordTones(c).some(n=>!(k.mode==="major"?SCALES.ion:SCALES.aeo).iv.map(i=>(k.t+i)%12).includes(n)));
-  $("#analysis").innerHTML=`Tonalidad <b>${keyName(k)}</b>${transpose?` (transpuesta ${transpose>0?"+":""}${transpose})`:""}. Escala base: <b>${(k.mode==="major"?SCALES.ion:SCALES.aeo).iv.map(i=>nn(k.t+i)).join(" ")}</b>.`+
-    (outside.length?` Acordes prestados o fuera de la escala: <b>${outside.map(c=>chordName({...c,bass:null})).join(", ")}</b>.`:" Todos los acordes son de la misma escala.");
+  $("#secs").innerHTML=s.sections.map(sec=>`<div class="sec"><span>${esc(sec.n)}</span><div>${sec.c.map(x=>{const c=parseChord(x);if(!c)return `<button disabled>${esc(x)}</button>`;const t=mv(c,transpose);return `<button data-ch="${t.root}|${t.q}" data-fi="${fiCount++}" aria-pressed="${!!selChord&&selChord.root===t.root&&selChord.q===t.q}">${shapeName(t)}</button>`}).join("")}</div></div>`).join("");
+  // análisis: de dónde sale la tonalidad y cómo se relaciona con lo que tocas
+  const base=(k.mode==="major"?SCALES.ion:SCALES.aeo).iv.map(i=>(k.t+i)%12);
+  const outside=uniq.map(c=>mv(c,sh)).filter(c=>chordTones(c).some(n=>!base.includes(n)));
+  const srcTxt={ambos:"la IA y los acordes coinciden",ia:"según la IA; los acordes también cuadran",acordes:"calculada con los acordes",manual:"elegida por ti"}[src];
+  $("#analysis").innerHTML=`Tonalidad <b>${keyName(k)}</b> <span class="src">(${srcTxt}${transpose?`, transpuesta ${transpose>0?"+":""}${transpose}`:""})</span>. Escala base: <b>${base.map(nn).join(" ")}</b>.`+
+    (outside.length?` Acordes prestados o fuera de la escala: <b>${outside.map(c=>chordName({...c,bass:null})).join(", ")}</b>.`:" Todos los acordes son de la misma escala.")+
+    (capo?`<br>Con <b>cejilla en el traste ${capo}</b> tocas las formas de los acordes de arriba y suenan ${capo} semitono${capo>1?"s":""} más agudo. El diapasón muestra las notas reales (lo que suena).`:"")+
+    (tune?`<br>Afinación <b>${TUNE_N[tune].toLowerCase()}</b>: las formas suenan ${-tune===1?"medio tono":"un tono"} más grave.`:"")+
+    `<br><button class="lnk press" data-key>Cambiar tonalidad, cejilla o afinación</button>`;
   // escalas
-  $("#scales").innerHTML=[...sug.map(x=>x[0]),...(sug.some(x=>x[0]===scaleK)?[]:[scaleK])].map(x=>{const g=sug.find(s=>s[0]===x);return `<button data-sc="${x}" aria-pressed="${x===scaleK}">${SCALES[x].n}${g&&g===sug[0]?"<em>SOLO</em>":""}</button>`}).join("")+
-    Object.keys(SCALES).filter(x=>!sug.some(s=>s[0]===x)&&x!==scaleK).map(x=>`<button data-sc="${x}" aria-pressed="false" style="opacity:.6">${SCALES[x].n}</button>`).join("");
-  // posiciones de 5 trastes alrededor de la tónica en la 6a cuerda
-  const r6=(realRoot-4+12)%12;
+  $("#scales").innerHTML=sug.map(x=>`<button data-sc="${x[0]}" aria-pressed="${x[0]===scaleK}">${SCALES[x[0]].n}${x===sug[0]?"<em>SOLO</em>":""}</button>`).join("")+
+    Object.keys(SCALES).filter(x=>!sug.some(s=>s[0]===x)).map(x=>`<button data-sc="${x}" aria-pressed="${x===scaleK}" style="${x===scaleK?"":"opacity:.6"}">${SCALES[x].n}</button>`).join("");
+  // diapasón vertical: columnas = cuerdas (6a a 1a), filas = trastes. Las notas son las que suenan con esa afinación.
+  const tuning=[4,9,2,7,11,4].map(x=>(x+tune+12)%12),FRETS=15,ct=selChord?chordTones(mv(selChord,sh)):[];
+  // posiciones de 5 trastes alrededor de la tónica en la 6a cuerda (desde la cejilla)
+  let r6=(realRoot-tuning[0]+12)%12;if(r6<capo)r6+=12;
   $("#pos").innerHTML=`<button data-pos="0" aria-pressed="${posF===0}">Todo</button>`+[1,2,3,4,5].map(p=>`<button data-pos="${p}" aria-pressed="${posF===p}" aria-label="Posición ${p}">${p}</button>`).join("");
-  const win=posF?(()=>{const st=([r6,r6+2,r6+4,r6+7,r6+9][posF-1]-1+12)%12;return [Math.max(0,st),Math.max(0,st)+5]})():null;
-  // diapasón vertical: columnas = cuerdas (6a a 1a), filas = trastes
-  const tuning=[4,9,2,7,11,4],FRETS=15,ct=selChord?chordTones(selChord):[];
-  let h=`<span></span>${["E","A","D","G","B","e"].map(n=>`<span class="sn">${n}</span>`).join("")}`;let d=0;
+  const win=posF?(()=>{let st=[0,2,4,7,9].map(o=>r6+o)[posF-1]-1;while(st-12>=capo)st-=12;st=Math.max(capo,st);return [st,st+5]})():null;
+  let h=`<span></span>${tuning.map((n,i)=>`<span class="sn">${i===5?nn(n).toLowerCase():nn(n)}</span>`).join("")}`;let d=0;
   for(let f=0;f<=FRETS;f++){
-    h+=`<span class="fn">${f||""}</span>`;
-    for(let si=0;si<6;si++){const note=(tuning[si]+f)%12,inS=scaleSet.includes(note),isCt=ct.includes(note),dim=win&&(f<win[0]||f>win[1])&&f!==0;
+    h+=`<span class="fn">${f===capo&&capo?"C":f||""}</span>`;
+    for(let si=0;si<6;si++){const note=(tuning[si]+f)%12,inS=scaleSet.includes(note),isCt=ct.includes(note),blocked=capo&&f<capo,dim=blocked||(win&&(f<win[0]||f>win[1])&&!(f===capo));
       const iv=(note-realRoot+12)%12,deg=SC.iv.indexOf(iv)>=0?SC.deg[SC.iv.indexOf(iv)]:"";
-      let dot="";if(inS||isCt){const cls=["n",note===realRoot?"root":"",isCt?"ct":"",!inS?"out":""].join(" ");const lab=labelMode==="note"?nn(note):labelMode==="deg"?(deg||"·"):"";dot=`<span class="${cls}" style="--d:${d++}">${lab}</span>`}
+      let dot="";if((inS||isCt)&&!blocked){const cls=["n",note===realRoot?"root":"",isCt?"ct":"",!inS?"out":""].join(" ");const lab=labelMode==="note"?nn(note):labelMode==="deg"?(deg||"·"):"";dot=`<span class="${cls}" style="--d:${d++}">${lab}</span>`}
       const inl=([3,5,7,9,15].includes(f)&&si===3)||(f===12&&(si===2||si===4))?`<span class="inl"></span>`:"";
-      h+=`<span class="cell ${f===0?"open":""} ${dim?"dim":""}" style="--sw:${[2.6,2.2,1.9,1.5,1.2,1][si]}px">${inl}${dot}</span>`}
+      h+=`<span class="cell ${f===0?"open":""} ${dim?"dim":""} ${capo&&f===capo?"capo":""}" style="--sw:${[2.6,2.2,1.9,1.5,1.2,1][si]}px">${inl}${dot}</span>`}
   }
   $("#fb").innerHTML=h;
   // consejos
@@ -421,7 +482,7 @@ function render(){
   if(scaleK==="pmin"&&k.mode==="major")tips.push(`En tonalidad mayor la pentatónica menor de la tónica da sonido rock/blues; para algo más dulce usa la pentatónica mayor.`);
   if(k.mode==="minor"&&scaleK==="pmin")tips.push(`Es la opción más segura: casi cualquier nota de esta escala suena bien sobre toda la canción.`);
   outside.forEach(c=>{const t3=chordTones(c)[1];if(!scaleSet.includes(t3))tips.push(`Sobre <b>${chordName({...c,bass:null})}</b> apunta a la nota <b>${nn(t3)}</b> (su tercera, fuera de la escala) o evita la <b>${nn((t3+11)%12)}</b>.`)});
-  if(selChord)tips.push(`Ahora resaltadas en negro: notas de <b>${chordName(selChord)}</b> (${chordTones(selChord).map(nn).join(" ")}). Terminar frases en ellas suena “resuelto”.`);
+  if(selChord)tips.push(`Ahora resaltadas en negro: notas de <b>${chordName(mv(selChord,sh))}</b> (${ct.map(nn).join(" ")}). Terminar frases en ellas suena “resuelto”.`);
   else tips.push(`Toca un acorde arriba para ver sus notas sobre el diapasón y saber a cuáles apuntar cuando suene.`);
   if(s.tips)tips.unshift(`<b>IA:</b> ${esc(s.tips)}`);
   $("#tips").innerHTML=`<ul>${tips.map(t=>`<li>${t}</li>`).join("")}</ul>`;
@@ -450,7 +511,9 @@ async function loadVideo(id){
   $("#vid").innerHTML=`<div id="yt"></div>`;
   try{await loadYT()}catch(e){$("#vid").innerHTML=`<div class="ph"><div><b>Sin conexión con YouTube</b>Revisa tu internet.</div></div>`;return}
   player.yt=new YT.Player("yt",{videoId:id,playerVars:{playsinline:1,rel:0,modestbranding:1,controls:1},events:{onReady:()=>{player.ready=true;player.setRate(player.rate);uiLoop()},onStateChange:()=>ppIcon(),
-    onError:e=>{player.ready=false;$("#vid").innerHTML=`<div class="ph"><div><b>Ese video no se puede reproducir aquí</b>Puede no existir o su dueño no permite verlo fuera de YouTube. Pega otro link en la barra de arriba.</div></div>`;const s=song();if(s.yt===id){s.yt=null;save()}}}});
+    onError:e=>{player.ready=false;const s=song();if(s.yt!==id)return;
+      if(s.ytAlt&&s.ytAlt.length){s.yt=s.ytAlt.shift();s.ytInfo=null;save();toast("Ese video no deja verse aquí; probando otro…");loadVideo(s.yt);return}
+      s.yt=null;save();noVideo(s);toast(e&&(e.data===101||e.data===150)?"El dueño de ese video no permite verlo fuera de YouTube":"Ese video no se puede reproducir",3200)}}});
   render();
 }
 /* Audio propio: velocidad sin cambiar tono (preservesPitch) + cambio de tono en tiempo real con un desplazador granular (AudioWorklet) */
@@ -502,25 +565,106 @@ function ppIcon(){$("#pp").innerHTML=player.playing()?svg('<path d="M8 5v14M16 5
   tl.addEventListener("pointermove",move);tl.addEventListener("pointerup",()=>drag=null);tl.addEventListener("pointercancel",()=>drag=null);
 })();
 
-/* ======================= Búsqueda (Gemini) ======================= */
-const norm2=s=>String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
+/* ======================= Búsqueda =======================
+   1) La IA (Gemini) da título, artista, tonalidad real, cejilla, afinación, acordes por sección y varios videos candidatos.
+   2) Cada video se verifica antes de usarlo: que exista, que deje reproducirse fuera de YouTube y que su título sea de esa canción.
+   3) Si la clave también tiene activada la "YouTube Data API v3", se buscan videos reales directo en YouTube (lo más exacto).
+   4) Si ninguno sirve, se ofrece buscarlo en YouTube y pegar el link. */
+const norm2=s=>String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9ñ ]+/g," ").replace(/\s+/g," ").trim();
+const STOP=new Set("the a an of to in on and el la los las de del y en un una mi tu feat ft".split(" "));
+const words=s=>norm2(s).split(" ").filter(w=>w.length>1&&!STOP.has(w));
+/* Qué tanto un título de video corresponde a la canción (0–1) y si trae señales de versión equivocada */
+function matchScore(vt,title,artist){
+  const v=" "+norm2(vt)+" ",tw=words(title),aw=words(artist);
+  const tf=tw.length?tw.filter(w=>v.includes(" "+w+" ")).length/tw.length:0,af=aw.length?aw.filter(w=>v.includes(" "+w+" ")).length/aw.length:.5;
+  const bad=/\b(cover|karaoke|lesson|tutorial|leccion|como tocar|how to play|reaction|reaccion|8d|slowed|sped up|nightcore|remix|instrumental|backing track|guitar only)\b/.test(v);
+  const live=/\b(live|en vivo|concert|concierto|acoustic|acustico|unplugged)\b/.test(v)&&!/\b(live|vivo|acoustic|acustico|unplugged)\b/.test(norm2(title));
+  const off=/\b(official|oficial|topic|remaster|remastered|audio)\b/.test(v);
+  return tf*.7+af*.3-(bad?.6:0)-(live?.25:0)+(off?.08:0);
+}
+const withTimeout=(p,ms)=>Promise.race([p,new Promise((_,r)=>setTimeout(()=>r(new Error("timeout")),ms))]);
+/* {ok:true,title,author} existe y se puede incrustar · {ok:false,why} no sirve · null si no se pudo saber */
+async function ytInfo(id){
+  const u=encodeURIComponent("https://www.youtube.com/watch?v="+id);
+  try{const r=await withTimeout(fetch(`https://www.youtube.com/oembed?format=json&url=${u}`),5000);
+    if(r.ok){const j=await r.json();return {ok:true,title:j.title||"",author:j.author_name||""}}
+    if(r.status===401||r.status===403)return {ok:false,why:"no deja verse fuera de YouTube"};
+    if(r.status===404||r.status===400)return {ok:false,why:"no existe"};
+  }catch(e){}
+  try{const r=await withTimeout(fetch(`https://noembed.com/embed?url=${u}`),5000);if(r.ok){const j=await r.json();
+    if(j.error)return {ok:false,why:/401|403|embed/i.test(j.error)?"no deja verse fuera de YouTube":"no existe"};return {ok:true,title:j.title||"",author:j.author_name||""}}}catch(e){}
+  // último recurso: la miniatura (un video inexistente devuelve una imagen gris de 120×90)
+  return new Promise(res=>{const im=new Image(),t=setTimeout(()=>res(null),5000);im.onload=()=>{clearTimeout(t);res(im.naturalWidth<=120?{ok:false,why:"no existe"}:{ok:true,title:"",author:"",thumbOnly:true})};im.onerror=()=>{clearTimeout(t);res({ok:false,why:"no existe"})};im.src=`https://i.ytimg.com/vi/${id}/mqdefault.jpg`});
+}
+/* YouTube Data API con la misma clave de Google (solo funciona si esa API está activada en el proyecto) */
+const YT_OFF="riff-ytapi-off";
+async function ytApiSearch(q){
+  try{const off=+localStorage.getItem(YT_OFF)||0;if(Date.now()-off<3*864e5)return null}catch(e){}
+  const k=window.IA&&IA.key();if(!k)return null;
+  try{const r=await withTimeout(fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=6&q=${encodeURIComponent(q)}&key=${encodeURIComponent(k)}`),6000);
+    if(!r.ok){if(r.status===403||r.status===400)try{localStorage.setItem(YT_OFF,Date.now())}catch(e){}return null}
+    const j=await r.json();return (j.items||[]).map(x=>({id:x.id&&x.id.videoId,title:x.snippet?.title||"",author:x.snippet?.channelTitle||""})).filter(x=>x.id);
+  }catch(e){return null}
+}
+const decodeHtml=s=>{const t=document.createElement("textarea");t.innerHTML=s;return t.value};
+/* Ordena y verifica candidatos; devuelve [{id,title,author,score}] de mejor a peor (solo los que sirven) */
+async function findVideos(title,artist,aiList){
+  const out=[],seen=new Set();
+  const api=await ytApiSearch(`${title} ${artist}`);
+  (api||[]).forEach(v=>{if(seen.has(v.id))return;seen.add(v.id);const t=decodeHtml(v.title);out.push({id:v.id,title:t,author:v.author,score:matchScore(t+" "+v.author,title,artist)+.1,src:"youtube"})});
+  const ai=(aiList||[]).map(v=>({id:ytId(typeof v==="string"?v:v.url||""),hint:typeof v==="string"?"":v.title||""})).filter(v=>v.id&&!seen.has(v.id)&&(seen.add(v.id),true)).slice(0,5);
+  const infos=await Promise.all(ai.map(v=>ytInfo(v.id)));
+  ai.forEach((v,i)=>{const inf=infos[i];if(inf&&!inf.ok)return;
+    if(inf&&inf.title){const sc=matchScore(inf.title+" "+inf.author,title,artist);out.push({id:v.id,title:inf.title,author:inf.author,score:sc,src:"ia"});return}
+    // sin título que comparar: se acepta pero queda al final (la IA puede equivocarse de video)
+    out.push({id:v.id,title:v.hint,author:"",score:.3,src:"ia",unverified:true})});
+  return out.filter(v=>v.score>=.45||v.unverified).sort((a,b)=>b.score-a.score);
+}
 async function searchSong(q){
   const id=ytId(q);
-  if(id){const s=song();s.yt=id;save();loadVideo(id);toast("Video cargado: el loop y la velocidad ya funcionan");return}
-  const local=S.songs.find(s=>(s.title+" "+s.artist).toLowerCase().includes(q.toLowerCase()));
-  if(local&&norm2(local.title)===norm2(q)){selectSong(local.id);toast("Encontrada en tus canciones");return}
-  const b=$("#sgo");b.classList.add("busy");b.disabled=true;toast("Buscando “"+q+"” con IA…",8000);
-  try{const data=await geminiSong(q);const s={id:"u"+Date.now(),title:data.title||q,artist:data.artist||"",bpm:data.bpm||null,yt:ytId(data.youtubeUrl||"")||null,
-      sections:(data.sections||[]).map(x=>({n:x.name||"",c:(x.chords||[]).filter(c=>parseChord(c))})).filter(x=>x.c.length),tips:data.soloTips||""};
-    if(!s.sections.length)throw new Error("sin acordes");S.songs.unshift(s);save();selectSong(s.id);toast(s.yt?`${s.title}: acordes y video listos`:`${s.title}: acordes listos · pega el link de YouTube`,3200)}
-  catch(e){toast("No pude obtener los datos: "+(e.message||"error"),3500)}finally{b.classList.remove("busy");b.disabled=false}
+  if(id){const s=song();s.yt=id;s.ytAlt=[];s.ytInfo=null;save();loadVideo(id);toast("Video cargado: el loop y la velocidad ya funcionan");return}
+  const local=S.songs.find(s=>norm2(s.title)===norm2(q)||norm2(s.title+" "+s.artist)===norm2(q));
+  if(local){selectSong(local.id);toast("Encontrada en tus canciones");return}
+  const b=$("#sgo");b.classList.add("busy");b.disabled=true;toast("Buscando acordes de “"+q+"”…",15000);
+  try{const data=await geminiSong(q);
+    const sections=(data.sections||[]).map(x=>({n:x.name||"",c:(x.chords||[]).map(c=>String(c).trim()).filter(c=>parseChord(c))})).filter(x=>x.c.length);
+    if(!sections.length)throw new Error(data.found===false?"la IA no conoce esa canción; prueba con título y artista":"sin acordes");
+    const capo=Math.max(0,Math.min(11,parseInt(data.capo)||0));
+    const s={id:"u"+Date.now(),title:data.title||q,artist:data.artist||"",bpm:parseInt(data.bpm)||null,sections,tips:data.soloTips||"",
+      aiKey:data.key||"",capo,tune:parseTune(data.tuning),yt:null,ytAlt:[],ytInfo:null,conf:data.confidence||""};
+    S.songs.unshift(s);save();selectSong(s.id);
+    toast("Acordes listos · verificando el video…",8000);
+    const vids=await findVideos(s.title,s.artist,data.youtube||(data.youtubeUrl?[data.youtubeUrl]:[]));
+    if(S.cur!==s.id)return;
+    if(vids.length){s.yt=vids[0].id;s.ytAlt=vids.slice(1).map(v=>v.id);s.ytInfo={title:vids[0].title,author:vids[0].author,unverified:!!vids[0].unverified};save();loadVideo(s.yt);
+      toast(vids[0].unverified?`${s.title}: video sin verificar, revisa que sea el correcto`:`${s.title}: acordes y video verificado`,3200)}
+    else{save();noVideo(s);toast(`${s.title}: acordes listos · no encontré un video que se pueda ver aquí`,3600)}
+  }catch(e){toast("No pude obtener los datos: "+(e.message||"error"),3800)}finally{b.classList.remove("busy");b.disabled=false}
 }
 /* Pide los datos a la IA compartida (../shared/ia.js) en formato JSON */
 async function geminiSong(q){
   if(!window.IA)throw new Error("IA no disponible");
-  return IA.ask(`Eres un músico experto y transcriptor de acordes. Para la canción "${q}" devuelve un JSON con esta forma exacta:
-{"title":"","artist":"","key":"Am","bpm":0,"youtubeUrl":"https://www.youtube.com/watch?v=...","sections":[{"name":"Intro","chords":["Am","F","C","G"]}],"soloTips":""}
-Reglas: versión original del artista; cifrado americano (C, Am, F#m, Bb7, Cmaj7, D/F#); nombres de sección en español (Intro, Verso, Pre-coro, Coro, Puente, Solo); si no estás seguro del link de YouTube deja youtubeUrl vacío; soloTips en español, breve y práctico.`,{json:true});
+  return IA.ask(`Eres un guitarrista profesional y transcriptor de acordes. Busca en lo que sabes la canción "${q}" y devuelve SOLO un JSON con esta forma exacta:
+{"found":true,"title":"","artist":"","key":"F#m","capo":0,"tuning":"estándar","bpm":0,
+"youtube":[{"url":"https://www.youtube.com/watch?v=XXXXXXXXXXX","title":"título del video"}],
+"sections":[{"name":"Intro","chords":["Am","F","C","G"]}],"soloTips":"","confidence":"alta"}
+Reglas:
+- Versión de estudio original del artista (no en vivo ni covers). Si no conoces la canción pon "found":false.
+- "chords": acordes TAL COMO SE TOCAN en la guitarra en la versión más usada (si se toca con cejilla/capo, escribe las formas y pon el traste en "capo"; si no, capo 0). Cifrado americano: C, Am, F#m, Bb7, Cmaj7, Dsus4, D/F#. Nada de "N.C.", "x2" ni texto extra.
+- Cada sección en el orden real de la canción, con la secuencia completa de cambios de acorde de esa sección (repite acordes si se repiten).
+- "key": la tonalidad como SUENA la grabación original (contando capo y afinación), ej. "F#m" o "E".
+- "tuning": "estándar", "medio tono abajo" o "un tono abajo".
+- "youtube": hasta 4 videos del canal oficial del artista o su canal "- Topic" (audio oficial), solo IDs que conozcas con certeza; si dudas deja la lista vacía. Nunca inventes IDs.
+- Nombres de sección en español (Intro, Verso, Pre-coro, Coro, Puente, Solo, Final).
+- "soloTips" en español, 1–2 frases prácticas (escala y notas clave para improvisar).
+- "confidence": "alta", "media" o "baja" según qué tan seguro estés de los acordes.`,{json:true,temperature:.2});
+}
+function noVideo(s){
+  if(player.yt&&player.yt.destroy)try{player.yt.destroy()}catch(e){}
+  if(player.kind==="yt"){player.yt=null;player.kind=null;player.ready=false}
+  const q=encodeURIComponent(`${s.title} ${s.artist}`.trim());
+  $("#vid").innerHTML=`<div class="ph"><div><b>Sin video</b>Búscalo en YouTube, copia el link (Compartir → Copiar enlace) y pégalo en la barra de arriba.<br><a class="ytbtn press" href="https://www.youtube.com/results?search_query=${q}" target="_blank" rel="noopener">Buscar en YouTube</a></div></div>`;
+  render();
 }
 
 /* ======================= Hojas ======================= */
@@ -549,8 +693,19 @@ function menu(){const dark=document.documentElement.dataset.theme==="dark",it=(a
 function gemSheet(){openSheet(`<h3>Búsqueda con IA</h3><p class="lbl">Escribe una canción en la barra de arriba y la IA llena título, tonalidad, BPM, acordes por sección y consejos para el solo. La clave se guarda solo en este iPhone; aquí puedes cambiarla.</p>
   <div class="field"><input id="gK" placeholder="Clave propia (opcional)" value="${esc(window.IA&&IA.isCustom()?IA.key():"")}" autocomplete="off"></div>
   <div class="btns"><button class="btn" data-close>Cancelar</button><button class="btn dark" data-savegem>Guardar</button></div>`)}
+function keySheet(){const s=song(),A=analyze(),man=parseKey(s.keyFix),cap=s.capo||0,tn=s.tune||0;
+  const kb=(t,mode)=>{const on=man&&man.t===t&&man.mode===mode,o=useFlats;useFlats=flatsFor({t,mode});const n=nn(t)+(mode==="minor"?"m":"");useFlats=o;return `<button data-kf="${n}" aria-pressed="${!!on}">${n}</button>`};
+  const st=`${keyName(A.k)} · ${{ambos:"la IA y los acordes coinciden",ia:"según la IA",acordes:"calculada con los acordes",manual:"elegida por ti"}[A.src]}`;
+  openSheet(`<h3>Tonalidad y cejilla</h3><p class="lbl">Ahora: <b>${st}</b>. Si no cuadra con lo que oyes, corrígela aquí; el diapasón y las escalas se ajustan solos.</p>
+  <span class="lbl">Tonalidad (como suena la canción)</span>
+  <div class="keys"><button data-kf="" aria-pressed="${!man}" style="grid-column:span 6">Automática</button>${[0,7,2,9,4,11,6,1,8,3,10,5].map(t=>kb(t,"major")).join("")}${[9,4,11,6,1,8,3,10,5,0,7,2].map(t=>kb(t,"minor")).join("")}</div>
+  <span class="lbl">Cejilla (capo): los acordes de la canción son las formas que tocas</span>
+  <div class="keys">${[0,1,2,3,4,5,6,7].map(n=>`<button data-capo="${n}" aria-pressed="${cap===n}">${n||"No"}</button>`).join("")}</div>
+  <span class="lbl">Afinación</span>
+  <div class="keys">${[0,-1,-2].map(n=>`<button data-tune="${n}" aria-pressed="${tn===n}" style="grid-column:span 2;font-size:12px">${TUNE_N[n]}</button>`).join("")}</div>
+  <div class="btns"><button class="btn dark" data-close>Listo</button></div>`)}
 function selectSong(id){S.cur=id;save();transpose=0;selChord=null;pip.idx=0;scaleK=null;posF=0;const s=song();applyPitch();
-  if(s.yt)loadVideo(s.yt);else if(player.kind==="yt"){if(player.yt&&player.yt.destroy)try{player.yt.destroy()}catch(e){}player.yt=null;player.kind=null;player.ready=false;$("#vid").innerHTML=`<div class="ph"><div><b>Sin video</b>Pega el link de YouTube de esta canción en la barra de arriba.</div></div>`}
+  if(s.yt)loadVideo(s.yt);else if(player.kind!=="file")noVideo(s);
   render();scrollTo({top:0,behavior:"smooth"})}
 
 /* ======================= Eventos ======================= */
@@ -569,6 +724,10 @@ document.addEventListener("click",e=>{
   if(t=g("[data-sc]")){scaleK=t.dataset.sc;render();return}
   if(t=g("[data-lm]")){labelMode=t.dataset.lm;document.querySelectorAll("[data-lm]").forEach(b=>b.setAttribute("aria-pressed",b===t));render();return}
   if(t=g("[data-pos]")){posF=+t.dataset.pos;render();return}
+  if(g("[data-key]")||g("#keyChip")){keySheet();return}
+  if(t=g("[data-kf]")){const s=song();s.keyFix=t.dataset.kf;save();scaleK=null;render();const y=$("#sheet").scrollTop;keySheet();$("#sheet").scrollTop=y;return}
+  if(t=g("[data-capo]")){const s=song();s.capo=+t.dataset.capo;save();render();const y=$("#sheet").scrollTop;keySheet();$("#sheet").scrollTop=y;return}
+  if(t=g("[data-tune]")){const s=song();s.tune=+t.dataset.tune;save();render();const y=$("#sheet").scrollTop;keySheet();$("#sheet").scrollTop=y;return}
   if(g("[data-lib]")){library();return}
   if(g("[data-menu]")){menu();return}
   if(g("[data-gem]")){gemSheet();return}
@@ -606,11 +765,11 @@ function drawPip(){
   c.fillStyle="#16171A";c.fillRect(0,0,W,H);
   // encabezado
   c.fillStyle="#8E8E96";c.font=`600 26px ${F}`;c.textBaseline="alphabetic";c.fillText((A.s.title||"").slice(0,34),40,58);
-  const kt=`${nn(A.k.t)}${A.k.mode==="minor"?"m":""} · ${SCALES[scaleK||"pmin"].n}`;c.font=`700 24px ${F}`;const kw=c.measureText(kt).width+32;
+  const kt=`${nn(A.k.t)}${A.k.mode==="minor"?"m":""} · ${SCALES[scaleK||"pmin"].n}${A.capo?" · C"+A.capo:""}`;c.font=`700 24px ${F}`;const kw=c.measureText(kt).width+32;
   rr(W-40-kw,28,kw,44,22);c.fillStyle="#C6EE3A";c.fill();c.fillStyle="#16171A";c.fillText(kt,W-40-kw+16,59);
   if(!cur){c.fillStyle="#fff";c.font=`700 40px ${F}`;c.fillText("Sin acordes",40,280);return}
   // acorde actual grande + diagrama
-  c.fillStyle="#fff";c.font=`800 150px ${F}`;c.fillText(chordName({...cur,bass:null}),40,250);
+  c.fillStyle="#fff";c.font=`800 150px ${F}`;c.fillText(shapeName({...cur,bass:null}),40,250);
   c.fillStyle="#8E8E96";c.font=`600 26px ${F}`;c.fillText(`${QNAME[cur.q]||cur.q} · notas ${chordTones(cur).map(nn).join(" ")}`,44,296);
   const f=shapesFor(cur),fr=f.filter(x=>x>0),mx=fr.length?Math.max(...fr):1,mn=fr.length?Math.min(...fr):1,base=mx<=4?1:mn,x0=660,x1=910,y0=150,dy=56,dx=(x1-x0)/5;
   c.strokeStyle="#4A4C53";c.lineWidth=4;for(let i=0;i<6;i++){c.beginPath();c.moveTo(x0+i*dx,y0);c.lineTo(x0+i*dx,y0+dy*4);c.stroke()}
@@ -620,8 +779,8 @@ function drawPip(){
     else{const root=(([4,9,2,7,11,4][i]+x)%12)===cur.root;c.fillStyle=root?"#C6EE3A":"#fff";c.beginPath();c.arc(cx,y0+(x-base+.5)*dy,20,0,7);c.fill()}c.textAlign="left"});
   // progresión con el actual resaltado
   const start=Math.max(0,Math.min(pip.idx-1,pr.length-5)),vis=pr.slice(start,start+6);let x=40;c.font=`700 30px ${F}`;
-  vis.forEach((ch,i)=>{const t=chordName({...ch,bass:null}),w=Math.max(70,c.measureText(t).width+34),on=start+i===pip.idx;if(x+w>610)return;rr(x,350,w,58,18);c.fillStyle=on?"#C6EE3A":"#27272B";c.fill();c.fillStyle=on?"#16171A":"#F3F3F4";c.fillText(t,x+(w-c.measureText(t).width)/2,390);x+=w+12});
-  c.fillStyle="#8E8E96";c.font=`600 24px ${F}`;c.fillText(`Sigue: ${nxt?chordName({...nxt,bass:null}):"—"}   ·   ${pip.idx+1} de ${pr.length}`,40,450);
+  vis.forEach((ch,i)=>{const t=shapeName({...ch,bass:null}),w=Math.max(70,c.measureText(t).width+34),on=start+i===pip.idx;if(x+w>610)return;rr(x,350,w,58,18);c.fillStyle=on?"#C6EE3A":"#27272B";c.fill();c.fillStyle=on?"#16171A":"#F3F3F4";c.fillText(t,x+(w-c.measureText(t).width)/2,390);x+=w+12});
+  c.fillStyle="#8E8E96";c.font=`600 24px ${F}`;c.fillText(`Sigue: ${nxt?shapeName({...nxt,bass:null}):"—"}   ·   ${pip.idx+1} de ${pr.length}`,40,450);
   // tiempo y loop
   const d=player.duration()||0,tm=player.time()||0,bx=40,bw=W-80,by=490;rr(bx,by,bw,10,5);c.fillStyle="#27272B";c.fill();
   if(d&&player.a!=null&&player.b!=null){rr(bx+bw*player.a/d,by-6,bw*(player.b-player.a)/d,22,8);c.fillStyle="rgba(198,238,58,.45)";c.fill()}
