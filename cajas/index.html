@@ -17,6 +17,7 @@
 (function(){var t="light";try{t=localStorage.getItem("diapps-theme")||"light"}catch(e){}document.documentElement.dataset.theme=t})();
 </script>
 <link rel="manifest" href="manifest.webmanifest">
+<script src="../shared/ia.js"></script>
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -131,6 +132,20 @@ h1{font-size:40px;font-weight:600;letter-spacing:-.035em;line-height:1.05;margin
 .legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--ink2);font-weight:500;margin:16px 4px 0}
 .legend i{display:inline-block;border-radius:3px;background:var(--ink3);margin-right:6px;vertical-align:middle}
 
+/* vista previa al mantener presionado */
+.peek{position:fixed;inset:0;z-index:45;display:grid;place-items:center;padding:24px;pointer-events:none;background:rgba(0,0,0,0);backdrop-filter:blur(0);-webkit-backdrop-filter:blur(0);transition:background-color .25s,backdrop-filter .25s,-webkit-backdrop-filter .25s}
+.peek.on{background:rgba(0,0,0,.35);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.peek .pc{width:min(380px,100%);border-radius:26px;overflow:hidden;background:var(--card);box-shadow:0 24px 60px rgba(0,0,0,.35);transform:scale(.6);opacity:0;transition:transform .45s var(--spring),opacity .2s}
+.peek.on .pc{transform:none;opacity:1}
+.peek .pi{aspect-ratio:4/3;background:#0B0B0C;display:grid;place-items:center}
+.peek .pi img{width:100%;height:100%;object-fit:cover}
+.peek .pt{padding:12px 16px 14px;display:flex;align-items:center;gap:10px}
+.peek .pt b{font-family:var(--label);font-size:20px;letter-spacing:.04em;text-transform:uppercase;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.peek .pt span{font-size:12.5px;color:var(--ink2);font-weight:600}
+.peek .pl{padding:0 16px 14px;display:flex;flex-wrap:wrap;gap:5px}
+.peek .pl i{font-style:normal;padding:4px 10px;border-radius:99px;background:var(--card2);font-size:12.5px;font-weight:600}
+.bx.pressing{transform:scale(.94);transition-duration:.25s}
+.ai{display:flex;align-items:center;gap:8px}
 /* visor de caja abierta */
 .ghost{position:fixed;z-index:40;border-radius:16px;pointer-events:none;transform-origin:0 0}
 .viewer{position:fixed;inset:0;z-index:41;background:#0B0B0C;color:#fff;display:flex;flex-direction:column;opacity:0;transition:opacity .25s}
@@ -241,6 +256,7 @@ h1{font-size:40px;font-weight:600;letter-spacing:-.035em;line-height:1.05;margin
 <input type="file" id="file" accept="image/*" multiple hidden>
 <div class="scrim" id="scrim" hidden></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" hidden><div class="grab"></div><div id="sheetBody"></div></div>
+<div class="peek" id="peek" aria-hidden="true"></div>
 <div class="toast" id="toast" role="status"></div>
 
 <script>
@@ -287,6 +303,7 @@ const KEY="cajas1";
 let S;try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 if(!S||!Array.isArray(S.boxes)){S={zones:DEFAULT_ZONES,boxes:DEFAULT_BOXES.map((b,i)=>({id:"b"+(i+1),...b})),nid:DEFAULT_BOXES.length+1}}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast("No se pudo guardar")}};
+if(!S.v||S.v<2){const big=S.boxes.filter(b=>b.s==="xl");S.boxes=S.boxes.filter(b=>b.s!=="xl").concat(big);S.v=2;save()}
 
 /* ======================= Fotos en IndexedDB (aguanta muchas fotos, no como localStorage) ======================= */
 let dbp=null;
@@ -394,6 +411,7 @@ function showViewer(b,pid){
   ${ps.length?`<div class="slides" id="slides">${ps.map(p=>`<div class="slide" data-pid="${p.id}"><img src="${urlOf(p)}" alt="Interior de ${esc(b.n)}"></div>`).join("")}</div>${ps.length>1?`<div class="dots">${ps.map((p,i)=>`<i class="${i===start?"on":""}"></i>`).join("")}</div>`:""}`
     :`<div class="slides" style="display:grid;place-items:center"><div class="empty"><div class="art" style="--c:${getComputedStyle(document.documentElement).getPropertyValue("--"+b.c)}"><span class="b"></span><span class="l"></span></div><div><b style="color:#fff;font-size:17px">Aún no hay foto de esta caja</b><br>Ábrela, toma una foto de lo que tiene adentro y súbela aquí.</div></div></div>`}
   <div class="vbot">${(b.items||[]).length?`<div class="items">${b.items.map(i=>`<span class="${q&&norm(i).includes(norm(q))?"hit":""}">${esc(i)}</span>`).join("")}</div>`:""}
+    ${ps.length?`<div class="vbtns" style="margin-bottom:8px"><button data-aiscan="${b.id}" id="aiscan">${svg('<path d="M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z"/>')}Detectar contenido con IA</button></div>`:""}
     <div class="vbtns"><button data-edit="${b.id}">${svg('<path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17v3z"/>')}Editar</button><label for="file" class="main">${svg(CAM,2)}${ps.length?"Otra foto":"Agregar foto"}</label></div></div>`;
   document.body.appendChild(v);requestAnimationFrame(()=>v.classList.add("on"));
   const sl=v.querySelector("#slides");
@@ -448,9 +466,15 @@ addEventListener("storage",e=>{if(e.key==="diapps-theme"&&e.newValue){document.d
 document.addEventListener("click",async e=>{
   const g=s=>e.target.closest(s);let t;
   if(g("[data-close-viewer]")){closeViewer();return}
+  if(t=g("[data-aiscan]")){const b=B(t.dataset.aiscan),sl=$("#slides"),i=sl?Math.round(sl.scrollLeft/sl.clientWidth):0,p=photosOf(b.id)[i];if(!p||!window.IA)return;
+    t.disabled=true;t.innerHTML=`${svg('<path d="M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z"/>')}Viendo la foto…`;
+    try{const r=await IA.ask(`Esta es la foto de una caja abierta llamada "${b.n}". Lista los objetos que se ven, en español, nombres cortos y útiles para buscarlos después (ej. "Multímetro", "Cables dupont", "Arduino Uno"). Máximo 20. Devuelve JSON: {"items":["..."]}`,{json:true,image:p.blob});
+      const found=(r.items||[]).map(x=>String(x).trim()).filter(Boolean),prev=b.items||[],add=found.filter(x=>!prev.some(y=>y.toLowerCase()===x.toLowerCase()));
+      b.items=prev.concat(add);save();$("#viewer").remove();showViewer(b,p.id);render();toast(add.length?`Anoté ${add.length} cosa${add.length>1?"s":""} nueva${add.length>1?"s":""}`:"No encontré cosas nuevas",2600)}
+    catch(err){toast("No pude analizar la foto: "+err.message,3000);t.disabled=false;t.textContent="Reintentar con IA"}return}
   if(g("[data-delphoto]")){const sl=$("#slides"),i=Math.round(sl.scrollLeft/sl.clientWidth),p=photosOf(openId)[i];if(!p)return;if(!confirm("¿Borrar esta foto?"))return;await delPhoto(p.id);urls.delete(p.id);await loadPhotos();const id=openId;$("#viewer").remove();showViewer(B(id));render();toast("Foto borrada");return}
   if(t=g("[data-go]")){closeSheet();go(t.dataset.go);return}
-  if(t=g("[data-box]")){if(t.dataset.box==="_")return;if(editing)editor(B(t.dataset.box));else openBox(t.dataset.box);return}
+  if(t=g("[data-box]")){if(t.dataset.box==="_"||peekUsed){peekUsed=false;return}if(editing)editor(B(t.dataset.box));else openBox(t.dataset.box);return}
   if(t=g("[data-open]")){openBox(t.dataset.open,t.dataset.pid);return}
   if(t=g("[data-new]")){editor(null,t.dataset.new||null);return}
   if(g("[data-edit-mode]")){editing=!editing;if(editing&&screen!=="map"){screen="map"}render(true);toast(editing?"Modo editar: toca una caja":"Listo");return}
@@ -475,6 +499,22 @@ document.addEventListener("click",async e=>{
   if(g("[data-theme-toggle]")){closeSheet();setTimeout(toggleTheme,200);return}
 });
 document.addEventListener("input",e=>{if(e.target.id==="bn")preview()});
+/* Mantener presionada una caja: aparece su foto mientras no sueltes */
+let peekUsed=false;
+(()=>{let timer=null,el=null,sx=0,sy=0,shown=false;const pk=$("#peek");
+  const show=b=>{const ps=photosOf(b.id),p=ps.at(-1);shown=true;peekUsed=true;
+    pk.innerHTML=`<div class="pc">${p?`<div class="pi"><img src="${urlOf(p)}" alt=""></div>`:`<div class="pi" style="background:${getComputedStyle(document.documentElement).getPropertyValue("--"+b.c)}"><span style="color:#fff;font-weight:600;opacity:.8">Sin foto todavía</span></div>`}
+      <div class="pt"><b>${esc(b.n)}</b><span>${ps.length?ps.length+" foto"+(ps.length>1?"s":""):""}</span></div>${(b.items||[]).length?`<div class="pl">${b.items.slice(0,12).map(i=>`<i>${esc(i)}</i>`).join("")}</div>`:""}</div>`;
+    requestAnimationFrame(()=>pk.classList.add("on"));try{navigator.vibrate&&navigator.vibrate(8)}catch(e){}};
+  const hide=()=>{clearTimeout(timer);timer=null;if(el)el.classList.remove("pressing");el=null;if(shown){pk.classList.remove("on");shown=false;setTimeout(()=>{if(!pk.classList.contains("on"))pk.innerHTML=""},300)}};
+  document.addEventListener("pointerdown",e=>{const b=e.target.closest(".bx[data-box]");if(!b||editing||b.dataset.box==="_")return;el=b;sx=e.clientX;sy=e.clientY;peekUsed=false;b.classList.add("pressing");
+    timer=setTimeout(()=>{const box=B(b.dataset.box);if(box)show(box)},380)});
+  document.addEventListener("pointermove",e=>{if(el&&!shown&&(Math.abs(e.clientX-sx)>8||Math.abs(e.clientY-sy)>8))hide()},{passive:true});
+  ["pointerup","pointercancel"].forEach(t=>document.addEventListener(t,hide));
+  document.addEventListener("contextmenu",e=>{if(e.target.closest(".bx"))e.preventDefault()});
+  // mientras se ve la vista previa, que la página no se desplace
+  document.addEventListener("touchmove",e=>{if(shown&&e.cancelable)e.preventDefault()},{passive:false});
+})();
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){if(!$("#sheet").hidden)closeSheet();else closeViewer()}});
 ["gesturestart","gesturechange"].forEach(t=>document.addEventListener(t,e=>e.preventDefault(),{passive:false}));
 // arrastrar la hoja hacia abajo para cerrarla

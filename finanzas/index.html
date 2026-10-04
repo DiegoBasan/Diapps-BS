@@ -17,6 +17,7 @@
 (function(){var t="light";try{t=localStorage.getItem("diapps-theme")||"light"}catch(e){}document.documentElement.dataset.theme=t})();
 </script>
 <link rel="manifest" href="manifest.webmanifest">
+<script src="../shared/ia.js"></script>
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -227,6 +228,8 @@ h2{font-size:19px;font-weight:600;margin:0;letter-spacing:-.01em}
 .msg.bot{align-self:flex-start;background:var(--card);border-bottom-left-radius:8px}
 .msg.bot b{font-weight:700}
 .msg.bot ul{margin:6px 0 0;padding-left:18px}
+.typing{display:inline-block;animation:blink 1s ease-in-out infinite alternate}
+@keyframes blink{from{opacity:.35}}
 .sugs{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:6px -18px 0;padding:0 18px}
 .sugs::-webkit-scrollbar{display:none}
 .sug{flex:none;height:38px;padding:0 15px;border-radius:99px;background:var(--card);font-size:13.5px;font-weight:600}
@@ -598,6 +601,8 @@ function answer(raw){
     const tx={id:S.nid++,d:t,type:"out",cat,a:amt,acc:/efectivo|cash/.test(s)?"cash":/\bnu\b/.test(s)?"nu":/mercado ?pago|\bmp\b/.test(s)?"mp":/aqua/.test(s)?"bbvaa":"bbva",note:note||CATS[cat].n};S.tx.push(tx);
     return `Listo, registré <b>${money(amt)}</b> en <b>${CATS[cat].n}</b> (${acc(tx.acc).n}). Este mes llevas ${money(mO+amt)} gastados.`}
   if(amt&&/(me pagaron|cobre|recibi|ingreso|deposito|me depositaron)/.test(s)){const cat=/sueldo|quincena|nomina/.test(s)?"sueldo":"extra";S.tx.push({id:S.nid++,d:t,type:"in",cat,a:amt,acc:/mercado ?pago/.test(s)?"mp":"bbva",note:CATS[cat].n});return `Anotado: ingreso de <b>${money(amt)}</b> como ${CATS[cat].n}.`}
+  // preguntas largas o abiertas: mejor que las conteste la IA con contexto
+  if(raw.trim().length>55||/(realista|deberia|conviene|plan|estrategia|como puedo|que me recomiendas|por que|meta)/.test(s))return null;
   // puedo gastar
   if(amt&&/(puedo|alcanza|me conviene|deberia)/.test(s)){const goal=expI*S.goal/100,left=expI-goal-mO,daily=(left-amt)/Math.max(1,dim-dom);
     return left-amt>=0?`Sí. Con tu ingreso de ~${money(expI)} y meta de ahorro de ${S.goal}%, te quedan <b>${money(left)}</b> este mes. Después de gastar ${money(amt)} tendrías <b>${money(daily)} por día</b> hasta fin de mes.`
@@ -605,7 +610,7 @@ function answer(raw){
   const cat=catFrom(raw);
   if(/gasolina|jetta|carro|auto/.test(s)){const l=outs(monthStart(-2),t).filter(x=>x.cat==="auto"),g=l.filter(x=>/gasolina/i.test(x.note)),mg=outs(ms,t).filter(x=>x.cat==="auto");
     return `En auto llevas <b>${money(sum(mg))}</b> este mes. En los últimos 3 meses: ${money(sum(g))} en gasolina (${g.length} cargas, ~${money(g.length?sum(g)/g.length:0)} c/u) y ${money(sum(l)-sum(g))} en servicio y otros. <br>Tip: registra kilometraje en <a href="../jetta/">Mi Jetta</a> para saber cuánto te cuesta cada km.`}
-  if(cat&&CATS[cat].k!=="in"&&/(cuanto|gaste|gasto|llevo|en )/.test(s)){const v=sum(outs(ms,t).filter(x=>x.cat===cat)),pv=sum(outs(monthStart(-1),addDays(monthStart(-1),dom-1)).filter(x=>x.cat===cat)),p=pct(v,pv);
+  if(cat&&CATS[cat].k!=="in"&&/(cuanto|gaste|gasto|llevo)/.test(s)){const v=sum(outs(ms,t).filter(x=>x.cat===cat)),pv=sum(outs(monthStart(-1),addDays(monthStart(-1),dom-1)).filter(x=>x.cat===cat)),p=pct(v,pv);
     return `En <b>${CATS[cat].n}</b> llevas <b>${money(v)}</b> este mes${p!=null&&isFinite(p)?`, ${p>0?"<b>"+p.toFixed(0)+"% más</b>":Math.abs(p).toFixed(0)+"% menos"} que a estas alturas del mes pasado (${money(pv)})`:""}.`}
   if(/cerrar|proyeccion|fin de mes|terminar|voy a acabar|como voy/.test(s)){const rest=sum(outs(addDays(monthStart(-1),dom),monthEnd(-1))),proj=mO+rest,sav=expI-proj;
     return `Llevas ${money(mO)}. Si el resto del mes se parece al mes pasado (${money(rest)} del día ${dom+1} en adelante), cerrarías con <b>${money(proj)}</b> de gasto. Con ingresos de ~${money(expI)} ahorrarías <b class="${sav>=0?"":""}">${money(sav)}</b> (${Math.round(sav/expI*100)}%). ${sav/expI*100>=S.goal?"Vas arriba de tu meta 👌":"Para llegar al "+S.goal+"% tendrías que recortar ~"+money((expI*S.goal/100-sav)/Math.max(1,dim-dom))+" por día."}`}
@@ -622,9 +627,19 @@ function answer(raw){
     tips.push(`Automatiza: aparta el ${S.goal}% el día de quincena, antes de gastar.`);
     return `Algunas ideas con tus números:<ul>${tips.map(x=>`<li>${x}</li>`).join("")}</ul>`}
   if(/hola|buenas|que tal/.test(s))return `¡Hola! Pregúntame cuánto llevas gastado, cómo vas a cerrar el mes, si te alcanza para algo, o dime “gasté 300 en súper” y lo registro.`;
-  return `No entendí del todo. Prueba con:<ul><li>“¿Cuánto gasté en comida?”</li><li>“¿Puedo gastar $2,000?”</li><li>“gasté 450 en gasolina”</li><li>“Dame un consejo”</li></ul>`;
+  return null; // sin regla local: lo responde la IA
 }
-function ask(text){if(!text.trim())return;S.chat.push({me:1,h:text.replace(/</g,"&lt;"),t:now()});const r=answer(text);S.chat.push({me:0,h:r,t:now()});S.chat=S.chat.slice(-40);save();render();requestAnimationFrame(()=>scrollTo({top:document.body.scrollHeight,behavior:"smooth"}))}
+/* Resumen de tus números para que la IA conteste con contexto (no se mandan movimientos uno por uno) */
+function finContext(){const t=today(),ms=monthStart(),dom=parse(t).getDate(),bl=balances(),cat=(a,b)=>{const o={};outs(a,b).forEach(x=>o[CATS[x.cat].n]=(o[CATS[x.cat].n]||0)+x.a);return o};
+  return JSON.stringify({hoy:t,moneda:"MXN",mes:{gastado:sum(outs(ms,t)),ingresos:sum(ins(ms,t)),porCategoria:cat(ms,t)},mesPasado:{gastado:sum(outs(monthStart(-1),monthEnd(-1))),ingresos:sum(ins(monthStart(-1),monthEnd(-1))),porCategoria:cat(monthStart(-1),monthEnd(-1))},
+    mesPasadoMismoDia:sum(outs(monthStart(-1),addDays(monthStart(-1),dom-1))),cuentas:Object.fromEntries(Object.keys(ACCS).map(k=>[acc(k).n+" ("+acc(k).t+")",Math.round(bl[k])])),metaAhorroPct:S.goal,ultimos:S.tx.slice().sort((a,b)=>b.d.localeCompare(a.d)).slice(0,12).map(x=>[x.d,x.type,CATS[x.cat].n,x.a,x.note,acc(x.acc).n])})}
+async function ask(text){if(!text.trim())return;S.chat.push({me:1,h:text.replace(/</g,"&lt;"),t:now()});let r=answer(text);
+  if(r==null){S.chat.push({me:0,h:'<span class="typing">Pensando…</span>',t:now(),tmp:1});render();requestAnimationFrame(()=>scrollTo({top:document.body.scrollHeight,behavior:"smooth"}));
+    try{const txt=await IA.ask(`Pregunta de Diego: "${text}"\n\nSus datos financieros (MXN): ${finContext()}`,{system:"Eres el asistente de finanzas personales de Diego, en México. Responde en español, breve (máximo 5 líneas), cálido y concreto, usando sus números reales. Usa <b>negritas</b> para cifras clave y <ul><li> si listas cosas. No inventes datos que no estén en el contexto. Si piden registrar un gasto, dile que escriba por ejemplo “gasté 250 en comida”."});
+      r=txt.replace(/```html|```/g,"").replace(/\*\*(.+?)\*\*/g,"<b>$1</b>").replace(/\n+/g,"<br>").replace(/<br>\s*(<\/?(?:ul|ol|li)[^>]*>)/g,"$1").replace(/(<\/?(?:ul|ol|li)[^>]*>)\s*<br>/g,"$1")}
+    catch(e){r=`No pude consultar a la IA (${e.message}). Prueba con:<ul><li>“¿Cuánto gasté en comida?”</li><li>“¿Puedo gastar $2,000?”</li><li>“gasté 450 en gasolina”</li></ul>`}
+    S.chat=S.chat.filter(m=>!m.tmp)}
+  S.chat.push({me:0,h:r,t:now()});S.chat=S.chat.slice(-40);save();render();requestAnimationFrame(()=>scrollTo({top:document.body.scrollHeight,behavior:"smooth"}))}
 
 /* ======================= Render y navegación ======================= */
 const ORDER=["home","budget","stats","chat"];

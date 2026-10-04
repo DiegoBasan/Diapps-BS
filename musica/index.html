@@ -17,6 +17,7 @@
 (function(){var t="light";try{t=localStorage.getItem("diapps-theme")||"light"}catch(e){}document.documentElement.dataset.theme=t})();
 </script>
 <link rel="manifest" href="manifest.webmanifest">
+<script src="../shared/ia.js"></script>
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -422,11 +423,12 @@ function render(){
   outside.forEach(c=>{const t3=chordTones(c)[1];if(!scaleSet.includes(t3))tips.push(`Sobre <b>${chordName({...c,bass:null})}</b> apunta a la nota <b>${nn(t3)}</b> (su tercera, fuera de la escala) o evita la <b>${nn((t3+11)%12)}</b>.`)});
   if(selChord)tips.push(`Ahora resaltadas en negro: notas de <b>${chordName(selChord)}</b> (${chordTones(selChord).map(nn).join(" ")}). Terminar frases en ellas suena “resuelto”.`);
   else tips.push(`Toca un acorde arriba para ver sus notas sobre el diapasón y saber a cuáles apuntar cuando suene.`);
+  if(s.tips)tips.unshift(`<b>IA:</b> ${esc(s.tips)}`);
   $("#tips").innerHTML=`<ul>${tips.map(t=>`<li>${t}</li>`).join("")}</ul>`;
   {const pr=progression(),pp2=$("#pipPos");if(pp2)pp2.textContent=pr.length?`${(pip.idx%pr.length)+1} de ${pr.length}`:""}
   $("#kPitch").textContent=(transpose>0?"+":"")+transpose;
   $("#kPitchL").textContent=player.kind==="file"?"Tono del audio":"Tono (acordes)";
-  $("#pnote").textContent=player.kind==="yt"?"YouTube no permite cambiar el tono del audio: el tono transpone acordes y diapasón. Con un audio tuyo (menú) también cambia el sonido.":player.kind==="file"?"Audio local: velocidad sin cambiar el tono y tono sin cambiar la velocidad.":"";
+  $("#pnote").textContent=player.kind==="yt"?"YouTube no deja procesar el sonido de sus videos, así que aquí el tono mueve acordes y diapasón. Para oír la canción más grave o aguda usa un audio tuyo (menú → Usar un audio mío).":player.kind==="file"?(transpose?"El cambio de tono procesa el audio en vivo: si sales de la app, iOS puede pausarlo.":"Sin cambio de tono el audio puede seguir sonando aunque salgas de la app (controles en la pantalla de bloqueo)."):"";
 }
 
 /* ======================= Reproductor: YouTube o archivo propio ======================= */
@@ -435,7 +437,7 @@ const player={kind:null,yt:null,el:null,dur:0,rate:1,a:null,b:null,loop:false,re
   duration(){return this.kind==="yt"&&this.yt&&this.yt.getDuration?this.yt.getDuration():this.kind==="file"?(this.el.duration||0):0},
   playing(){return this.kind==="yt"&&this.yt&&this.yt.getPlayerState?this.yt.getPlayerState()===1:this.kind==="file"?!this.el.paused:false},
   seek(t){t=Math.max(0,Math.min(this.duration()||t,t));if(this.kind==="yt")this.yt.seekTo(t,true);else if(this.kind==="file")this.el.currentTime=t},
-  play(){if(this.kind==="yt")this.yt.playVideo();else if(this.kind==="file"){ensureAudio();this.el.play()}},
+  play(){if(this.kind==="yt")this.yt.playVideo();else if(this.kind==="file"){if(transpose)ensureAudio();else if(actx&&actx.state!=="running")actx.resume();this.el.play()}},
   pause(){if(this.kind==="yt")this.yt.pauseVideo();else if(this.kind==="file")this.el.pause()},
   setRate(r){this.rate=r;if(this.kind==="yt")this.yt.setPlaybackRate(r);else if(this.kind==="file"){this.el.playbackRate=r;this.el.preservesPitch=true;this.el.webkitPreservesPitch=true}}
 };
@@ -447,7 +449,8 @@ async function loadVideo(id){
   stopFile();player.kind="yt";player.ready=false;player.a=player.b=null;player.loop=false;
   $("#vid").innerHTML=`<div id="yt"></div>`;
   try{await loadYT()}catch(e){$("#vid").innerHTML=`<div class="ph"><div><b>Sin conexión con YouTube</b>Revisa tu internet.</div></div>`;return}
-  player.yt=new YT.Player("yt",{videoId:id,playerVars:{playsinline:1,rel:0,modestbranding:1,controls:1},events:{onReady:()=>{player.ready=true;player.setRate(player.rate);uiLoop()},onStateChange:()=>ppIcon()}});
+  player.yt=new YT.Player("yt",{videoId:id,playerVars:{playsinline:1,rel:0,modestbranding:1,controls:1},events:{onReady:()=>{player.ready=true;player.setRate(player.rate);uiLoop()},onStateChange:()=>ppIcon(),
+    onError:e=>{player.ready=false;$("#vid").innerHTML=`<div class="ph"><div><b>Ese video no se puede reproducir aquí</b>Puede no existir o su dueño no permite verlo fuera de YouTube. Pega otro link en la barra de arriba.</div></div>`;const s=song();if(s.yt===id){s.yt=null;save()}}}});
   render();
 }
 /* Audio propio: velocidad sin cambiar tono (preservesPitch) + cambio de tono en tiempo real con un desplazador granular (AudioWorklet) */
@@ -468,14 +471,21 @@ async function ensureAudio(){
     if(actx.audioWorklet){const url=URL.createObjectURL(new Blob([WORKLET],{type:"text/javascript"}));await actx.audioWorklet.addModule(url);shifter=new AudioWorkletNode(actx,"pitch-shift",{outputChannelCount:[2]});srcNode.connect(shifter).connect(actx.destination);applyPitch()}
     else srcNode.connect(actx.destination)}catch(e){toast("Este navegador no permite cambiar el tono")}
 }
-function applyPitch(){if(shifter)shifter.parameters.get("ratio").setValueAtTime(Math.pow(2,transpose/12),actx.currentTime)}
+function applyPitch(){if(player.kind==="file"&&transpose&&!actx)ensureAudio();if(shifter)shifter.parameters.get("ratio").setValueAtTime(Math.pow(2,transpose/12),actx.currentTime)}
+/* Controles en pantalla de bloqueo / Centro de control y reanudar al volver */
+function mediaMeta(){try{const ms=navigator.mediaSession;if(!ms||player.kind!=="file")return;const s=song();
+  ms.metadata=new MediaMetadata({title:s.title,artist:s.artist||"Riff",album:"Riff · práctica",artwork:[{src:"icons/icon-512.png",sizes:"512x512",type:"image/png"}]});
+  ms.setActionHandler("play",()=>player.play());ms.setActionHandler("pause",()=>player.pause());
+  try{ms.setActionHandler("seekto",d=>player.seek(d.seekTime))}catch(e){}}catch(e){}}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&actx&&actx.state!=="running")actx.resume().catch(()=>{})});
 function stopFile(){if(player.el){player.el.pause();player.el.removeAttribute("src")}}
 $("#afile").onchange=e=>{const f=e.target.files[0];e.target.value="";if(!f)return;
   if(player.yt&&player.yt.destroy){try{player.yt.destroy()}catch(err){}player.yt=null}
-  if(!player.el){player.el=new Audio();player.el.preload="auto";player.el.onplay=player.el.onpause=()=>{ppIcon();const a=$(".vid .audio");a&&a.classList.toggle("playing",!player.el.paused)}}
+  if(player.el){player.el.pause()}player.el=new Audio();{player.el.preload="auto";player.el.setAttribute("playsinline","");player.el.onplay=player.el.onpause=()=>{ppIcon();const a=$(".vid .audio");a&&a.classList.toggle("playing",!player.el.paused);try{navigator.mediaSession.playbackState=player.el.paused?"paused":"playing"}catch(e){}}}
   player.el.src=URL.createObjectURL(f);player.kind="file";player.ready=true;player.a=player.b=null;player.loop=false;player.setRate(player.rate);
   $("#vid").innerHTML=`<div class="audio"><span class="eq"><i></i><i></i><i></i><i></i><i></i></span><b style="font-size:14px;max-width:80%;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.name)}</b><small style="color:#9a9aa2">Audio local · el tono sí cambia el sonido</small></div>`;
-  closeSheet();render();uiLoop();toast("Audio cargado: toca reproducir")};
+  if(actx){try{srcNode&&srcNode.disconnect();actx.close()}catch(err){}actx=null;shifter=null;srcNode=null}
+  closeSheet();render();uiLoop();mediaMeta();toast("Audio cargado: toca reproducir")};
 
 /* ======================= Línea de tiempo, loop A–B ======================= */
 function uiLoop(){const d=player.duration()||0,t=player.time()||0,tl=$("#tl"),pct=x=>d?Math.min(100,x/d*100):0;
@@ -493,28 +503,24 @@ function ppIcon(){$("#pp").innerHTML=player.playing()?svg('<path d="M8 5v14M16 5
 })();
 
 /* ======================= Búsqueda (Gemini) ======================= */
+const norm2=s=>String(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
 async function searchSong(q){
   const id=ytId(q);
   if(id){const s=song();s.yt=id;save();loadVideo(id);toast("Video cargado: el loop y la velocidad ya funcionan");return}
   const local=S.songs.find(s=>(s.title+" "+s.artist).toLowerCase().includes(q.toLowerCase()));
-  if(!S.gemKey){if(local){selectSong(local.id);toast("Encontrada en tus canciones");return}
-    toast("Para buscar canciones nuevas agrega tu API key de Gemini en el menú. Mientras, puedes capturar los acordes a mano.",4200);editor({title:q});return}
-  const b=$("#sgo");b.classList.add("busy");b.disabled=true;
+  if(local&&norm2(local.title)===norm2(q)){selectSong(local.id);toast("Encontrada en tus canciones");return}
+  const b=$("#sgo");b.classList.add("busy");b.disabled=true;toast("Buscando “"+q+"” con IA…",8000);
   try{const data=await geminiSong(q);const s={id:"u"+Date.now(),title:data.title||q,artist:data.artist||"",bpm:data.bpm||null,yt:ytId(data.youtubeUrl||"")||null,
       sections:(data.sections||[]).map(x=>({n:x.name||"",c:(x.chords||[]).filter(c=>parseChord(c))})).filter(x=>x.c.length),tips:data.soloTips||""};
-    if(!s.sections.length)throw new Error("Sin acordes");S.songs.unshift(s);save();selectSong(s.id);toast(`${s.title}: datos encontrados`)}
+    if(!s.sections.length)throw new Error("sin acordes");S.songs.unshift(s);save();selectSong(s.id);toast(s.yt?`${s.title}: acordes y video listos`:`${s.title}: acordes listos · pega el link de YouTube`,3200)}
   catch(e){toast("No pude obtener los datos: "+(e.message||"error"),3500)}finally{b.classList.remove("busy");b.disabled=false}
 }
-/* Llamada a Gemini con búsqueda de Google: devuelve tonalidad, BPM, acordes por sección y link de YouTube */
+/* Pide los datos a la IA compartida (../shared/ia.js) en formato JSON */
 async function geminiSong(q){
-  const prompt=`Eres un músico experto. Para la canción "${q}" busca y devuelve SOLO un JSON válido (sin texto extra) con esta forma:
+  if(!window.IA)throw new Error("IA no disponible");
+  return IA.ask(`Eres un músico experto y transcriptor de acordes. Para la canción "${q}" devuelve un JSON con esta forma exacta:
 {"title":"","artist":"","key":"Am","bpm":0,"youtubeUrl":"https://www.youtube.com/watch?v=...","sections":[{"name":"Intro","chords":["Am","F","C","G"]}],"soloTips":""}
-Usa cifrado americano (C, Am, F#m, Bb7, Cmaj7, D/F#). Usa la versión original del artista y el video oficial de YouTube.`;
-  const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(S.gemModel||"gemini-2.5-flash")}:generateContent?key=${encodeURIComponent(S.gemKey)}`,{method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({contents:[{parts:[{text:prompt}]}],tools:[{google_search:{}}]})});
-  if(!r.ok){const t=await r.text();throw new Error(r.status===400||r.status===403?"revisa tu API key":"Gemini respondió "+r.status)}
-  const j=await r.json(),txt=(j.candidates?.[0]?.content?.parts||[]).map(p=>p.text||"").join(""),m=txt.match(/\{[\s\S]*\}/);
-  if(!m)throw new Error("respuesta sin datos");return JSON.parse(m[0]);
+Reglas: versión original del artista; cifrado americano (C, Am, F#m, Bb7, Cmaj7, D/F#); nombres de sección en español (Intro, Verso, Pre-coro, Coro, Puente, Solo); si no estás seguro del link de YouTube deja youtubeUrl vacío; soloTips en español, breve y práctico.`,{json:true});
 }
 
 /* ======================= Hojas ======================= */
@@ -537,12 +543,11 @@ function menu(){const dark=document.documentElement.dataset.theme==="dark",it=(a
   openSheet(`<h3>Menú</h3><div class="mlist">${it("data-lib",'<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>',"Mis canciones",S.songs.length+" guardadas")}
   ${it("data-edit",'<path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17v3z"/>',"Editar acordes de esta canción")}
   <label for="afile">${svg('<path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>')}<span class="t"><b>Usar un audio mío</b><small>Para cambiar el tono del sonido</small></span>${chev}</label>
-  ${it("data-gem",'<path d="M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z"/>',"Búsqueda con Gemini",S.gemKey?"Conectada":"Falta tu API key")}</div>
+  ${it("data-gem",'<path d="M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z"/>',"Búsqueda con IA (Gemini)",window.IA&&IA.isCustom()?"Clave guardada":"Te pedirá la clave al usarla")}</div>
   <div class="mlist">${it("data-theme-toggle",dark?'<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2"/>':'<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',dark?"Tema claro":"Tema oscuro")}
   <a href="../">${svg('<path d="M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/>')}<span class="t"><b>Todos mis proyectos</b></span>${chev}</a></div>`)}
-function gemSheet(){openSheet(`<h3>Búsqueda con Gemini</h3><p class="lbl">Con tu API key, al escribir una canción la app busca tonalidad, BPM, acordes por sección y el video oficial. La clave se guarda solo en este iPhone.</p>
-  <div class="field"><input id="gK" placeholder="API key de Gemini" value="${esc(S.gemKey)}" autocomplete="off"></div>
-  <div class="field"><input id="gM" placeholder="Modelo" value="${esc(S.gemModel)}"></div>
+function gemSheet(){openSheet(`<h3>Búsqueda con IA</h3><p class="lbl">Escribe una canción en la barra de arriba y la IA llena título, tonalidad, BPM, acordes por sección y consejos para el solo. La clave se guarda solo en este iPhone; aquí puedes cambiarla.</p>
+  <div class="field"><input id="gK" placeholder="Clave propia (opcional)" value="${esc(window.IA&&IA.isCustom()?IA.key():"")}" autocomplete="off"></div>
   <div class="btns"><button class="btn" data-close>Cancelar</button><button class="btn dark" data-savegem>Guardar</button></div>`)}
 function selectSong(id){S.cur=id;save();transpose=0;selChord=null;pip.idx=0;scaleK=null;posF=0;const s=song();applyPitch();
   if(s.yt)loadVideo(s.yt);else if(player.kind==="yt"){if(player.yt&&player.yt.destroy)try{player.yt.destroy()}catch(e){}player.yt=null;player.kind=null;player.ready=false;$("#vid").innerHTML=`<div class="ph"><div><b>Sin video</b>Pega el link de YouTube de esta canción en la barra de arriba.</div></div>`}
@@ -567,7 +572,7 @@ document.addEventListener("click",e=>{
   if(g("[data-lib]")){library();return}
   if(g("[data-menu]")){menu();return}
   if(g("[data-gem]")){gemSheet();return}
-  if(g("[data-savegem]")){S.gemKey=$("#gK").value.trim();S.gemModel=$("#gM").value.trim()||"gemini-2.5-flash";save();closeSheet();toast(S.gemKey?"Gemini conectada":"Clave borrada");return}
+  if(g("[data-savegem]")){window.IA&&IA.setKey($("#gK").value.trim());closeSheet();toast("Listo");return}
   if(t=g("[data-song]")){closeSheet();selectSong(t.dataset.song);return}
   if(g("[data-newsong]")){editor();return}
   if(g("[data-edit]")){editor(song());return}
