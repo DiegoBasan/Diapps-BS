@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Cajas</title>
+<meta name="description" content="Mapa de mis cajas con fotos de lo que hay dentro">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cajas">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="format-detection" content="telephone=no">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#EDEDEF">
+<script>
+/* Tema compartido entre las apps de Diapps: empieza en claro; el modo oscuro se elige en el menú */
+(function(){var t="light";try{t=localStorage.getItem("diapps-theme")||"light"}catch(e){}document.documentElement.dataset.theme=t})();
+</script>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800&family=Saira+Condensed:wght@600;700&display=swap">
+<style>
+/* Cajas: mapa de contenedores. El tamaño en pantalla corresponde al tamaño real de cada caja.
+   Formas tomadas del diagrama: caja, caja de herramientas, estuche con seguro, bolsa, organizador, con tapa y bote. */
+:root{
+  --bg:#EDEDEF; --card:#FFFFFF; --card2:#F4F4F5; --line:#E4E4E7; --line2:#D3D3D8;
+  --ink:#111113; --ink2:#85858C; --ink3:#B4B4BA; --down:#E5484D;
+  --glass:rgba(255,255,255,.62); --glassBorder:rgba(255,255,255,.8); --glassShadow:rgba(30,32,40,.14); --scrim:rgba(0,0,0,.32);
+  /* paleta del diagrama */
+  --tan:#8A6A54; --orange:#A8653A; --blue:#4A6FA5; --yellow:#D4A94A; --red:#B5443B; --green:#5E8B5A; --purple:#7A5FA8;
+  --g1:#A7A7AD; --g2:#C2C2C7; --g3:#8D8D94; --lid:#76767D;
+  --spring:cubic-bezier(.2,1.3,.4,1); --spring-soft:cubic-bezier(.2,.9,.25,1);
+  --font:"Urbanist",-apple-system,"SF Pro Text",system-ui,sans-serif; --label:"Saira Condensed","Urbanist",sans-serif;
+  color-scheme:light;
+}
+:root[data-theme="dark"]{
+  --bg:#141416; --card:#1E1E21; --card2:#27272B; --line:#2E2E33; --line2:#3B3B42;
+  --ink:#F3F3F4; --ink2:#8E8E96; --ink3:#56565D; --down:#FF6166;
+  --glass:rgba(40,40,46,.6); --glassBorder:rgba(255,255,255,.1); --glassShadow:rgba(0,0,0,.5); --scrim:rgba(0,0,0,.55);
+  --g1:#5E5E60; --g2:#808082; --g3:#3C3C3E; --lid:#444447;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{background:var(--bg);-webkit-text-size-adjust:100%;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+body{margin:0;min-height:100dvh;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.4;-webkit-font-smoothing:antialiased}
+body.lock{overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+button,.nav,h1,h2,.lbl,.bx{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+img{-webkit-user-drag:none;-webkit-touch-callout:none}
+input,textarea{font:inherit;color:inherit;font-size:16px}
+button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.app{max-width:440px;margin:0 auto;padding:calc(10px + env(safe-area-inset-top,0px)) 18px calc(118px + env(safe-area-inset-bottom,0px))}
+.press{transition:transform .5s var(--spring)}
+.press:active{transform:scale(.94);transition-duration:.12s}
+.rise{animation:rise .7s var(--spring-soft) both;animation-delay:calc(var(--i,0) * 40ms)}
+@keyframes rise{from{opacity:0;transform:translateY(16px) scale(.98)}}
+
+/* encabezado */
+.bar{display:flex;align-items:center;gap:8px;padding:6px 0 4px}
+.bar .sp{flex:1}
+.brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px;text-align:left}
+.brand img{width:36px;height:36px;border-radius:10px;display:block}
+.brand small{display:block;font-size:12px;font-weight:500;color:var(--ink2);line-height:1.1}
+.rb{width:44px;height:44px;border-radius:50%;background:var(--card);display:grid;place-items:center;flex:none}
+.rb svg{width:20px;height:20px}
+.rb[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+h1{font-size:40px;font-weight:600;letter-spacing:-.035em;line-height:1.05;margin:16px 0 0}
+.subttl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 4px;color:var(--ink2);font-size:14px;font-weight:500}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:99px;background:var(--card);color:var(--ink);font-weight:600;font-size:13.5px}
+.search{display:flex;align-items:center;gap:10px;height:48px;padding:0 8px 0 16px;border-radius:99px;background:var(--card);margin-top:16px}
+.search svg{width:18px;height:18px;color:var(--ink2);flex:none}
+.search input{flex:1;min-width:0;border:0;background:none;outline:none}
+.search input::placeholder{color:var(--ink3)}
+.search .x{width:32px;height:32px;border-radius:50%;background:var(--card2);display:grid;place-items:center}
+.tabs{display:flex;gap:6px;margin-top:12px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:none;height:36px;padding:0 14px;border-radius:99px;background:var(--card);font-size:13.5px;font-weight:600;color:var(--ink2);transition:background-color .25s,color .25s}
+.tabs button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+
+/* zonas y mapa */
+.zone{margin-top:22px}
+.zh{display:flex;align-items:baseline;justify-content:space-between;margin:0 4px 10px}
+.zh h2{font-size:19px;font-weight:600;margin:0;letter-spacing:-.01em}
+.zh span{font-size:13px;color:var(--ink2);font-weight:500}
+.map{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:46px;grid-auto-flow:dense;gap:8px}
+.bx{--c:var(--g1);position:relative;grid-column:span var(--w);grid-row:span var(--h);display:block;width:100%;height:100%;text-align:center;
+  animation:drop .8s var(--spring) both;animation-delay:calc(var(--i,0) * 35ms);transition:transform .5s var(--spring),opacity .35s,filter .35s}
+@keyframes drop{from{opacity:0;transform:translateY(-26px) scale(.9)}}
+.bx:active{transform:scale(.95);transition-duration:.12s}
+.bx .body{position:absolute;inset:0;background:var(--c);border-radius:16px;display:grid;place-items:center;overflow:hidden}
+.bx .lb{font-family:var(--label);font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:color-mix(in srgb,#000 58%,var(--c));font-size:clamp(12px,3.6vw,17px);line-height:1;padding:0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.bx[data-s="xs"] .lb{font-size:11px}
+.bx.tall .lb{writing-mode:vertical-rl;transform:rotate(180deg);max-height:100%;padding:6px 0}
+/* caja de herramientas: tapa clara + seguro rojo */
+.bx.toolbox .body{background:color-mix(in srgb,#000 25%,var(--c));align-items:start}
+.bx.toolbox .lid{position:absolute;left:0;right:0;top:0;height:55%;background:var(--c);border-radius:16px 16px 12px 12px;display:grid;place-items:center}
+.bx.toolbox .latch{position:absolute;left:50%;top:55%;width:42%;height:18px;margin:-9px 0 0 -21%;border-radius:99px;background:var(--red);box-shadow:0 0 0 4px color-mix(in srgb,#000 30%,var(--c))}
+/* estuche con seguro lateral */
+.bx .dot{position:absolute;right:-6px;top:50%;width:14px;height:14px;margin-top:-7px;border-radius:50%;background:var(--orange);box-shadow:0 0 0 3px var(--bg)}
+/* con tapa (tapa separada arriba) y bote trapezoidal */
+.bx.lidded .body,.bx.bin .body{top:22px}
+.bx .cap{position:absolute;left:0;right:0;top:0;height:16px;border-radius:99px;background:var(--lidc,var(--lid));transition:transform .5s var(--spring)}
+.bx.bin .body{clip-path:polygon(0 0,100% 0,93% 100%,7% 100%);border-radius:10px}
+.bx.lidded .cap{--lidc:var(--c)}
+.bx.lidded[data-gray] .cap{--lidc:var(--lid)}
+/* bolsa con asa */
+.bx.bag .body{top:16px;border-radius:12px 12px 16px 16px}
+.bx.bag .handle{position:absolute;left:28%;right:28%;top:0;height:30px;border:7px solid var(--c);border-bottom:0;border-radius:30px 30px 0 0}
+/* organizador */
+.bx.org .inner{position:absolute;inset:12% 12% 12% 12%;border-radius:10px;background:color-mix(in srgb,#000 30%,var(--c));display:grid;place-items:center}
+.bx.org .inner .lb{color:color-mix(in srgb,#fff 25%,var(--c))}
+/* indicador de fotos */
+.bx .ph{position:absolute;right:6px;bottom:6px;z-index:2;display:flex;align-items:center;gap:3px;height:20px;padding:0 6px;border-radius:99px;background:rgba(0,0,0,.42);color:#fff;font-size:11px;font-weight:700}
+.bx .ph svg{width:11px;height:11px}
+.bx .nophoto{position:absolute;right:7px;bottom:7px;z-index:2;width:7px;height:7px;border-radius:50%;background:rgba(0,0,0,.25)}
+.bx.hit .body{box-shadow:0 0 0 3px var(--bg),0 0 0 5.5px var(--ink)}
+.bx.hit{animation:hit 1s var(--spring)}
+@keyframes hit{0%{transform:scale(.9)}60%{transform:scale(1.04)}100%{transform:none}}
+.map.searching .bx:not(.hit){opacity:.22;filter:saturate(.3);transform:scale(.96)}
+.add{grid-column:span 2;grid-row:span 2;border:2px dashed var(--line2);border-radius:16px;color:var(--ink2);display:grid;place-items:center;font-weight:600;font-size:13px}
+.add svg{width:20px;height:20px;display:block;margin:0 auto 2px}
+/* modo editar: tiemblan como en iOS */
+.editing .bx{animation:wig .32s ease-in-out infinite alternate}
+.editing .bx:nth-child(2n){animation-duration:.28s;animation-direction:alternate-reverse}
+@keyframes wig{from{transform:rotate(-1.1deg)}to{transform:rotate(1.1deg)}}
+.editing .bx::after{content:"";position:absolute;left:-5px;top:-5px;width:20px;height:20px;border-radius:50%;background:var(--ink) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M5 19l3-1 9-9-2-2-9 9z'/%3E%3C/svg%3E") center/12px no-repeat;z-index:3}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--ink2);font-weight:500;margin:16px 4px 0}
+.legend i{display:inline-block;border-radius:3px;background:var(--ink3);margin-right:6px;vertical-align:middle}
+
+/* visor de caja abierta */
+.ghost{position:fixed;z-index:40;border-radius:16px;pointer-events:none;transform-origin:0 0}
+.viewer{position:fixed;inset:0;z-index:41;background:#0B0B0C;color:#fff;display:flex;flex-direction:column;opacity:0;transition:opacity .25s}
+.viewer.on{opacity:1}
+.vtop{display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 10px}
+.vtop .t{flex:1;min-width:0}
+.vtop b{display:block;font-family:var(--label);font-size:22px;letter-spacing:.04em;text-transform:uppercase;line-height:1.1}
+.vtop small{display:block;font-size:12.5px;color:#9a9aa2;font-weight:500}
+.vb{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.12);display:grid;place-items:center;flex:none;color:#fff}
+.vb svg{width:20px;height:20px}
+.slides{flex:1;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;min-height:0}
+.slides::-webkit-scrollbar{display:none}
+.slide{flex:none;width:100%;height:100%;scroll-snap-align:center;display:grid;place-items:center;overflow:hidden;position:relative}
+.slide img{max-width:100%;max-height:100%;object-fit:contain;transition:transform .45s var(--spring-soft);animation:imgIn .6s var(--spring-soft) both}
+@keyframes imgIn{from{opacity:0;transform:scale(.92)}}
+.slide.zoom img{transform:scale(2.2)}
+.empty{display:grid;place-items:center;text-align:center;gap:12px;padding:30px;color:#9a9aa2;font-size:14.5px}
+.empty .art{width:150px;height:110px;position:relative;margin:0 auto}
+.empty .art .b{position:absolute;left:10px;right:10px;bottom:0;height:70px;border-radius:14px;background:var(--c)}
+.empty .art .l{position:absolute;left:0;right:0;top:6px;height:22px;border-radius:12px;background:color-mix(in srgb,#fff 18%,var(--c));transform-origin:10% 100%;animation:lid 2.4s var(--spring-soft) infinite}
+@keyframes lid{0%,30%{transform:none}55%,80%{transform:rotate(-22deg) translateY(-6px)}100%{transform:none}}
+.dots{display:flex;justify-content:center;gap:6px;padding:10px}
+.dots i{width:6px;height:6px;border-radius:99px;background:rgba(255,255,255,.3);transition:width .3s,background-color .3s}
+.dots i.on{width:18px;background:#fff}
+.vbot{padding:6px 14px calc(14px + env(safe-area-inset-bottom,0px))}
+.items{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.items span{padding:6px 11px;border-radius:99px;background:rgba(255,255,255,.12);font-size:13px;font-weight:600}
+.items span.hit{background:#fff;color:#111}
+.vbtns{display:flex;gap:8px}
+.vbtns button,.vbtns label{flex:1;height:50px;border-radius:99px;background:rgba(255,255,255,.12);color:#fff;font-weight:600;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer}
+.vbtns .main{background:#fff;color:#111}
+.vbtns svg{width:18px;height:18px}
+
+/* fotos y contenido */
+.gal{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:16px}
+.gal button{aspect-ratio:1;border-radius:14px;overflow:hidden;position:relative;background:var(--card2)}
+.gal img{width:100%;height:100%;object-fit:cover;display:block}
+.gal span{position:absolute;left:6px;bottom:6px;padding:2px 7px;border-radius:99px;font-family:var(--label);font-weight:700;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:color-mix(in srgb,#000 60%,var(--c));background:var(--c)}
+.card{background:var(--card);border-radius:26px;padding:6px 0;margin-top:14px;overflow:hidden}
+.it{display:flex;align-items:center;gap:12px;width:100%;padding:11px 18px;text-align:left}
+.it+.it{border-top:1px solid var(--line)}
+.it b{flex:1;min-width:0;font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tag{flex:none;padding:3px 9px;border-radius:8px;font-family:var(--label);font-weight:700;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:color-mix(in srgb,#000 58%,var(--c));background:var(--c)}
+.letter{font-size:12px;font-weight:700;color:var(--ink2);padding:12px 18px 4px}
+.hint{font-size:12.5px;color:var(--ink2);text-align:center;margin:16px 0 0;font-weight:500}
+.none{text-align:center;color:var(--ink2);padding:36px 16px;font-size:14px}
+
+/* navegación */
+.glass{background:var(--glass);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);border:1px solid var(--glassBorder);box-shadow:inset 0 1px 0 var(--glassBorder),0 12px 30px var(--glassShadow)}
+.nav{position:fixed;left:50%;transform:translateX(-50%);bottom:max(10px,calc(env(safe-area-inset-bottom,0px) - 8px));z-index:8;display:flex;align-items:center;padding:5px;border-radius:99px;width:min(404px,calc(100% - 24px))}
+.nav button{flex:1;min-width:0;height:54px;border-radius:99px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:color-mix(in srgb,var(--ink) 72%,transparent);font-size:10px;font-weight:600;transition:color .2s,background-color .25s,transform .5s var(--spring)}
+.nav button:active{transform:scale(.9);transition-duration:.1s}
+.nav button svg{width:23px;height:23px}
+.nav button[aria-current="page"],.nav button[aria-pressed="true"]{color:var(--ink);background:color-mix(in srgb,var(--ink) 9%,transparent)}
+.nav .add2{flex:none;width:54px;border-radius:50%;background:var(--ink);color:var(--bg);margin:0 4px}
+
+/* hoja inferior */
+.scrim{position:fixed;inset:0;background:var(--scrim);z-index:50;opacity:0;transition:opacity .25s}
+.scrim.on{opacity:1}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:51;max-width:440px;margin:0 auto;background:var(--card);border-radius:30px 30px 0 0;padding:10px 18px calc(22px + env(safe-area-inset-bottom,0px));max-height:calc(100dvh - env(safe-area-inset-top,0px) - 16px);overflow:auto;overscroll-behavior:contain;transform:translateY(100%);transition:transform .5s var(--spring-soft)}
+.sheet.on{transform:none}
+.sheet.drag{transition:none}
+.grab{width:40px;height:5px;border-radius:99px;background:var(--line2);margin:0 auto 12px;position:relative}
+.grab::before{content:"";position:absolute;inset:-14px -60px}
+.sheet h3{font-size:24px;font-weight:600;letter-spacing:-.02em;margin:6px 0 14px}
+.field{margin-top:16px}
+.field>.lbl{display:block;margin-bottom:8px}
+.lbl{font-size:12.5px;color:var(--ink2);font-weight:500}
+.field input[type=text],.field textarea{width:100%;border:0;border-radius:16px;background:var(--card2);padding:13px 14px;outline:none}
+.field textarea{min-height:92px;resize:vertical;line-height:1.45}
+.opts{display:flex;flex-wrap:wrap;gap:6px}
+.opts button{height:38px;padding:0 13px;border-radius:99px;background:var(--card2);font-size:13.5px;font-weight:600;color:var(--ink2);transition:background-color .25s,color .25s,transform .5s var(--spring)}
+.opts button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.sw{display:flex;gap:10px;flex-wrap:wrap}
+.sw button{width:34px;height:34px;border-radius:50%;transition:transform .5s var(--spring)}
+.sw button[aria-pressed="true"]{box-shadow:0 0 0 3px var(--card),0 0 0 5px var(--ink);transform:scale(1.08)}
+.sizes{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.sizes button{border-radius:16px;background:var(--card2);padding:10px 6px 8px;font-size:12.5px;font-weight:600;color:var(--ink2);display:flex;flex-direction:column;align-items:center;gap:6px}
+.sizes button i{display:block;background:var(--ink3);border-radius:4px}
+.sizes button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.sizes button[aria-pressed="true"] i{background:var(--bg)}
+.prev{display:grid;place-items:center;min-height:150px;padding:16px;border-radius:20px;background:var(--card2);margin-top:4px}
+.prev .map{display:flex;justify-content:center;pointer-events:none}
+.prev .bx{width:calc(var(--w) * 70px);height:calc(var(--h) * 46px + (var(--h) - 1) * 8px);flex:none}
+.btns{display:flex;gap:10px;margin-top:20px}
+.btn{flex:1;height:52px;border-radius:99px;border:1.5px solid var(--line2);font-weight:600;font-size:15.5px;display:grid;place-items:center;text-decoration:none;color:inherit}
+.btn.dark{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn.red{color:var(--down)}
+.mlist{display:flex;flex-direction:column;background:var(--card2);border-radius:22px;overflow:hidden;margin-top:12px}
+.mlist button,.mlist a{display:flex;align-items:center;gap:14px;width:100%;padding:14px 16px;text-align:left;text-decoration:none;color:inherit;font-size:16px;font-weight:500}
+.mlist>*+*{border-top:1px solid var(--line)}
+.mlist svg{width:21px;height:21px;color:var(--ink2);flex:none}
+.mlist .chev{margin-left:auto;width:9px;height:14px}
+.toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom,0px));transform:translate(-50%,16px) scale(.96);background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:99px;font-size:14px;font-weight:600;opacity:0;transition:opacity .25s,transform .5s var(--spring);z-index:60;pointer-events:none;white-space:nowrap}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<main class="app" id="app"></main>
+<nav class="nav glass" id="nav" aria-label="Secciones">
+  <button data-go="map"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4" width="9" height="7" rx="2"/><rect x="3.5" y="13" width="9" height="7" rx="2"/><rect x="14.5" y="4" width="6" height="16" rx="2"/></svg>Mapa</button>
+  <button data-go="photos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-9 8"/></svg>Fotos</button>
+  <button class="add2" data-new aria-label="Nueva caja"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+  <button data-go="items"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>Contenido</button>
+  <button data-edit-mode aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17v3z"/></svg>Editar</button>
+</nav>
+<input type="file" id="file" accept="image/*" multiple hidden>
+<div class="scrim" id="scrim" hidden></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" hidden><div class="grab"></div><div id="sheetBody"></div></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/* ======================= Movimiento con resortes (curvas linear()) ======================= */
+function springCurve(k,c){let x=0,v=0;const dt=1/240,p=[0];let t=0,s=0;while(t<3){const a=-k*(x-1)-c*v;v+=a*dt;x+=v*dt;t+=dt;if(Math.round(t*240)%4===0)p.push(+x.toFixed(4));if(Math.abs(x-1)<.001&&Math.abs(v)<.01){if(++s>20)break}else s=0}p.push(1);return {css:`linear(${p.join(",")})`,ms:Math.round(t*1000)}}
+const SPR=(()=>{try{if(CSS.supports("transition-timing-function","linear(0,1)")){const b=springCurve(260,18),s=springCurve(170,26),r=document.documentElement.style;r.setProperty("--spring",b.css);r.setProperty("--spring-soft",s.css);return {b,s}}}catch(e){}return {b:{css:"cubic-bezier(.2,1.3,.4,1)",ms:600},s:{css:"cubic-bezier(.2,.9,.25,1)",ms:600}}})();
+const reduced=matchMedia("(prefers-reduced-motion:reduce)").matches;
+
+/* ======================= Datos: tus cajas (del diagrama) ======================= */
+/* w = columnas (de 4), h = filas: el área en pantalla corresponde al tamaño real */
+const COLORS={tan:"Café",orange:"Naranja",blue:"Azul",yellow:"Amarillo",red:"Rojo",green:"Verde",purple:"Morado",g1:"Gris",g2:"Gris claro",g3:"Gris oscuro"};
+const SHAPES={box:"Caja",toolbox:"Herramientas",case:"Estuche",lidded:"Con tapa",bin:"Bote",bag:"Bolsa",org:"Organizador",tall:"Delgada"};
+const SIZES={xl:{n:"Grande",w:4,h:3},l:{n:"Ancha",w:4,h:2},m:{n:"Mediana",w:2,h:3},s:{n:"Chica",w:2,h:2},t:{n:"Alta",w:1,h:3},xs:{n:"Mini",w:1,h:2}};
+const DEFAULT_ZONES=[{id:"z1",n:"Mecatrónica"},{id:"z2",n:"Tecnología"}];
+const DEFAULT_BOXES=[
+ {n:"Mechatronics",z:"z1",c:"tan",s:"xl",sh:"box",items:["Arduino","Sensores","Servomotores","Protoboards"]},
+ {n:"Tech 01",z:"z1",c:"orange",s:"xl",sh:"box",items:[]},
+ {n:"Tech 02",z:"z1",c:"blue",s:"xl",sh:"box",items:[]},
+ {n:"Mech 01",z:"z1",c:"g2",s:"m",sh:"toolbox",items:["Desarmadores","Pinzas","Multímetro"]},
+ {n:"Caps",z:"z1",c:"g3",s:"t",sh:"tall",items:["Capacitores"]},
+ {n:"Trans",z:"z1",c:"g3",s:"t",sh:"tall",items:["Transistores"]},
+ {n:"Mech 03",z:"z1",c:"g1",s:"s",sh:"case",items:[]},
+ {n:"Mech 02",z:"z1",c:"g1",s:"l",sh:"case",items:[]},
+ {n:"3D Prints",z:"z1",c:"tan",s:"l",sh:"box",items:["Piezas impresas","Filamento"]},
+ {n:"Bolsa",z:"z2",c:"g3",s:"t",sh:"bag",items:[]},
+ {n:"Bolsa grande",z:"z2",c:"g3",s:"m",sh:"bag",items:[]},
+ {n:"Adapters",z:"z2",c:"tan",s:"t",sh:"tall",items:["Adaptadores"]},
+ {n:"USB",z:"z2",c:"g1",s:"s",sh:"org",items:["Memorias USB","Cables USB"]},
+ {n:"Watch",z:"z2",c:"tan",s:"xs",sh:"tall",items:["Correas","Cargador del reloj"]},
+ {n:"T",z:"z2",c:"tan",s:"xs",sh:"lidded",items:[]},
+ {n:"T",z:"z2",c:"blue",s:"xs",sh:"lidded",items:[]},
+ {n:"Tech A",z:"z2",c:"yellow",s:"s",sh:"lidded",items:[]},
+ {n:"Tech A",z:"z2",c:"g1",s:"xs",sh:"lidded",items:[]},
+ {n:"Tech A",z:"z2",c:"g1",s:"xs",sh:"lidded",items:[]},
+ {n:"Tech A",z:"z2",c:"g1",s:"xs",sh:"lidded",items:[]},
+ {n:"Tech A",z:"z2",c:"g1",s:"xs",sh:"lidded",items:[]},
+ {n:"Tech A",z:"z2",c:"g1",s:"xs",sh:"lidded",items:[]},
+ {n:"Tech B",z:"z2",c:"g2",s:"l",sh:"bin",items:[]},
+ {n:"Tech C",z:"z2",c:"g2",s:"l",sh:"bin",items:[]},
+ {n:"Tech D",z:"z2",c:"g2",s:"l",sh:"bin",items:[]},
+ {n:"Tech E",z:"z2",c:"g2",s:"l",sh:"bin",items:[]}
+];
+const KEY="cajas1";
+let S;try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+if(!S||!Array.isArray(S.boxes)){S={zones:DEFAULT_ZONES,boxes:DEFAULT_BOXES.map((b,i)=>({id:"b"+(i+1),...b})),nid:DEFAULT_BOXES.length+1}}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast("No se pudo guardar")}};
+
+/* ======================= Fotos en IndexedDB (aguanta muchas fotos, no como localStorage) ======================= */
+let dbp=null;
+function db(){return dbp||(dbp=new Promise((res,rej)=>{const r=indexedDB.open("cajas",1);r.onupgradeneeded=()=>{const s=r.result.createObjectStore("photos",{keyPath:"id"});s.createIndex("box","box")};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}))}
+async function tx(mode,fn){const d=await db();return new Promise((res,rej)=>{const t=d.transaction("photos",mode),s=t.objectStore("photos");const out=fn(s);t.oncomplete=()=>res(out&&out.result!==undefined?out.result:out);t.onerror=()=>rej(t.error)})}
+const allPhotos=()=>tx("readonly",s=>s.getAll());
+const putPhoto=p=>tx("readwrite",s=>s.put(p));
+const delPhoto=id=>tx("readwrite",s=>s.delete(id));
+let PH=[];const urls=new Map();
+const urlOf=p=>{if(!urls.has(p.id))urls.set(p.id,URL.createObjectURL(p.blob));return urls.get(p.id)};
+const photosOf=id=>PH.filter(p=>p.box===id).sort((a,b)=>a.t-b.t);
+async function loadPhotos(){try{PH=await allPhotos()}catch(e){PH=[]}}
+/* reduce la foto a 1800 px para que cargue rápido y no llene el iPhone */
+function shrink(file){return new Promise(res=>{const img=new Image();img.onload=()=>{const m=1800,k=Math.min(1,m/Math.max(img.width,img.height)),c=document.createElement("canvas");c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);c.getContext("2d").drawImage(img,0,0,c.width,c.height);c.toBlob(b=>{URL.revokeObjectURL(img.src);res(b||file)},"image/jpeg",.85)};img.onerror=()=>res(file);img.src=URL.createObjectURL(file)})}
+
+/* ======================= Utilidades ======================= */
+const $=s=>document.querySelector(s);
+const svg=(p,w=1.9)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const norm=s=>String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+const B=id=>S.boxes.find(b=>b.id===id);
+const col=c=>`var(--${c})`;
+const sizeOf=b=>SIZES[b.s]||SIZES.s;
+const CAM='<path d="M4 8a2 2 0 0 1 2-2h2l1.5-2h5L16 6h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><circle cx="12" cy="12.5" r="3.5"/>';
+let tt;function toast(m){const e=$("#toast");e.textContent=m;e.classList.add("on");clearTimeout(tt);tt=setTimeout(()=>e.classList.remove("on"),1900)}
+function matches(b,q){if(!q)return false;const n=norm(q);return norm(b.n).includes(n)||(b.items||[]).some(i=>norm(i).includes(n))||norm(COLORS[b.c]||"").includes(n)}
+
+/* ======================= Dibujo de cada caja ======================= */
+function boxHTML(b,i){
+  const s=sizeOf(b),n=photosOf(b.id).length,gray=b.c.startsWith("g");
+  const lb=`<span class="lb">${esc(b.n)}</span>`;
+  let inner;
+  switch(b.sh){
+    case "toolbox":inner=`<span class="body"><span class="lid">${lb}</span><span class="latch"></span></span>`;break;
+    case "case":inner=`<span class="body">${lb}</span><span class="dot"></span>`;break;
+    case "lidded":case "bin":inner=`<span class="cap"></span><span class="body">${lb}</span>`;break;
+    case "bag":inner=`<span class="handle"></span><span class="body">${lb}</span>`;break;
+    case "org":inner=`<span class="body"><span class="inner">${lb}</span></span>`;break;
+    default:inner=`<span class="body">${lb}</span>`;
+  }
+  return `<button class="bx ${b.sh}" data-box="${b.id}" data-s="${b.s}" ${gray?"data-gray":""} style="--c:${col(b.c)};--w:${s.w};--h:${s.h};--i:${i}" aria-label="${esc(b.n)}, ${s.n.toLowerCase()}${n?`, ${n} foto${n>1?"s":""}`:""}">${inner}${n?`<span class="ph">${svg(CAM,2.4)}${n}</span>`:`<span class="nophoto"></span>`}</button>`;
+}
+
+/* ======================= Pantallas ======================= */
+let screen="map",zoneF="all",q="",editing=false;
+function header(title,sub,extra=""){const h=new Date().getHours();
+  return `<div class="bar"><button class="brand press" data-menu><img src="icons/icon.svg" alt=""><span>Cajas<small>${h<12?"Buenos días":h<19?"Buenas tardes":"Buenas noches"}, Diego</small></span></button><span class="sp"></span>${extra}
+  <button class="rb press" data-menu aria-label="Menú">${svg('<path d="M4 7h16M4 12h16M4 17h16"/>',2)}</button></div>
+  <h1>${title}</h1>${sub?`<div class="subttl">${sub}</div>`:""}`}
+function renderMap(){
+  const withPh=new Set(PH.map(p=>p.box)).size;
+  const zs=S.zones.filter(z=>zoneF==="all"||z.id===zoneF);let k=0;
+  const hits=q?S.boxes.filter(b=>matches(b,q)):[];
+  return header("Mis cajas",`<span>${S.boxes.length} contenedores</span><span class="chip">${withPh} con foto</span>`)+`
+  <div class="search">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',2)}<input id="q" placeholder="¿Qué buscas? multímetro, cables…" value="${esc(q)}" autocomplete="off" enterkeyhint="search">${q?`<button class="x" data-clear aria-label="Borrar">${svg('<path d="M6 6l12 12M18 6L6 18"/>',2.4)}</button>`:""}</div>
+  <div class="tabs"><button data-z="all" aria-pressed="${zoneF==="all"}">Todas</button>${S.zones.map(z=>`<button data-z="${z.id}" aria-pressed="${zoneF===z.id}">${esc(z.n)}</button>`).join("")}</div>
+  ${q?`<p class="hint" style="margin-top:12px">${hits.length?`Está en: <b style="color:var(--ink)">${hits.map(b=>esc(b.n)).join(", ")}</b>`:"No encontré eso en ninguna caja"}</p>`:""}
+  ${zs.map(z=>{const bs=S.boxes.filter(b=>b.z===z.id);return `<section class="zone"><div class="zh"><h2>${esc(z.n)}</h2><span>${bs.length} cajas</span></div>
+    <div class="map ${q?"searching":""} ${editing?"editing":""}">${bs.map(b=>boxHTML(b,k++).replace('class="bx ',`class="bx ${hits.includes(b)?"hit ":""}`)).join("")}<button class="add press" data-new="${z.id}">${svg('<path d="M12 5v14M5 12h14"/>',2.2)}<span>Agregar</span></button></div></section>`}).join("")}
+  <div class="legend"><span><i style="width:22px;height:14px"></i>Grande</span><span><i style="width:14px;height:14px"></i>Mediana</span><span><i style="width:10px;height:10px"></i>Chica</span><span><i style="width:6px;height:10px"></i>Mini</span></div>
+  <p class="hint">${editing?"Toca una caja para editarla · toca Editar para terminar":"Toca una caja para abrirla y ver qué tiene"}</p>`;
+}
+function renderPhotos(){
+  const ps=PH.slice().sort((a,b)=>b.t-a.t);
+  return header("Fotos",`<span>${ps.length} foto${ps.length===1?"":"s"}</span>`)+(ps.length?`<div class="gal">${ps.map((p,i)=>{const b=B(p.box);return b?`<button class="press rise" style="--i:${i};--c:${col(b.c)}" data-open="${b.id}" data-pid="${p.id}"><img src="${urlOf(p)}" alt="${esc(b.n)}" loading="lazy"><span>${esc(b.n)}</span></button>`:""}).join("")}</div>`
+    :`<div class="none">Aún no hay fotos.<br>Abre una caja y toca <b>Agregar foto</b> para guardar cómo se ve por dentro.</div>`);
+}
+function renderItems(){
+  const all=[];S.boxes.forEach(b=>(b.items||[]).forEach(it=>all.push({it,b})));
+  const f=q?all.filter(x=>norm(x.it).includes(norm(q))||norm(x.b.n).includes(norm(q))):all;f.sort((a,b)=>a.it.localeCompare(b.it,"es"));
+  let last="",html="";f.forEach((x,i)=>{const L=x.it[0].toUpperCase();if(L!==last){html+=`<div class="letter">${L}</div>`;last=L}html+=`<button class="it" data-open="${x.b.id}"><b>${esc(x.it)}</b><span class="tag" style="--c:${col(x.b.c)}">${esc(x.b.n)}</span></button>`});
+  return header("Contenido",`<span>${all.length} cosas en ${S.boxes.filter(b=>(b.items||[]).length).length} cajas</span>`)+`
+  <div class="search">${svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',2)}<input id="q" placeholder="Buscar cosa o caja" value="${esc(q)}" autocomplete="off"></div>
+  ${f.length?`<div class="card">${html}</div>`:`<div class="none">${all.length?"Nada coincide.":"Aún no anotas qué hay en tus cajas. Abre una caja y toca <b>Editar</b> para escribir su contenido."}</div>`}`;
+}
+
+/* ======================= Render y navegación ======================= */
+function render(anim){
+  const doIt=()=>{$("#app").innerHTML=`<section>${{map:renderMap,photos:renderPhotos,items:renderItems}[screen]()}</section>`;
+    document.querySelectorAll(".nav [data-go]").forEach(b=>b.dataset.go===screen?b.setAttribute("aria-current","page"):b.removeAttribute("aria-current"));
+    $("[data-edit-mode]").setAttribute("aria-pressed",editing);
+    const qi=$("#q");if(qi)qi.oninput=e=>{q=e.target.value;const pos=e.target.selectionStart;render();const n=$("#q");n.focus();n.setSelectionRange(pos,pos);
+      // al dejar de escribir, baja hasta la primera caja encontrada
+      clearTimeout(render.st);render.st=setTimeout(()=>{const h=document.querySelector(".bx.hit");if(h){h.scrollIntoView({behavior:"smooth",block:"center"})}},900)}};
+  if(anim&&document.startViewTransition&&!reduced)document.startViewTransition(doIt);else doIt();
+}
+function go(s){if(s===screen){scrollTo({top:0,behavior:"smooth"});return}screen=s;q="";render(true);scrollTo(0,0)}
+
+/* ======================= Abrir caja: la caja crece hasta llenar la pantalla ======================= */
+let openId=null,openRect=null;
+function openBox(id,pid){
+  const b=B(id);if(!b)return;openId=id;
+  const el=document.querySelector(`.bx[data-box="${id}"]`)||document.querySelector(`[data-open="${id}"]`);
+  const r=el?el.getBoundingClientRect():{left:innerWidth/2-40,top:innerHeight/2-40,width:80,height:80};openRect=r;
+  const g=document.createElement("div");g.className="ghost";g.style.cssText=`left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;background:${getComputedStyle(document.documentElement).getPropertyValue("--"+b.c)}`;document.body.appendChild(g);
+  document.body.classList.add("lock");
+  const done=()=>{showViewer(b,pid);setTimeout(()=>g.remove(),260)};
+  if(reduced){done();return}
+  g.animate([{transform:"none",borderRadius:"16px"},{transform:`translate(${-r.left}px,${-r.top}px) scale(${innerWidth/r.width},${innerHeight/r.height})`,borderRadius:"0px"}],{duration:Math.min(520,SPR.s.ms),easing:SPR.s.css,fill:"forwards"}).finished.then(done);
+}
+function showViewer(b,pid){
+  const ps=photosOf(b.id),s=sizeOf(b),start=Math.max(0,ps.findIndex(p=>p.id===pid));
+  const v=document.createElement("div");v.className="viewer";v.id="viewer";v.setAttribute("role","dialog");v.setAttribute("aria-label",b.n);
+  v.innerHTML=`<div class="vtop"><button class="vb" data-close-viewer aria-label="Cerrar">${svg('<path d="M15 5l-7 7 7 7"/>',2.2)}</button><span class="t"><b>${esc(b.n)}</b><small>${s.n} · ${SHAPES[b.sh]} · ${esc((S.zones.find(z=>z.id===b.z)||{}).n||"")}</small></span>${ps.length?`<button class="vb" data-delphoto aria-label="Borrar esta foto">${svg('<path d="M4 7h16M6 7l1 13h10l1-13M9 7V4h6v3"/>')}</button>`:""}</div>
+  ${ps.length?`<div class="slides" id="slides">${ps.map(p=>`<div class="slide" data-pid="${p.id}"><img src="${urlOf(p)}" alt="Interior de ${esc(b.n)}"></div>`).join("")}</div>${ps.length>1?`<div class="dots">${ps.map((p,i)=>`<i class="${i===start?"on":""}"></i>`).join("")}</div>`:""}`
+    :`<div class="slides" style="display:grid;place-items:center"><div class="empty"><div class="art" style="--c:${getComputedStyle(document.documentElement).getPropertyValue("--"+b.c)}"><span class="b"></span><span class="l"></span></div><div><b style="color:#fff;font-size:17px">Aún no hay foto de esta caja</b><br>Ábrela, toma una foto de lo que tiene adentro y súbela aquí.</div></div></div>`}
+  <div class="vbot">${(b.items||[]).length?`<div class="items">${b.items.map(i=>`<span class="${q&&norm(i).includes(norm(q))?"hit":""}">${esc(i)}</span>`).join("")}</div>`:""}
+    <div class="vbtns"><button data-edit="${b.id}">${svg('<path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17v3z"/>')}Editar</button><label for="file" class="main">${svg(CAM,2)}${ps.length?"Otra foto":"Agregar foto"}</label></div></div>`;
+  document.body.appendChild(v);requestAnimationFrame(()=>v.classList.add("on"));
+  const sl=v.querySelector("#slides");
+  if(sl&&ps.length){requestAnimationFrame(()=>sl.scrollLeft=start*sl.clientWidth);
+    sl.addEventListener("scroll",()=>{const i=Math.round(sl.scrollLeft/sl.clientWidth);v.querySelectorAll(".dots i").forEach((d,k)=>d.classList.toggle("on",k===i))},{passive:true});
+    // doble toque para acercar en el punto tocado
+    let last=0;sl.addEventListener("click",e=>{const s=e.target.closest(".slide");if(!s)return;const n=Date.now();if(n-last<320){const img=s.querySelector("img"),r=img.getBoundingClientRect();img.style.transformOrigin=`${(e.clientX-r.left)/r.width*100}% ${(e.clientY-r.top)/r.height*100}%`;s.classList.toggle("zoom");last=0}else last=n});}
+}
+function closeViewer(){
+  const v=$("#viewer");if(!v)return;v.classList.remove("on");
+  const b=B(openId),el=document.querySelector(`.bx[data-box="${openId}"]`);
+  if(!reduced&&el&&b){const r=el.getBoundingClientRect(),g=document.createElement("div");g.className="ghost";g.style.cssText=`left:0;top:0;width:${innerWidth}px;height:${innerHeight}px;background:${getComputedStyle(document.documentElement).getPropertyValue("--"+b.c)};transform-origin:0 0`;document.body.appendChild(g);
+    g.animate([{transform:"none",borderRadius:"0px",opacity:1},{transform:`translate(${r.left}px,${r.top}px) scale(${r.width/innerWidth},${r.height/innerHeight})`,borderRadius:"40px",opacity:.6}],{duration:420,easing:SPR.s.css,fill:"forwards"}).finished.then(()=>{g.remove();el.animate([{transform:"scale(1.06)"},{transform:"none"}],{duration:500,easing:SPR.b.css})})}
+  setTimeout(()=>{v.remove();document.body.classList.remove("lock")},250);openId=null;
+}
+$("#file").onchange=async e=>{const files=[...e.target.files];e.target.value="";if(!files.length||!openId)return;const id=openId;toast("Guardando foto…");
+  try{for(const f of files){const blob=await shrink(f);await putPhoto({id:"p"+Date.now()+Math.random().toString(36).slice(2,6),box:id,blob,t:Date.now()})}await loadPhotos();
+    $("#viewer")&&$("#viewer").remove();showViewer(B(id),photosOf(id).at(-1).id);render();toast(files.length>1?`${files.length} fotos guardadas`:"Foto guardada")}catch(err){toast("No se pudo guardar la foto")}};
+
+/* ======================= Hojas: editor, menú ======================= */
+function openSheet(h){$("#sheetBody").innerHTML=h;const s=$("#sheet"),c=$("#scrim");s.hidden=c.hidden=false;s.scrollTop=0;s.style.transform="";document.body.classList.add("lock");requestAnimationFrame(()=>{s.classList.add("on");c.classList.add("on")})}
+function closeSheet(){const s=$("#sheet"),c=$("#scrim");if(s.hidden)return;if(!$("#viewer"))document.body.classList.remove("lock");s.style.transform="";s.classList.remove("on","drag");c.classList.remove("on");setTimeout(()=>{s.hidden=c.hidden=true},350)}
+$("#scrim").onclick=closeSheet;
+let draft;
+const sizeIcon=k=>{const s=SIZES[k];return `<i style="width:${s.w*7}px;height:${s.h*6}px"></i>`};
+function editor(b,zone){draft=b?{...b,items:[...(b.items||[])]}:{id:null,n:"",z:zone||(zoneF!=="all"?zoneF:S.zones[0].id),c:"tan",s:"s",sh:"box",items:[]};
+  openSheet(`<h3>${draft.id?"Editar caja":"Nueva caja"}</h3>
+  <div class="prev"><div class="map" id="pv"></div></div>
+  <div class="field"><input type="text" id="bn" placeholder="Nombre en la etiqueta (ej. Tech 03)" maxlength="22" value="${esc(draft.n)}" autocomplete="off"></div>
+  <div class="field"><span class="lbl">Tamaño real</span><div class="sizes">${Object.entries(SIZES).map(([k,s])=>`<button data-sz="${k}" aria-pressed="${draft.s===k}">${sizeIcon(k)}${s.n}</button>`).join("")}</div></div>
+  <div class="field"><span class="lbl">Forma</span><div class="opts">${Object.entries(SHAPES).map(([k,v])=>`<button data-shp="${k}" aria-pressed="${draft.sh===k}">${v}</button>`).join("")}</div></div>
+  <div class="field"><span class="lbl">Color</span><div class="sw">${Object.keys(COLORS).map(c=>`<button data-cl="${c}" aria-pressed="${draft.c===c}" style="background:var(--${c})" aria-label="${COLORS[c]}"></button>`).join("")}</div></div>
+  <div class="field"><span class="lbl">Zona</span><div class="opts">${S.zones.map(z=>`<button data-zn="${z.id}" aria-pressed="${draft.z===z.id}">${esc(z.n)}</button>`).join("")}</div></div>
+  <div class="field"><span class="lbl">¿Qué tiene? (una cosa por línea, para poder buscarla)</span><textarea id="bi" placeholder="Multímetro&#10;Cables dupont&#10;Cautín">${esc(draft.items.join("\n"))}</textarea></div>
+  ${draft.id?`<div class="field"><span class="lbl">Orden</span><div class="opts"><button data-mv="-1">← Mover antes</button><button data-mv="1">Mover después →</button></div></div>`:""}
+  <div class="btns">${draft.id?`<button class="btn red" data-delbox>Eliminar</button>`:`<button class="btn" data-close>Cancelar</button>`}<button class="btn dark" data-savebox>Guardar</button></div>`);
+  preview();if(!draft.id)setTimeout(()=>$("#bn")&&$("#bn").focus(),400)}
+function preview(){const pv=$("#pv");if(!pv)return;const n=($("#bn")&&$("#bn").value)||draft.n||"Caja";pv.innerHTML=boxHTML({...draft,n,id:"_"},0)}
+function menu(){const chev='<svg class="chev" viewBox="0 0 10 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 2l6 6-6 6"/></svg>',it=(a,ic,n)=>`<button ${a}>${svg(ic)}<span>${n}</span>${chev}</button>`,dark=document.documentElement.dataset.theme==="dark";
+  openSheet(`<h3>Menú</h3><div class="mlist">${it('data-go="map"','<rect x="3.5" y="4" width="9" height="7" rx="2"/><rect x="3.5" y="13" width="9" height="7" rx="2"/><rect x="14.5" y="4" width="6" height="16" rx="2"/>',"Mapa")}${it('data-go="photos"','<rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="9" cy="10" r="1.8"/>',"Fotos")}${it('data-go="items"','<path d="M8 6h12M8 12h12M8 18h12"/>',"Contenido")}${it("data-zones",'<path d="M4 6h16M4 12h16M4 18h16"/>',"Renombrar o agregar zonas")}</div>
+  <div class="mlist">${it("data-theme-toggle",dark?'<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2"/>':'<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',dark?"Tema claro":"Tema oscuro")}
+  <a href="../">${svg('<path d="M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/>')}<span>Todos mis proyectos</span>${chev}</a></div>
+  <p class="lbl" style="margin-top:14px">Las fotos se guardan solo en este iPhone (dentro de la app). Si borras los datos de Safari se pierden.</p>`)}
+function zonesSheet(){openSheet(`<h3>Zonas</h3>${S.zones.map(z=>`<div class="field"><input type="text" data-zname="${z.id}" value="${esc(z.n)}" maxlength="20"></div>`).join("")}
+  <div class="field"><input type="text" id="znew" placeholder="Nueva zona (ej. Clóset)" maxlength="20"></div>
+  <div class="btns"><button class="btn" data-close>Cancelar</button><button class="btn dark" data-savezones>Guardar</button></div>`)}
+function syncThemeColor(){document.querySelector('meta[name="theme-color"]').content=getComputedStyle(document.documentElement).getPropertyValue("--bg").trim()}
+function toggleTheme(){const t=document.documentElement.dataset.theme==="dark"?"light":"dark",f=()=>{document.documentElement.dataset.theme=t;syncThemeColor()};document.startViewTransition&&!reduced?document.startViewTransition(f):f();try{localStorage.setItem("diapps-theme",t)}catch(e){}}
+addEventListener("storage",e=>{if(e.key==="diapps-theme"&&e.newValue){document.documentElement.dataset.theme=e.newValue;syncThemeColor()}});
+
+/* ======================= Eventos ======================= */
+document.addEventListener("click",async e=>{
+  const g=s=>e.target.closest(s);let t;
+  if(g("[data-close-viewer]")){closeViewer();return}
+  if(g("[data-delphoto]")){const sl=$("#slides"),i=Math.round(sl.scrollLeft/sl.clientWidth),p=photosOf(openId)[i];if(!p)return;if(!confirm("¿Borrar esta foto?"))return;await delPhoto(p.id);urls.delete(p.id);await loadPhotos();const id=openId;$("#viewer").remove();showViewer(B(id));render();toast("Foto borrada");return}
+  if(t=g("[data-go]")){closeSheet();go(t.dataset.go);return}
+  if(t=g("[data-box]")){if(t.dataset.box==="_")return;if(editing)editor(B(t.dataset.box));else openBox(t.dataset.box);return}
+  if(t=g("[data-open]")){openBox(t.dataset.open,t.dataset.pid);return}
+  if(t=g("[data-new]")){editor(null,t.dataset.new||null);return}
+  if(g("[data-edit-mode]")){editing=!editing;if(editing&&screen!=="map"){screen="map"}render(true);toast(editing?"Modo editar: toca una caja":"Listo");return}
+  if(t=g("[data-edit]")){editor(B(t.dataset.edit));return}
+  if(t=g("[data-z]")){zoneF=t.dataset.z;render(true);return}
+  if(g("[data-clear]")){q="";render();return}
+  if(g("[data-menu]")){menu();return}
+  if(g("[data-zones]")){zonesSheet();return}
+  if(g("[data-savezones]")){document.querySelectorAll("[data-zname]").forEach(i=>{const z=S.zones.find(x=>x.id===i.dataset.zname);if(z&&i.value.trim())z.n=i.value.trim()});const nz=$("#znew").value.trim();if(nz)S.zones.push({id:"z"+Date.now(),n:nz});save();closeSheet();render(true);toast("Zonas guardadas");return}
+  if(t=g("[data-sz]")){draft.s=t.dataset.sz;t.parentNode.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b===t));preview();return}
+  if(t=g("[data-shp]")){draft.sh=t.dataset.shp;t.parentNode.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b===t));if(draft.sh==="tall"&&!["t","xs"].includes(draft.s))draft.s="t";preview();return}
+  if(t=g("[data-cl]")){draft.c=t.dataset.cl;t.parentNode.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b===t));preview();return}
+  if(t=g("[data-zn]")){draft.z=t.dataset.zn;t.parentNode.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b===t));return}
+  if(t=g("[data-mv]")){const i=S.boxes.findIndex(b=>b.id===draft.id),d=+t.dataset.mv;let j=i+d;while(j>=0&&j<S.boxes.length&&S.boxes[j].z!==draft.z)j+=d;if(j<0||j>=S.boxes.length){toast("Ya está en la orilla");return}[S.boxes[i],S.boxes[j]]=[S.boxes[j],S.boxes[i]];save();render();toast(d<0?"Movida antes":"Movida después");return}
+  if(g("[data-savebox]")){const n=$("#bn").value.trim();if(!n){$("#bn").focus();toast("Ponle un nombre");return}
+    draft.n=n;draft.items=$("#bi").value.split("\n").map(s=>s.trim()).filter(Boolean);const isNew=!draft.id;
+    if(isNew){draft.id="b"+(S.nid++);S.boxes.push(draft)}else S.boxes[S.boxes.findIndex(b=>b.id===draft.id)]=draft;
+    save();closeSheet();const v=$("#viewer");if(v&&openId===draft.id){v.remove();showViewer(draft)}render();toast(isNew?"Caja agregada":"Caja guardada");
+    if(isNew)setTimeout(()=>{const el=document.querySelector(`.bx[data-box="${draft.id}"]`);if(el){el.scrollIntoView({behavior:"smooth",block:"center"});el.animate([{transform:"scale(.6)",opacity:0},{transform:"none",opacity:1}],{duration:700,easing:SPR.b.css})}},120);return}
+  if(g("[data-delbox]")){if(!confirm(`¿Eliminar "${draft.n}" y sus fotos?`))return;for(const p of photosOf(draft.id))await delPhoto(p.id);await loadPhotos();S.boxes=S.boxes.filter(b=>b.id!==draft.id);save();closeSheet();if($("#viewer"))closeViewer();render(true);toast("Caja eliminada");return}
+  if(g("[data-close]")){closeSheet();return}
+  if(g("[data-theme-toggle]")){closeSheet();setTimeout(toggleTheme,200);return}
+});
+document.addEventListener("input",e=>{if(e.target.id==="bn")preview()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){if(!$("#sheet").hidden)closeSheet();else closeViewer()}});
+["gesturestart","gesturechange"].forEach(t=>document.addEventListener(t,e=>e.preventDefault(),{passive:false}));
+// arrastrar la hoja hacia abajo para cerrarla
+(()=>{const sh=$("#sheet");let sy=null,dy=0;
+  sh.addEventListener("touchstart",e=>{if(sh.scrollTop>0||e.target.closest("input,textarea"))return;sy=e.touches[0].clientY;dy=0},{passive:true});
+  sh.addEventListener("touchmove",e=>{if(sy==null)return;dy=e.touches[0].clientY-sy;if(dy>0){sh.classList.add("drag");sh.style.transform=`translateY(${dy}px)`;if(e.cancelable)e.preventDefault()}},{passive:false});
+  sh.addEventListener("touchend",()=>{if(sy==null)return;sy=null;sh.classList.remove("drag");if(dy>90)closeSheet();else sh.style.transform=""});
+  // deslizar hacia abajo en el visor lo cierra
+  let vy=null;document.addEventListener("touchstart",e=>{if(e.target.closest(".viewer .vtop, .viewer .empty"))vy=e.touches[0].clientY;else vy=null},{passive:true});
+  document.addEventListener("touchend",e=>{if(vy!=null&&e.changedTouches[0].clientY-vy>90)closeViewer();vy=null},{passive:true});
+})();
+
+save();syncThemeColor();render();loadPhotos().then(()=>render());
+if("serviceWorker" in navigator&&location.protocol!=="file:")addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+</script>
+</body>
+</html>
