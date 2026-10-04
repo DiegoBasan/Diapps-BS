@@ -28,3 +28,15 @@ cachés con su propio prefijo (`hub-`, `jetta-`, …) para no pisarse entre apps
 asistente de Finanzas, Coach de Rutinas, detección de contenido en Cajas y mecánico en Mi Jetta).
 La clave no está en el código (el repo es público): cada app la pide la primera vez que usa la IA
 y la guarda solo en el dispositivo. En Riff → menú → Búsqueda con IA se puede cambiar.
+
+## Servidor de búsqueda de Riff (`riff-api/`)
+
+Función de Netlify que busca de verdad lo que la app no puede pedir directo desde Safari (CORS):
+
+- `/api/yt?q=` — resultados reales de YouTube y si cada video deja verse fuera de YouTube.
+- `/api/cifra?artist=&title=` o `?url=` — acordes, tonalidad, cejilla, afinación, letra con acordes y tabs de Cifra Club.
+- `/api/tabs?q=` — tablaturas en Songsterr.
+
+La IA solo interpreta qué canción se escribió; si no está en Cifra Club, genera los acordes como respaldo.
+Para desplegar: en Netlify → Add new project → Import from GitHub → este repo, con **Base directory** `riff-api`.
+La app usa `https://diapps-riff.netlify.app` por defecto; otra dirección se cambia en Riff → menú → Búsqueda con IA.

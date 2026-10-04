@@ -155,6 +155,13 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-of
 .scales button em{font-style:normal;font-size:10px;font-weight:800;margin-left:4px;padding:1px 5px;border-radius:6px;background:var(--lime);color:#26300a}
 .seg{display:grid;grid-template-columns:repeat(3,1fr);background:var(--card2);border-radius:99px;padding:3px;margin-bottom:12px}
 .seg button{height:32px;border-radius:99px;font-size:12.5px;font-weight:600;color:var(--ink2);transition:background-color .25s,color .25s}
+.seg.two{grid-template-columns:1fr 1fr}
+.cifra{margin:0;font:500 12.5px/1.55 ui-monospace,"SF Mono",Menlo,monospace;white-space:pre;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:12px;border-radius:16px;background:var(--card2)}
+.cifra b{font-weight:800;color:var(--ink);background:color-mix(in srgb,var(--lime) 45%,transparent);border-radius:4px}
+.cifra .sx{font-weight:800;color:var(--ink2)}
+a.chip{color:inherit;text-decoration:none}
+.tabblk{margin-bottom:12px}.tabblk h4{margin:0 0 6px;font-size:13px;font-weight:800}
+.srcline{margin-top:10px;font-size:12.5px;color:var(--ink2);font-weight:600}.srcline a{color:inherit}
 .seg button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.08)}
 .pos{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
 .pos button{height:30px;min-width:34px;padding:0 10px;border-radius:10px;background:var(--card2);font-size:12.5px;font-weight:700;color:var(--ink2)}
@@ -269,6 +276,12 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-of
     <div class="fb" id="fb"></div>
     <div class="leg"><span><i style="background:var(--lime)"></i>Tónica</span><span><i style="background:var(--ink)"></i>Notas del acorde</span><span><i style="background:var(--card);box-shadow:inset 0 0 0 1.5px var(--line2)"></i>Escala</span><span><i style="box-shadow:inset 0 0 0 2px var(--ink)"></i>Fuera de la escala</span></div>
     <div class="tips" id="tips"></div>
+  </section>
+
+  <section class="card rise" style="--i:4" id="sheetCard" hidden>
+    <div class="ch"><div><div class="ey" id="srcEy">Fuente</div><h2>Letra y tabs</h2></div><a class="chip press" id="srcLink" target="_blank" rel="noopener">Abrir ↗</a></div>
+    <div class="seg two" id="shSeg"><button data-sh="txt" aria-pressed="true">Letra y acordes</button><button data-sh="tab" aria-pressed="false">Tablaturas</button></div>
+    <div id="shBody"></div>
   </section>
 </main>
 <input type="file" id="afile" accept="audio/*,video/mp4" hidden>
@@ -456,7 +469,8 @@ function render(){
     (outside.length?` Acordes prestados o fuera de la escala: <b>${outside.map(c=>chordName({...c,bass:null})).join(", ")}</b>.`:" Todos los acordes son de la misma escala.")+
     (capo?`<br>Con <b>cejilla en el traste ${capo}</b> tocas las formas de los acordes de arriba y suenan ${capo} semitono${capo>1?"s":""} más agudo. El diapasón muestra las notas reales (lo que suena).`:"")+
     (tune?`<br>Afinación <b>${TUNE_N[tune].toLowerCase()}</b>: las formas suenan ${-tune===1?"medio tono":"un tono"} más grave.`:"")+
-    `<br><button class="lnk press" data-key>Cambiar tonalidad, cejilla o afinación</button>`;
+    `<br><button class="lnk press" data-key>Cambiar tonalidad, cejilla o afinación</button>`+
+    (s.src?`<div class="srcline">${s.src==="cifraclub"?`Acordes de <a href="${esc(s.srcUrl)}" target="_blank" rel="noopener">Cifra Club ↗</a>`:"Acordes generados por IA: pueden tener errores, revísalos con el video."}</div>`:"");
   // escalas
   $("#scales").innerHTML=sug.map(x=>`<button data-sc="${x[0]}" aria-pressed="${x[0]===scaleK}">${SCALES[x[0]].n}${x===sug[0]?"<em>SOLO</em>":""}</button>`).join("")+
     Object.keys(SCALES).filter(x=>!sug.some(s=>s[0]===x)).map(x=>`<button data-sc="${x}" aria-pressed="${x===scaleK}" style="${x===scaleK?"":"opacity:.6"}">${SCALES[x].n}</button>`).join("");
@@ -487,6 +501,7 @@ function render(){
   if(s.tips)tips.unshift(`<b>IA:</b> ${esc(s.tips)}`);
   $("#tips").innerHTML=`<ul>${tips.map(t=>`<li>${t}</li>`).join("")}</ul>`;
   {const pr=progression(),pp2=$("#pipPos");if(pp2)pp2.textContent=pr.length?`${(pip.idx%pr.length)+1} de ${pr.length}`:""}
+  renderSheet(s);
   $("#kPitch").textContent=(transpose>0?"+":"")+transpose;
   $("#kPitchL").textContent=player.kind==="file"?"Tono del audio":"Tono (acordes)";
   $("#pnote").textContent=player.kind==="yt"?"YouTube no deja procesar el sonido de sus videos, así que aquí el tono mueve acordes y diapasón. Para oír la canción más grave o aguda usa un audio tuyo (menú → Usar un audio mío).":player.kind==="file"?(transpose?"El cambio de tono procesa el audio en vivo: si sales de la app, iOS puede pausarlo.":"Sin cambio de tono el audio puede seguir sonando aunque salgas de la app (controles en la pantalla de bloqueo)."):"";
@@ -620,26 +635,81 @@ async function findVideos(title,artist,aiList){
     out.push({id:v.id,title:v.hint,author:"",score:.3,src:"ia",unverified:true})});
   return out.filter(v=>v.score>=.45||v.unverified).sort((a,b)=>b.score-a.score);
 }
+/* Servidor de búsqueda (Netlify, carpeta riff-api del repo): YouTube, Cifra Club y Songsterr de verdad */
+const API_LS="riff-api-url",API_DEF="https://diapps-riff.netlify.app";
+const apiBase=()=>{try{return (localStorage.getItem(API_LS)||API_DEF).replace(/\/+$/,"")}catch(e){return API_DEF}};
+async function api(route,params,ms=15000){const u=apiBase()+"/api/"+route+"?"+new URLSearchParams(params);
+  const r=await withTimeout(fetch(u),ms);const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||("servidor "+r.status));return j}
+/* La IA solo interpreta qué canción quieres (corrige ortografía, separa título y artista); no inventa datos */
+async function understand(q){
+  if(window.IA&&IA.key())try{const j=await withTimeout(IA.ask(`El usuario quiere practicar una canción y escribió: "${q}".
+Devuelve SOLO JSON {"title":"","artist":""} con el título oficial (como aparece en Spotify, sin "(Official Video)" ni versiones) y el artista principal. Corrige errores de ortografía. Si no sabes cuál es, usa el texto tal cual como title y deja artist vacío.`,{json:true,temperature:0}),12000);
+    if(j&&j.title)return {title:String(j.title),artist:String(j.artist||""),ai:true}}catch(e){}
+  const m=q.split(/\s+[-–—]\s+|\s+de\s+(?=[^\s]+(?:\s[^\s]+)?$)/i);return m.length===2?{title:m[0],artist:m[1]}:{title:q,artist:""};
+}
+const isCifraUrl=x=>/^https?:\/\/(www\.|m\.)?cifraclub\.com(\.br)?\/[^/]+\/[^/]+/i.test(String(x).trim());
+function songFromCifra(cf,fallback){
+  return {id:"u"+Date.now(),title:cf.title||fallback.title,artist:cf.artist||fallback.artist||"",bpm:null,
+    sections:cf.sections.map(x=>({n:x.name||"",c:x.chords.filter(c=>parseChord(c))})).filter(x=>x.c.length),
+    aiKey:cf.key||"",capo:cf.capo||0,tune:cf.tune||0,src:"cifraclub",srcUrl:cf.url,text:cf.text||"",tabs:cf.tabs||[],tips:"",yt:null,ytAlt:[],ytInfo:null};
+}
+/* Videos reales de la búsqueda de YouTube, ordenados: que sea la canción, del artista, oficial y que deje verse aquí */
+function rankVideos(list,title,artist){
+  return (list||[]).filter(v=>v.embeddable!==false).map(v=>({...v,score:matchScore(v.title+" "+v.channel,title,artist)+(v.embeddable?.08:0)}))
+    .filter(v=>v.score>=.45).sort((a,b)=>b.score-a.score);
+}
 async function searchSong(q){
   const id=ytId(q);
   if(id){const s=song();s.yt=id;s.ytAlt=[];s.ytInfo=null;save();loadVideo(id);toast("Video cargado: el loop y la velocidad ya funcionan");return}
-  const local=S.songs.find(s=>norm2(s.title)===norm2(q)||norm2(s.title+" "+s.artist)===norm2(q));
-  if(local){selectSong(local.id);toast("Encontrada en tus canciones");return}
-  const b=$("#sgo");b.classList.add("busy");b.disabled=true;toast("Buscando acordes de “"+q+"”…",15000);
-  try{const data=await geminiSong(q);
-    const sections=(data.sections||[]).map(x=>({n:x.name||"",c:(x.chords||[]).map(c=>String(c).trim()).filter(c=>parseChord(c))})).filter(x=>x.c.length);
-    if(!sections.length)throw new Error(data.found===false?"la IA no conoce esa canción; prueba con título y artista":"sin acordes");
-    const capo=Math.max(0,Math.min(11,parseInt(data.capo)||0));
-    const s={id:"u"+Date.now(),title:data.title||q,artist:data.artist||"",bpm:parseInt(data.bpm)||null,sections,tips:data.soloTips||"",
-      aiKey:data.key||"",capo,tune:parseTune(data.tuning),yt:null,ytAlt:[],ytInfo:null,conf:data.confidence||""};
+  if(!isCifraUrl(q)){const local=S.songs.find(s=>norm2(s.title)===norm2(q)||norm2(s.title+" "+s.artist)===norm2(q));
+    if(local){selectSong(local.id);toast("Encontrada en tus canciones");return}}
+  const b=$("#sgo");b.classList.add("busy");b.disabled=true;
+  try{
+    let who,cf=null,yt=null,tb=null;
+    if(isCifraUrl(q)){toast("Leyendo Cifra Club…",15000);cf=await api("cifra",{url:q.trim()}).catch(()=>null);if(!cf)throw new Error("no pude leer esa página de Cifra Club");who={title:cf.title,artist:cf.artist}}
+    else{toast("Entendiendo “"+q+"”…",15000);who=await understand(q)}
+    toast(`Buscando ${who.title}${who.artist?" · "+who.artist:""} en Cifra Club y YouTube…`,20000);
+    const full=`${who.artist} ${who.title}`.trim();
+    [cf,yt,tb]=await Promise.all([cf?Promise.resolve(cf):api("cifra",{artist:who.artist,title:who.title}).catch(()=>null),
+      api("yt",{q:full}).catch(()=>null),api("tabs",{q:full}).catch(()=>null)]);
+    let s;
+    if(cf&&cf.sections&&cf.sections.length){s=songFromCifra(cf,who)}
+    else{ // sin Cifra Club: la IA saca los acordes (menos exacto) y se avisa
+      toast("No está en Cifra Club; generando acordes con IA…",15000);
+      const data=await geminiSong(full||q);
+      const sections=(data.sections||[]).map(x=>({n:x.name||"",c:(x.chords||[]).map(c=>String(c).trim()).filter(c=>parseChord(c))})).filter(x=>x.c.length);
+      if(!sections.length)throw new Error(data.found===false?"no encontré esa canción; prueba con título y artista":"sin acordes");
+      s={id:"u"+Date.now(),title:data.title||who.title,artist:data.artist||who.artist,bpm:parseInt(data.bpm)||null,sections,tips:data.soloTips||"",
+        aiKey:data.key||"",capo:Math.max(0,Math.min(11,parseInt(data.capo)||0)),tune:parseTune(data.tuning),src:"ia",yt:null,ytAlt:[],ytInfo:null,_aiYt:data.youtube||[]};
+    }
+    s.tabLinks=(tb&&tb.tabs||[]).filter(t=>matchScore(t.title+" "+t.artist,s.title,s.artist)>=.5).slice(0,3);
+    const ai=s._aiYt;delete s._aiYt;
     S.songs.unshift(s);save();selectSong(s.id);
-    toast("Acordes listos · verificando el video…",8000);
-    const vids=await findVideos(s.title,s.artist,data.youtube||(data.youtubeUrl?[data.youtubeUrl]:[]));
+    let vids=yt?rankVideos(yt.videos,s.title,s.artist):[];
+    if(!vids.length&&ai&&ai.length){toast("Verificando video…",8000);vids=await findVideos(s.title,s.artist,ai)}
     if(S.cur!==s.id)return;
-    if(vids.length){s.yt=vids[0].id;s.ytAlt=vids.slice(1).map(v=>v.id);s.ytInfo={title:vids[0].title,author:vids[0].author,unverified:!!vids[0].unverified};save();loadVideo(s.yt);
-      toast(vids[0].unverified?`${s.title}: video sin verificar, revisa que sea el correcto`:`${s.title}: acordes y video verificado`,3200)}
-    else{save();noVideo(s);toast(`${s.title}: acordes listos · no encontré un video que se pueda ver aquí`,3600)}
+    if(vids.length){s.yt=vids[0].id;s.ytAlt=vids.slice(1,6).map(v=>v.id);s.ytInfo={title:vids[0].title,author:vids[0].channel||vids[0].author||""};save();loadVideo(s.yt)}
+    else{save();noVideo(s)}
+    toast(`${s.title}: acordes de ${s.src==="cifraclub"?"Cifra Club":"IA"}${vids.length?" · video encontrado":yt?" · ningún video se deja ver aquí":" · sin conexión al buscador de video"}`,3600);
   }catch(e){toast("No pude obtener los datos: "+(e.message||"error"),3800)}finally{b.classList.remove("busy");b.disabled=false}
+}
+/* Letra con acordes (transpuesta si mueves el tono) y tablaturas */
+let shTab="txt";
+function renderSheet(s){
+  const card=$("#sheetCard");const hasTxt=!!s.text,hasTab=!!(s.tabs&&s.tabs.length)||!!(s.tabLinks&&s.tabLinks.length);
+  if(!hasTxt&&!hasTab){card.hidden=true;return}card.hidden=false;
+  if(shTab==="txt"&&!hasTxt)shTab="tab";if(shTab==="tab"&&!hasTab)shTab="txt";
+  document.querySelectorAll("[data-sh]").forEach(b=>{b.setAttribute("aria-pressed",b.dataset.sh===shTab);b.disabled=b.dataset.sh==="txt"?!hasTxt:!hasTab;b.style.opacity=b.disabled?.4:1});
+  $("#srcEy").textContent=s.src==="cifraclub"?"De Cifra Club":"Fuente";$("#srcLink").hidden=!s.srcUrl;if(s.srcUrl)$("#srcLink").href=s.srcUrl;
+  if(shTab==="txt"){
+    const html=esc(s.text).replace(/\{([^}]+)\}/g,(m,c)=>{const p=parseChord(c);if(!p)return `<b>${c}</b>`;const t=shapeName(mv(p,transpose));return `<b>${esc(t)}</b>`+" ".repeat(Math.max(0,c.length-t.length))})
+      .replace(/^(\[[^\]]+\])/gm,'<span class="sx">$1</span>').replace(/@@TAB\d+@@/g,"<i>(tab: ver pestaña Tablaturas)</i>");
+    $("#shBody").innerHTML=`<pre class="cifra">${html}</pre>${transpose?`<p class="note">Acordes transpuestos ${transpose>0?"+":""}${transpose} para que coincidan con arriba.</p>`:""}`;
+  }else{
+    $("#shBody").innerHTML=(s.tabs||[]).map(t=>`<div class="tabblk"><h4>${esc(t.name||"Tab")}</h4><pre class="cifra">${esc(t.lines.join("\n"))}</pre></div>`).join("")+
+      ((s.tabLinks||[]).length?`<div class="mlist">${s.tabLinks.map(t=>`<a href="${esc(t.url)}" target="_blank" rel="noopener"><span class="t"><b>${esc(t.title)}</b><small>${esc(t.artist)} · tablatura interactiva en Songsterr</small></span>${chev}</a>`).join("")}</div>`:"")+
+      (!(s.tabs||[]).length?`<p class="note">Cifra Club no trae tabs para esta canción; Songsterr tiene la tablatura completa por instrumento.</p>`:"");
+  }
 }
 /* Pide los datos a la IA compartida (../shared/ia.js) en formato JSON */
 async function geminiSong(q){
@@ -690,9 +760,12 @@ function menu(){const dark=document.documentElement.dataset.theme==="dark",it=(a
   ${it("data-gem",'<path d="M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z"/>',"Búsqueda con IA (Gemini)",window.IA&&IA.isCustom()?"Clave guardada":"Te pedirá la clave al usarla")}</div>
   <div class="mlist">${it("data-theme-toggle",dark?'<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2"/>':'<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',dark?"Tema claro":"Tema oscuro")}
   <a href="../">${svg('<path d="M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/>')}<span class="t"><b>Todos mis proyectos</b></span>${chev}</a></div>`)}
-function gemSheet(){openSheet(`<h3>Búsqueda con IA</h3><p class="lbl">Escribe una canción en la barra de arriba y la IA llena título, tonalidad, BPM, acordes por sección y consejos para el solo. La clave se guarda solo en este iPhone; aquí puedes cambiarla.</p>
+function gemSheet(){openSheet(`<h3>Búsqueda con IA</h3><p class="lbl">La IA solo entiende qué canción escribiste (corrige ortografía y separa título y artista). Los acordes, la tonalidad y la cejilla salen de Cifra Club, el video de la búsqueda real de YouTube y las tabs de Cifra Club y Songsterr. Si la canción no está en Cifra Club, la IA genera los acordes y te lo indica. La clave se guarda solo en este iPhone.</p>
   <div class="field"><input id="gK" placeholder="Clave propia (opcional)" value="${esc(window.IA&&IA.isCustom()?IA.key():"")}" autocomplete="off"></div>
-  <div class="btns"><button class="btn" data-close>Cancelar</button><button class="btn dark" data-savegem>Guardar</button></div>`)}
+  <div class="btns"><button class="btn" data-close>Cancelar</button><button class="btn dark" data-savegem>Guardar</button></div>
+  <p class="lbl" style="margin-top:18px">Servidor de búsqueda (Cifra Club, YouTube y tabs):</p>
+  <div class="field"><input id="gA" placeholder="${API_DEF}" value="${esc(apiBase()===API_DEF?"":apiBase())}" autocomplete="off" inputmode="url"></div>
+  <div class="btns"><button class="btn dark" data-saveapi>Guardar servidor</button></div>`)}
 function keySheet(){const s=song(),A=analyze(),man=parseKey(s.keyFix),cap=s.capo||0,tn=s.tune||0;
   const kb=(t,mode)=>{const on=man&&man.t===t&&man.mode===mode,o=useFlats;useFlats=flatsFor({t,mode});const n=nn(t)+(mode==="minor"?"m":"");useFlats=o;return `<button data-kf="${n}" aria-pressed="${!!on}">${n}</button>`};
   const st=`${keyName(A.k)} · ${{ambos:"la IA y los acordes coinciden",ia:"según la IA",acordes:"calculada con los acordes",manual:"elegida por ti"}[A.src]}`;
@@ -725,6 +798,8 @@ document.addEventListener("click",e=>{
   if(t=g("[data-lm]")){labelMode=t.dataset.lm;document.querySelectorAll("[data-lm]").forEach(b=>b.setAttribute("aria-pressed",b===t));render();return}
   if(t=g("[data-pos]")){posF=+t.dataset.pos;render();return}
   if(g("[data-key]")||g("#keyChip")){keySheet();return}
+  if(t=g("[data-sh]")){shTab=t.dataset.sh;render();return}
+  if(g("[data-saveapi]")){const v=$("#gA").value.trim();try{v&&v!==API_DEF?localStorage.setItem(API_LS,v):localStorage.removeItem(API_LS)}catch(e){}closeSheet();toast("Listo");return}
   if(t=g("[data-kf]")){const s=song();s.keyFix=t.dataset.kf;save();scaleK=null;render();const y=$("#sheet").scrollTop;keySheet();$("#sheet").scrollTop=y;return}
   if(t=g("[data-capo]")){const s=song();s.capo=+t.dataset.capo;save();render();const y=$("#sheet").scrollTop;keySheet();$("#sheet").scrollTop=y;return}
   if(t=g("[data-tune]")){const s=song();s.tune=+t.dataset.tune;save();render();const y=$("#sheet").scrollTop;keySheet();$("#sheet").scrollTop=y;return}
