@@ -1,0 +1,779 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Mi Jetta MK6</title>
+<meta name="description" content="Tablero, mantenimiento, testigos y fallas de mi Jetta MK6 2.5">
+<!-- App de pantalla de inicio (iOS) -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mi Jetta">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="format-detection" content="telephone=no">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#EDEDEF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121214" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<script>
+/* Aplica el tema guardado antes de pintar para evitar parpadeo */
+try{var t=localStorage.getItem("jetta6theme");if(t)document.documentElement.dataset.theme=t}catch(e){}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700&family=Barlow+Semi+Condensed:wght@400;500;600&display=swap">
+<style>
+/* Layout: pantalla tipo iPhone gris claro; héroe con el auto sobre la marca de agua MK6; selector de puntos de revisión que cambia la vista del auto; tarjetas con botón de flecha negro */
+:root{
+  --glass:rgba(255,255,255,.55); --glassBorder:rgba(255,255,255,.75); --glassShadow:rgba(30,32,40,.14);
+  --bg:#DCDCDF; --screen:#EDEDEF; --card:#F6F6F7; --white:#FFFFFF; --ink:#111113; --ink2:#85858C; --line:#DCDCE0;
+  --lime:#C6EE3A; --mist:#B7C4D1; --blush:#ECC8CE; --crit:#E5484D; --warn:#E39A1F; --ok:#3FA466;
+  --dock:rgba(20,20,22,.88); --scrim:rgba(0,0,0,.32);
+  --font:"Urbanist",-apple-system,"SF Pro Text",system-ui,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#050506; --screen:#121214; --card:#1B1B1E; --white:#242428; --ink:#F3F3F4; --ink2:#8E8E96; --line:#2D2D32;
+  --mist:#5E6D7C; --blush:#8C5B65; --dock:rgba(46,46,52,.92); --scrim:rgba(0,0,0,.55); --glass:rgba(40,40,46,.55); --glassBorder:rgba(255,255,255,.12); --glassShadow:rgba(0,0,0,.5); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#050506; --screen:#121214; --card:#1B1B1E; --white:#242428; --ink:#F3F3F4; --ink2:#8E8E96; --line:#2D2D32;
+  --mist:#5E6D7C; --blush:#8C5B65; --dock:rgba(46,46,52,.92); --scrim:rgba(0,0,0,.55); --glass:rgba(40,40,46,.55); --glassBorder:rgba(255,255,255,.12); --glassShadow:rgba(0,0,0,.5); color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{background:var(--screen)}
+/* Comportamiento de app nativa: sin zoom ni resaltado al tocar; se conserva el rebote natural de iOS */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+body{margin:0;min-height:100dvh}
+body.lock{overflow:hidden}
+button,label,.nav,.dock,.tag,.lg,.th,.ey,.lbl,h1,h3,h4{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+img{-webkit-user-drag:none;-webkit-touch-callout:none;user-select:none}
+input,select,textarea{font-size:16px}
+.rb,.go,.pbtn,.tag,.lg,.warn,.spot,.th,.dock button,.seg button,.back{transition:transform .16s cubic-bezier(.2,.8,.2,1),background-color .2s,color .2s}
+.rb:active,.go:active,.pbtn:active,button.tag:active,.lg:active,button.warn:active,.spot:active,.th:active,.dock button:active,.seg button:active,.back:active{transform:scale(.94)}
+body{color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.4;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+button:focus-visible,input:focus-visible,label:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+.phone{max-width:430px;margin:0 auto;background:var(--screen);min-height:100dvh;overflow-x:clip;position:relative}
+@media (min-width:600px){html,body{background:var(--bg)}body{padding-block:28px}.phone{min-height:860px;border-radius:44px;box-shadow:0 30px 80px rgba(0,0,0,.18)}}
+.screen{padding:calc(10px + env(safe-area-inset-top,0px)) 20px calc(118px + env(safe-area-inset-bottom,0px))}
+.screen[hidden]{display:none!important}
+.bar{display:flex;align-items:center;gap:8px;padding:6px 0 18px}
+.bar .sp{flex:1}
+.rb{width:44px;height:44px;border-radius:50%;background:var(--white);display:grid;place-items:center;flex:none;position:relative}
+.rb svg{width:20px;height:20px}
+.rb .dot{position:absolute;top:9px;right:10px;width:8px;height:8px;border-radius:50%;background:var(--crit);border:2px solid var(--white)}
+.avatar{background:var(--ink);color:var(--screen);font-weight:700;font-size:16px}
+h1{font-size:36px;line-height:1.05;font-weight:500;letter-spacing:-.025em;margin:0;text-wrap:balance}
+h1 sup{font-size:14px;font-weight:500;letter-spacing:0;vertical-align:top;position:relative;top:6px;margin-left:4px;color:var(--ink2)}
+.tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:16px}
+.tag{font-size:12.5px;font-weight:500;padding:6px 11px;border-radius:99px;background:var(--card);color:var(--ink)}
+button.tag{border:1px solid var(--line)}
+
+/* encabezado */
+.brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px}
+.brand img{width:36px;height:36px;border-radius:10px;display:block}
+.brand small{display:block;font-size:12px;font-weight:500;color:var(--ink2);line-height:1.1}
+.ttl{font-size:42px;font-weight:600;letter-spacing:-.035em;margin-top:6px}
+.subttl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;color:var(--ink2);font-size:14px;font-weight:500}
+.subttl .odo-b{color:var(--ink);font-weight:600;padding:5px 11px;border-radius:99px;background:var(--white)}
+.stpill{display:inline-flex;align-items:center;gap:6px;padding:5px 11px 5px 9px;border-radius:99px;font-size:13px;font-weight:600}
+.stpill i{width:7px;height:7px;border-radius:50%;background:currentColor}
+.stpill.ok{background:color-mix(in srgb,var(--lime) 50%,transparent);color:#26300a}
+.stpill.warn{background:color-mix(in srgb,var(--warn) 20%,transparent);color:var(--warn)}
+.stpill.crit{background:color-mix(in srgb,var(--crit) 16%,transparent);color:var(--crit)}
+:root[data-theme="dark"] .stpill.ok{color:var(--lime)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .stpill.ok{color:var(--lime)}}
+
+/* héroe: auto sin sombra sobre marca de agua; la vista cambia según el punto elegido */
+.hero{position:relative;height:232px;margin:14px -20px 0;overflow:hidden}
+.wm{position:absolute;inset:0;display:grid;place-items:center;font-size:150px;font-weight:700;letter-spacing:-.06em;line-height:1;color:var(--white);pointer-events:none;transition:transform .7s cubic-bezier(.2,.8,.2,1)}
+.wm span{transform:translateY(-6px)}
+.stagebox{position:absolute;inset:6px 18px 2px;display:grid;place-items:center}
+.frame{position:relative}
+.frame img{display:block;width:100%;height:100%;max-width:none;transition:opacity .32s,transform .55s cubic-bezier(.2,.8,.2,1)}
+.frame.out img{opacity:0;transform:scale(.94) translateY(6px)}
+.frame.out .hs{opacity:0}
+.hs{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;display:grid;place-items:center;transition:left .5s cubic-bezier(.2,.8,.2,1),top .5s cubic-bezier(.2,.8,.2,1),opacity .2s;pointer-events:none}
+.hs i{width:13px;height:13px;border-radius:50%;background:var(--lime);box-shadow:0 0 0 3px #fff;animation:pulse 1.8s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 3px #fff,0 0 0 3px rgba(198,238,58,.6)}70%{box-shadow:0 0 0 3px #fff,0 0 0 16px rgba(198,238,58,0)}100%{box-shadow:0 0 0 3px #fff,0 0 0 16px rgba(198,238,58,0)}}
+.spots{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:16px -20px 0;padding:2px 20px;scroll-padding-inline:20px}
+.spots::-webkit-scrollbar{display:none}
+.sp-chip{flex:none;display:flex;align-items:center;gap:7px;height:40px;padding:0 15px 0 11px;border-radius:99px;background:var(--white);font-size:13.5px;font-weight:600;color:var(--ink);transition:background-color .25s,color .25s,transform .16s}
+.sp-chip:active{transform:scale(.94)}
+.sp-chip svg{width:19px;height:19px}
+.sp-chip[aria-selected="true"]{background:var(--ink);color:var(--screen)}
+#spotCard{margin-top:14px}
+#spotCard .sub,#spotCard b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#spotCard .k{white-space:nowrap}
+#spotCard .t{animation:fadeup .35s cubic-bezier(.2,.8,.2,1)}
+.chev{width:9px;height:14px;flex:none;color:var(--ink2)}
+/* accesos rápidos */
+.quick{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+.qa{background:var(--white);border-radius:22px;padding:14px 12px 13px;display:flex;flex-direction:column;align-items:flex-start;gap:12px;font-size:14px;font-weight:600;text-align:left;min-width:0;transition:transform .16s}
+.qa:active{transform:scale(.95)}
+.qa .ic{width:36px;height:36px;border-radius:12px;background:var(--card);display:grid;place-items:center}
+.qa .ic svg{width:20px;height:20px}
+.qa small{display:block;font-weight:500;color:var(--ink2);font-size:12px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.qa>span:last-child{min-width:0;max-width:100%}
+/* imagen de cada sección */
+.dimg{height:150px;display:flex;justify-content:center;align-items:center;margin:-4px 0 14px;overflow:hidden}
+.dimg img{height:150px;width:auto;max-width:100%;object-fit:contain;display:block}
+.pop{animation:pop .55s cubic-bezier(.2,.8,.2,1)}
+@keyframes pop{from{opacity:0;transform:scale(.94) translateY(8px)}}
+/* animaciones de entrada */
+@keyframes fadeup{from{opacity:0;transform:translateY(8px)}}
+.rv{opacity:0;transform:translateY(18px);transition:opacity .6s cubic-bezier(.2,.8,.2,1),transform .6s cubic-bezier(.2,.8,.2,1)}
+.rv.in{opacity:1;transform:none}
+.dpanel .mi,.dpanel .fault,.dpanel .lg{animation:fadeup .42s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i,0) * 32ms)}
+
+/* vidrio */
+.glass{background:var(--glass);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);border:1px solid var(--glassBorder);box-shadow:inset 0 1px 0 var(--glassBorder),0 12px 30px var(--glassShadow)}
+/* tablero moderno */
+.dash{background:var(--white);border-radius:28px;padding:18px 18px 16px;margin-top:14px}
+.dash .top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.dash .chips{display:flex;gap:6px}
+.dash .chip{font-size:12.5px;font-weight:600;padding:6px 10px;border-radius:99px;background:var(--card)}
+.dash .body{display:grid;grid-template-columns:150px 1fr;gap:16px;align-items:center;margin-top:10px}
+.gauge{position:relative;width:150px;height:150px}
+.gauge svg{position:absolute;inset:0;width:100%;height:100%}
+.gauge .c{position:absolute;inset:0;display:grid;place-items:center;text-align:center;pointer-events:none}
+.gauge .c b{color:var(--ink);display:block;font-size:30px;font-weight:500;letter-spacing:-.03em;line-height:1}
+.gauge .c span{font-size:12px;color:var(--ink2)}
+.odo{display:flex;flex-direction:column;gap:10px;min-width:0}
+.odo button{text-align:left;display:flex;flex-direction:column;gap:2px}
+.odo .v{font-size:26px;font-weight:500;letter-spacing:-.03em;line-height:1.05}
+.odo .v small{font-size:13px;color:var(--ink2);margin-left:3px;letter-spacing:0}
+.odo .s{font-size:16px;font-weight:600}
+.odo hr{border:0;border-top:1px solid var(--line);margin:0}
+.warns{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.warn{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:8px 12px 8px 8px;border-radius:18px;background:var(--card)}
+.warn .light{width:36px;height:36px;border-radius:11px}
+.warn .light svg{width:22px;height:22px}
+.warn b{display:block;font-weight:600;font-size:14.5px}
+.warn .t{flex:1;min-width:0}
+/* barra de navegación de vidrio */
+.nav{position:fixed;left:50%;transform:translateX(-50%);bottom:max(10px,calc(env(safe-area-inset-bottom,0px) - 8px));z-index:8;display:flex;align-items:center;gap:0;padding:5px;border-radius:99px;width:min(398px,calc(100% - 24px))}
+.nav button{flex:1;min-width:0;height:54px;border-radius:99px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--ink);position:relative;font-size:10px;font-weight:600;letter-spacing:.01em;transition:color .2s,background-color .25s,transform .16s}
+.nav button:active{transform:scale(.92)}
+.nav button svg{width:24px;height:24px}
+.nav button[aria-current="page"]{color:var(--ink);background:color-mix(in srgb,var(--ink) 9%,transparent)}
+.nav button:not([aria-current]) {color:color-mix(in srgb,var(--ink) 72%,transparent)}
+.nav .bd{position:absolute;top:3px;left:calc(50% + 5px);min-width:16px;height:16px;padding:0 4px;border-radius:99px;background:var(--crit);color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center}
+.dhead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:6px 0 16px}
+.dtop{display:flex;align-items:center;justify-content:space-between;padding:6px 0 10px}
+.back{display:flex;align-items:center;gap:2px;height:44px;padding:0 16px 0 10px;border-radius:99px;background:var(--white);font-weight:600;font-size:15px}
+.back svg{width:22px;height:22px}
+/* tarjetas */
+.card{background:var(--white);border-radius:28px;padding:20px;margin-top:14px}
+.card.soft{background:var(--card)}
+.ch{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.ch h3{margin:4px 0 0;font-size:19px;font-weight:500;letter-spacing:-.01em}
+.ch .ey{font-size:12px;color:var(--ink2)}
+.go{width:46px;height:46px;border-radius:50%;background:var(--ink);color:var(--screen);display:grid;place-items:center;flex:none}
+.go.ghost{background:none;border:1.5px solid var(--line);color:var(--ink)}
+.go svg{width:18px;height:18px}
+.split{display:grid;grid-template-columns:1fr 1fr;margin-top:16px}
+.split>div{min-width:0;display:flex;flex-direction:column;gap:6px}
+.split>div+div{border-left:1px solid var(--line);padding-left:16px}
+.split>div:first-child{padding-right:16px}
+.lbl{font-size:12.5px;color:var(--ink2);font-weight:500}
+.big{font-size:32px;font-weight:500;letter-spacing:-.03em;line-height:1}
+.big small{font-size:14px;color:var(--ink2);font-weight:500;margin-left:3px;letter-spacing:0}
+.sub{font-size:12.5px;color:var(--ink2)}
+.ticks{position:relative;height:14px;background:repeating-linear-gradient(90deg,var(--line) 0 1.5px,transparent 1.5px 4px);border-radius:2px;overflow:hidden}
+.ticks i{position:absolute;inset:0 auto 0 0;background:repeating-linear-gradient(90deg,var(--ink) 0 1.5px,transparent 1.5px 4px);transition:width .6s}
+.ticks.warn i{background:repeating-linear-gradient(90deg,var(--warn) 0 1.5px,transparent 1.5px 4px)}
+.ticks.crit i{background:repeating-linear-gradient(90deg,var(--crit) 0 1.5px,transparent 1.5px 4px)}
+.ticks .m{position:absolute;top:0;bottom:0;width:2px;background:var(--ink2)}
+.spot{display:flex;align-items:center;gap:14px;margin-top:12px;background:var(--white);border-radius:24px;padding:12px 12px 12px 16px;width:100%;text-align:left}
+.spot .t{flex:1;min-width:0}
+.spot b{font-weight:600;font-size:15px;display:block}
+.spot .k{font-size:20px;font-weight:600;letter-spacing:-.02em;text-align:right}
+.svc{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;margin-top:16px}
+.svc .pills{display:flex;flex-direction:column;align-items:flex-start;gap:7px;min-width:0}
+.svc .pills .tag{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.orb{width:142px;height:142px;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--white),var(--card));box-shadow:inset 0 0 0 1px var(--line),0 10px 24px rgba(0,0,0,.06);display:grid;place-items:center;text-align:center;position:relative}
+.orb svg{position:absolute;inset:0}
+.orb .v{font-size:26px;font-weight:500;letter-spacing:-.03em;line-height:1}
+.orb .v sup{font-size:11px;color:var(--ink2);letter-spacing:0;vertical-align:top;margin-left:2px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
+.stats>div{display:flex;flex-direction:column;gap:4px;min-width:0}
+.stats b{font-size:17px;font-weight:600}
+.stats span{font-size:12px;color:var(--ink2)}
+.stats i{height:4px;border-radius:99px;margin-top:6px}
+.wb{display:flex;align-items:baseline;gap:6px}
+.wb .h{font-size:26px;font-weight:600;letter-spacing:-.02em}
+.wb sup{font-size:12px;font-weight:500}
+.pbtn{padding:11px 18px;border-radius:99px;border:1.5px solid var(--line);font-weight:600;font-size:14px;background:var(--white)}
+.pbtn.dark{background:var(--ink);color:var(--screen);border-color:var(--ink)}
+
+/* detalle */
+.dtabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;margin:0 -20px;padding:0 20px}
+.dtabs::-webkit-scrollbar{display:none}
+.dtabs button{flex:none;display:flex;align-items:center;gap:7px;padding:12px 14px;border-radius:20px 20px 0 0;font-size:14px;font-weight:500;color:var(--ink2)}
+.dtabs button[aria-selected="true"]{background:var(--white);color:var(--ink)}
+.cnt{min-width:20px;height:20px;padding:0 6px;border-radius:99px;font-size:11px;font-weight:700;display:grid;place-items:center;border:1.5px solid var(--line)}
+.dtabs button[aria-selected="true"] .cnt{background:var(--ink);color:var(--screen);border-color:var(--ink)}
+.dpanel{background:var(--white);margin:0 -20px;padding:20px 20px 30px;border-radius:28px;min-height:60vh}
+.dpanel>[hidden]{display:none!important}
+.seg{display:flex;gap:6px;margin:4px 0 14px;flex-wrap:wrap}
+.seg button{padding:8px 14px;border-radius:99px;font-size:13px;font-weight:600;background:var(--card);color:var(--ink2)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--screen)}
+.mi{background:var(--card);border-radius:22px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.mi+.mi{margin-top:10px}
+.mi .hd{display:flex;align-items:center;gap:10px}
+.mi .hd b{flex:1;font-weight:600;font-size:15.5px}
+.mi .meta{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--ink2)}
+.st{font-size:11.5px;font-weight:700;padding:4px 9px;border-radius:99px;white-space:nowrap}
+.s-ok{background:color-mix(in srgb,var(--lime) 55%,transparent);color:#26300a}
+.s-warn{background:color-mix(in srgb,var(--warn) 22%,transparent);color:var(--warn)}
+.s-crit{background:color-mix(in srgb,var(--crit) 18%,transparent);color:var(--crit)}
+.s-info{background:color-mix(in srgb,var(--mist) 45%,transparent);color:var(--ink)}
+.lightGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.lg{background:var(--card);border-radius:20px;padding:12px 4px 10px;display:flex;flex-direction:column;align-items:center;gap:7px;font-size:11.5px;font-weight:600;text-align:center;line-height:1.15;min-width:0}
+.light{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;flex:none;background:#111113}
+.light svg{width:28px;height:28px}
+.search{display:flex;align-items:center;gap:8px;background:var(--card);border-radius:99px;padding:12px 16px;margin-bottom:14px}
+.search input{flex:1;border:0;background:none;font:inherit;color:var(--ink);outline:none;min-width:0}
+.search svg{width:18px;height:18px;flex:none}
+.fault{background:var(--card);border-radius:22px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.fault+.fault{margin-top:10px}
+.fault .hd{display:flex;gap:10px;align-items:flex-start}
+.fault .hd b{flex:1;font-size:16px;font-weight:600;line-height:1.25}
+.fault dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:13.5px}
+.fault dt{color:var(--ink2);font-weight:600}
+.fault dd{margin:0}
+.codes{display:flex;gap:6px;flex-wrap:wrap}
+.code{font-family:var(--mono);font-size:12px;padding:3px 8px;border-radius:8px;background:var(--white)}
+.rows{background:var(--card);border-radius:22px;padding:4px 16px}
+.rows .r{display:flex;justify-content:space-between;gap:14px;padding:12px 0;font-size:14.5px}
+.rows .r+.r{border-top:1px solid var(--line)}
+.rows .r span:first-child{color:var(--ink2)}
+.rows .r span:last-child{text-align:right;font-weight:500}
+h4{font-size:13px;font-weight:600;color:var(--ink2);text-transform:uppercase;letter-spacing:.06em;margin:20px 4px 8px}
+.note{font-size:12.5px;color:var(--ink2);padding:12px 4px 0}
+
+/* hoja inferior */
+.scrim{position:fixed;inset:0;background:var(--scrim);z-index:9;opacity:0;transition:opacity .25s}
+.scrim.on{opacity:1}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:10;max-width:430px;margin:0 auto;background:var(--white);border-radius:30px 30px 0 0;padding:10px 22px calc(24px + env(safe-area-inset-bottom,0px));max-height:calc(100dvh - env(safe-area-inset-top,0px) - 16px);overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;transform:translateY(100%);transition:transform .38s cubic-bezier(.2,.9,.25,1)}
+.sheet.drag{transition:none}
+.sheet.on{transform:none}
+.grab{width:40px;height:5px;border-radius:99px;background:var(--line);margin:0 auto 12px;position:relative}
+.grab::before{content:"";position:absolute;inset:-14px -60px}
+.mlist{display:flex;flex-direction:column;background:var(--card);border-radius:22px;margin-top:14px;overflow:hidden}
+.mlist button,.mlist label{display:flex;align-items:center;gap:14px;padding:14px 16px;font-size:16px;font-weight:500;text-align:left;cursor:pointer}
+.mlist>*+*{border-top:1px solid var(--line)}
+.mlist svg{width:22px;height:22px;flex:none;color:var(--ink2)}
+.mlist .chev{margin-left:auto;width:9px;height:14px}
+.sheet h3{font-size:24px;font-weight:500;letter-spacing:-.02em;margin:6px 0 4px}
+.sheet p{margin:6px 0}
+.muted{color:var(--ink2);font-size:14px}
+.field{display:flex;flex-direction:column;gap:8px;margin:16px 0}
+.field label{font-size:13px;font-weight:600;color:var(--ink2)}
+.field input[type=number],.field input[type=date]{font:inherit;font-size:22px;padding:12px 16px;border-radius:18px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);width:100%}
+input[type=range]{width:100%;accent-color:var(--ink)}
+.actions{display:flex;gap:10px;margin-top:18px}
+.actions .pbtn{flex:1;padding:15px;text-align:center;font-size:16px}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:var(--ink);color:var(--screen);padding:11px 18px;border-radius:99px;font-size:14px;font-weight:600;opacity:0;transition:.25s;z-index:20;pointer-events:none}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.slide-r{animation:slr .34s cubic-bezier(.2,.8,.2,1)}
+.slide-l{animation:sll .34s cubic-bezier(.2,.8,.2,1)}
+@keyframes slr{from{transform:translateX(36px);opacity:0}to{transform:none;opacity:1}}
+@keyframes sll{from{transform:translateX(-36px);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<div class="phone">
+<!-- INICIO -->
+<section class="screen" id="home">
+  <div class="bar">
+    <div class="brand"><img src="icons/icon.svg" alt=""><span>Mi Jetta<small id="hello">Hola</small></span></div>
+    <span class="sp"></span>
+    <button class="rb" data-open="maint" aria-label="Avisos de servicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg><span class="dot" id="bellDot" hidden></span></button>
+    <button class="rb" data-menu aria-label="Menú"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  </div>
+
+  <h1 class="ttl">Jetta MK6</h1>
+  <div class="subttl"><span>2.5 Sport · 2015</span><button class="odo-b num" data-sheet="odo" id="odoTag"></button><button class="stpill" id="stPill" data-open="maint"></button></div>
+
+  <div class="hero" id="hero">
+    <div class="wm" aria-hidden="true"><span>MK6</span></div>
+    <div class="stagebox"><div class="frame" id="frame"><img id="carImg" src="jetta_iso.webp" alt="Volkswagen Jetta MK6 gris oscuro"><span class="hs" id="hs" hidden><i></i></span></div></div>
+  </div>
+  <div class="spots" id="spots" role="tablist" aria-label="Puntos de revisión"></div>
+  <button class="spot" id="spotCard"></button>
+  <div class="quick" id="quick"></div>
+
+  <div class="rv dash" id="dash" aria-label="Tablero del Jetta"></div>
+
+  <div class="rv card">
+    <div class="ch"><div><div class="ey">5W-40 sintético · VW 502 00</div><h3>Aceite de motor</h3></div>
+      <button class="go ghost" data-sheet="oil" aria-label="Actualizar nivel de aceite"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M7 17L17 7M9 7h8v8"/></svg></button></div>
+    <div class="split">
+      <button data-done="oil" style="text-align:left;display:flex;flex-direction:column;gap:6px">
+        <span class="lbl">Próximo cambio</span><span class="big num" id="fuelPct"></span><span class="sub num" id="fuelSub"></span>
+      </button>
+      <button data-sheet="oil" style="text-align:left;display:flex;flex-direction:column;gap:6px">
+        <span class="lbl">Nivel en varilla</span><span class="big" id="oilTxt"></span><span class="sub num" id="oilSub"></span>
+      </button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px">
+      <div class="ticks" id="fuelTicks"><i></i></div>
+      <div class="ticks" id="oilTicks"><i></i><span class="m" style="left:25%"></span><span class="m" style="left:80%"></span></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:6px" class="sub"><span>Cada 10,000 km o 12 meses</span><span style="display:flex;justify-content:space-between"><span style="margin-left:18%">MIN</span><span style="margin-right:14%">MAX</span></span></div>
+  </div>
+
+
+
+  <div class="rv card soft">
+    <div class="ch"><div><div class="ey">Mantenimiento</div><h3>Próximo servicio</h3></div>
+      <button class="go" data-open="maint" aria-label="Ver mantenimiento"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M7 17L17 7M9 7h8v8"/></svg></button></div>
+    <div class="svc"><div class="pills" id="nextPills"></div><div class="orb" id="orb"></div></div>
+    <div class="stats" id="stats"></div>
+  </div>
+
+  <div class="rv card">
+    <div class="ch"><div><div class="ey">Diagnóstico</div><h3>Testigos y fallas</h3></div>
+      <button class="go" data-open="faults" aria-label="Ver fallas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M7 17L17 7M9 7h8v8"/></svg></button></div>
+    <div class="split">
+      <button data-open="lights" style="text-align:left;display:flex;flex-direction:column;gap:6px"><span class="big num" id="nLights">20</span><span class="lbl">Testigos del tablero</span></button>
+      <button data-open="faults" style="text-align:left;display:flex;flex-direction:column;gap:6px"><span class="big num" id="nFaults">11</span><span class="lbl">Fallas típicas del 2.5</span></button>
+    </div>
+    <div class="ticks" style="margin-top:14px" id="sevTicks"><i style="width:100%;background:repeating-linear-gradient(90deg,var(--crit) 0 1.5px,transparent 1.5px 4px) 0 0/20% 100% no-repeat,repeating-linear-gradient(90deg,var(--warn) 0 1.5px,transparent 1.5px 4px) 20% 0/50% 100% no-repeat,repeating-linear-gradient(90deg,var(--ink) 0 1.5px,transparent 1.5px 4px) 70% 0/30% 100% no-repeat"></i></div>
+    <div class="sub" style="margin-top:6px">2 graves · 6 medias · 3 leves</div>
+  </div>
+  <p class="note">Datos de ejemplo para arrancar. Toca cualquier número para capturar los de tu auto; se guardan en este navegador.</p>
+</section>
+
+<!-- DETALLE -->
+<section class="screen" id="detail" hidden>
+  <div class="dtop">
+    <button class="back" data-nav="home" aria-label="Volver a inicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>Inicio</button>
+    <button class="rb" data-menu aria-label="Menú"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  </div>
+  <div class="dhead"><div><div class="ey sub" id="dEy"></div><h1 id="dTitle">Mantenimiento</h1></div>
+    <button class="rb" data-sheet="odo" aria-label="Actualizar kilometraje"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 17a8 8 0 1 1 16 0M12 17l4-5"/></svg></button></div>
+  <div class="dimg"><img id="dImg" alt=""></div>
+  <div class="dpanel">
+    <div id="p-maint">
+      <div class="ch" style="margin-bottom:12px"><div><div class="wb"><span class="h num" id="mOdo"></span><sup>km</sup></div><div class="sub">Intervalos de referencia · 2.5 L</div></div><button class="pbtn" data-sheet="odo">Actualizar</button></div>
+      <div class="seg" id="maintSeg"><button aria-pressed="true" data-f="all">Todo</button><button aria-pressed="false" data-f="due">Pendiente</button><button aria-pressed="false" data-f="ok">Al día</button></div>
+      <div id="maintList"></div>
+      <p class="note">Si manejas en tierra, calor extremo o tráfico pesado, acorta los intervalos. Tu póliza de servicio VW manda.</p>
+    </div>
+    <div id="p-lights" hidden>
+      <div class="seg" id="lightSeg"><button aria-pressed="true" data-c="all">Todos</button><button aria-pressed="false" data-c="r">Rojos</button><button aria-pressed="false" data-c="y">Amarillos</button><button aria-pressed="false" data-c="g">Informativos</button></div>
+      <div class="lightGrid" id="lightGrid"></div>
+      <p class="note">Rojo: detente en un lugar seguro. Amarillo: revisa pronto. Verde o azul: solo informa.</p>
+    </div>
+    <div id="p-faults" hidden>
+      <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" placeholder="Síntoma o código (P0300, vibración…)" autocomplete="off"></div>
+      <div id="codeHit"></div><div id="faultList"></div>
+    </div>
+    <div id="p-specs" hidden>
+      <div id="specs"></div>
+      <h4>Imagen del auto</h4>
+      <div class="rows">
+        <label class="r" for="png" style="cursor:pointer"><span style="color:var(--ink)!important;font-weight:600">Agregar PNG sin fondo</span><span>＋</span></label>
+        <button class="r" id="resetData" style="width:100%;text-align:left"><span style="color:var(--crit)!important;font-weight:600">Restablecer datos de ejemplo</span><span></span></button>
+      </div>
+    </div>
+  </div>
+</section>
+</div>
+
+<input type="file" id="png" accept="image/png,image/webp" hidden>
+<nav class="nav glass" id="nav" aria-label="Secciones"></nav>
+<div class="scrim" id="scrim" hidden></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" hidden><div class="grab"></div><div id="sheetBody"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------------- Datos ---------------- */
+const TANK=55, KM_PER_L=11.5;
+const DEFAULTS={odo:214072,trip:14.8,temp:20.0,fuel:22,oil:62,active:["airbag"],
+  done:{oil:205100,airf:190600,cabin:205100,plugs:176100,atf:181600,belt:147600,rot:205100,align:200600,pads:197600},
+  doneDate:{oil:"2026-03-20",cabin:"2026-03-20",brakef:"2025-02-15",coolant:"2023-11-02",battery:"2024-08-20"}};
+let S;try{S=JSON.parse(localStorage.getItem("jetta6v3"))}catch(e){}
+if(!S||!S.done||!S.active)S=JSON.parse(JSON.stringify(DEFAULTS));
+function save(){try{localStorage.setItem("jetta6v3",JSON.stringify(S))}catch(e){}}
+
+const MAINT=[
+ {id:"oil",n:"Cambio de aceite y filtro",s:"Aceite",d:"5W-40 sintético VW 502 00 · ≈ 6 L",km:10000,mo:12},
+ {id:"rot",n:"Rotación de llantas",s:"Rotación",d:"Cada cambio de aceite",km:10000},
+ {id:"cabin",n:"Filtro de cabina",s:"Filtro cabina",d:"Mejora A/C y olores",km:15000,mo:12},
+ {id:"airf",n:"Filtro de aire de motor",s:"Filtro aire",d:"Más seguido si hay polvo",km:30000},
+ {id:"pads",n:"Revisión de balatas",s:"Balatas",d:"Delanteras primero",km:30000},
+ {id:"align",n:"Alineación y balanceo",s:"Alineación",d:"O si jala a un lado",km:20000},
+ {id:"plugs",n:"Bujías (5 piezas)",s:"Bujías",d:"Iridio",km:60000},
+ {id:"atf",n:"ATF transmisión Tiptronic",s:"ATF 09G",d:"Cambio parcial + adaptación",km:60000},
+ {id:"belt",n:"Banda de accesorios y tensor",s:"Banda",d:"Revisar grietas y chillido",km:90000},
+ {id:"brakef",n:"Líquido de frenos",s:"Líq. frenos",d:"DOT 4 · absorbe humedad",mo:24},
+ {id:"coolant",n:"Refrigerante",s:"Refrigerante",d:"G13 · no mezclar con verde",mo:48},
+ {id:"battery",n:"Batería",s:"Batería",d:"Prueba de carga",mo:36}
+];
+const SPECS=[
+ ["Mi auto",[["Versión","2.5 Sport · 2015"],["Color","Gris Platino"],["Tapa de gasolina","Lado derecho"]]],
+ ["Motor",[["Tipo","2.5 L · 5 cil. en línea · 20V"],["Potencia","170 hp @ 5,700 rpm"],["Torque","240 N·m @ 4,000 rpm"],["Distribución","Cadena"],["Combustible","Magna (87 oct.)"]]],
+ ["Capacidades",[["Tanque","55 L"],["Aceite","≈ 6 L con filtro"],["Especificación","5W-40 VW 502 00"],["Refrigerante","G13"],["Frenos","DOT 4"]]],
+ ["Transmisión y chasis",[["Automática","Tiptronic 6 vel. (09G)"],["Manual","5 velocidades"],["Llantas","205/55 R16 (base)"],["Presión","Etiqueta en la tapa de gasolina"]]],
+ ["Dimensiones",[["Largo","4,644 mm"],["Ancho","1,778 mm"],["Alto","1,453 mm"],["Entre ejes","2,651 mm"]]]
+];
+const IC={
+ engine:'<path d="M4 10h2V8h3V6h6v2h2l2 2h2v6h-2l-2 2H9l-2-2H6v-2H4zM2 11v4"/>',
+ oilp:'<path d="M2 11h4l2-2h7l5-3v2l-4 5H7l-1-2H2zM20 15c0 .9-1 1.8-1 2.4a1 1 0 0 0 2 0c0-.6-1-1.5-1-2.4z"/>',
+ temp:'<path d="M10 4a2 2 0 0 1 4 0v8.5a3.5 3.5 0 1 1-4 0zM14 6h3M14 9h3M3 21c2-1.4 4 1.4 6 0s4 1.4 6 0 4 1.4 6 0"/>',
+ batt:'<rect x="3" y="7" width="18" height="12" rx="1.5"/><path d="M6 7V5h3v2M15 7V5h3v2M6.5 13h3M8 11.5v3M14.5 13h3"/>',
+ brake:'<circle cx="12" cy="12" r="6"/><path d="M12 9v3.5M12 15h.01M5 5.5a9 9 0 0 0 0 13M19 5.5a9 9 0 0 1 0 13"/>',
+ abs:'<circle cx="12" cy="12" r="6.5"/><path d="M4.5 5.5a9 9 0 0 0 0 13M19.5 5.5a9 9 0 0 1 0 13"/><text x="12" y="14.2" font-size="5.6" font-weight="800" text-anchor="middle" fill="currentColor" stroke="none" font-family="Arial">ABS</text>',
+ epc:'<text x="12" y="15.5" font-size="9" font-weight="800" text-anchor="middle" fill="currentColor" stroke="none" font-family="Arial">EPC</text>',
+ airbag:'<circle cx="7.5" cy="5" r="2"/><path d="M7 8.5l1.2 6h4.3l2.5 5M6 9.5l.8 7h4"/><circle cx="16.5" cy="9" r="4"/>',
+ esc:'<path d="M5 13l1.5-4h11l1.5 4v3H5zM7 16v1.5M17 16v1.5M5 20.5c1.5-1 3 1 4.5 0M14.5 20.5c1.5-1 3 1 4.5 0"/>',
+ belt:'<circle cx="12" cy="4.5" r="2"/><path d="M8 21v-7a4 4 0 0 1 8 0v7M9 9.5l7 8.5"/>',
+ fuel:'<path d="M5 20V5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v15M4 20h11M5 10h9M14 8l3 2v7a1.5 1.5 0 0 0 3 0V8l-3-3"/>',
+ tpms:'<path d="M5.5 18c-1.6-3-1.6-9 1-12h11c2.6 3 2.6 9 1 12zM12 9v4M12 15.5h.01M7 21h2M11 21h2M15 21h2"/>',
+ door:'<rect x="8" y="3" width="8" height="18" rx="3"/><path d="M8 11l-4 3M10 7h4"/>',
+ washer:'<path d="M3 19c3-5 15-5 18 0zM12 4v5M8.5 5l1.5 4M15.5 5L14 9"/>',
+ bulb:'<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 11c.5.5.5 1 .5 2h6c0-1 0-1.5.5-2A6 6 0 0 0 12 3zM12 7v4M12 13h.01"/>',
+ service:'<path d="M14.5 6a4 4 0 0 0 5 5L11 19.5a2.1 2.1 0 0 1-3-3z"/>',
+ steer:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/><path d="M4 12h6M14 12h6M12 14v6"/>',
+ high:'<path d="M3 7h6M3 11h6M3 15h6M13 6c4.5 0 7 3 7 6s-2.5 6-7 6z"/>',
+ turn:'<path d="M1.5 12l4.5-4.5v3h3v3H6v3zM22.5 12L18 7.5v3h-3v3h3v3z"/>',
+ cruise:'<path d="M4 17a8 8 0 1 1 16 0M12 17l4-5M7 17h.01M17 17h.01"/>',
+ tire:'<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5"/><path d="M12 3.5v5M12 15.5v5M3.5 12h5M15.5 12h5"/>'
+};
+const LCOL={r:"#FF3B30",y:"#FFB000",g:"#30D158",b:"#3D8BFF"};
+const LIGHTS=[
+ {k:"oilp",c:"r",n:"Presión de aceite",m:"La bomba no entrega presión suficiente o el nivel está muy bajo.",a:"Apaga el motor en cuanto sea seguro y revisa la varilla. No sigas manejando aunque se apague y vuelva a encender.",u:"Detente ya"},
+ {k:"temp",c:"r",n:"Temperatura",m:"Sobrecalentamiento o refrigerante bajo. En el MK6 es común la fuga en la carcasa del termostato.",a:"Detente y apaga. No abras el depósito en caliente. Revisa el G13 con el motor frío.",u:"Detente ya"},
+ {k:"brake",c:"r",n:"Frenos",m:"Freno de mano puesto, líquido bajo o balatas al límite.",a:"Quita el freno de mano. Si sigue, revisa el depósito DOT 4 y no manejes si el pedal está esponjoso.",u:"Detente ya"},
+ {k:"batt",c:"r",n:"Carga",m:"El alternador no está cargando; el auto funciona solo con la batería.",a:"Apaga A/C y accesorios y ve directo al taller. Revisa la banda de accesorios.",u:"Detente pronto"},
+ {k:"airbag",c:"y",n:"Bolsas de aire",m:"Falla en bolsas, pretensores o su cableado. Mientras esté encendido, las bolsas pueden no activarse en un choque.",a:"En el MK6 lo más común es el conector amarillo bajo los asientos delanteros o el resorte reloj (espiral) del volante. Escanea el módulo de bolsas (SRS) para saber cuál.",u:"Revisa pronto"},
+ {k:"belt",c:"r",n:"Cinturón",m:"Un ocupante delantero no lleva el cinturón.",a:"Abróchalo.",u:"Informativo"},
+ {k:"door",c:"r",n:"Puerta abierta",m:"Una puerta, cofre o cajuela no cerró bien.",a:"Revisa y cierra con firmeza.",u:"Informativo"},
+ {k:"engine",c:"y",n:"Check engine",m:"La computadora detectó una falla de motor o emisiones. Si parpadea, hay falla de encendido fuerte.",a:"Fijo: escanea pronto. Parpadeando: reduce velocidad y revisa ya; puede dañar el catalizador.",u:"Revisa pronto"},
+ {k:"epc",c:"y",n:"EPC",m:"Testigo propio de VW: falla en acelerador electrónico, cuerpo de aceleración o sensores del pedal o freno.",a:"Puede entrar en modo de emergencia con poca potencia. Escanea y revisa el switch del pedal de freno.",u:"Revisa pronto"},
+ {k:"abs",c:"y",n:"ABS",m:"Falla en el antibloqueo, casi siempre un sensor de rueda. El freno normal funciona.",a:"Deja más distancia al frenar y escanea para ver qué rueda.",u:"Revisa pronto"},
+ {k:"esc",c:"y",n:"Estabilidad",m:"Fijo: falla o desactivado. Parpadeando: está actuando por pérdida de tracción.",a:"Si parpadea, suaviza. Si queda fijo, revisa junto con ABS.",u:"Revisa pronto"},
+ {k:"steer",c:"y",n:"Dirección",m:"Falla en la asistencia de dirección; el volante se siente pesado.",a:"Revisa el líquido de dirección y escanea.",u:"Revisa pronto"},
+ {k:"tpms",c:"y",n:"Presión llantas",m:"Una llanta perdió presión respecto a las demás.",a:"Ajusta según la etiqueta de la tapa de gasolina y reinicia el sistema desde el menú.",u:"Revisa pronto"},
+ {k:"fuel",c:"y",n:"Reserva",m:"Quedan unos 7 L, alrededor de 70–80 km.",a:"Carga gasolina. Andar en reserva seguido calienta la bomba.",u:"Revisa pronto"},
+ {k:"service",c:"y",n:"Servicio",m:"Se cumplió el intervalo de servicio programado.",a:"Haz el servicio y reinicia el indicador.",u:"Informativo"},
+ {k:"washer",c:"y",n:"Limpiaparabrisas",m:"Depósito de limpiaparabrisas bajo.",a:"Rellena con líquido limpiador.",u:"Informativo"},
+ {k:"bulb",c:"y",n:"Foco fundido",m:"Algún foco exterior no funciona.",a:"Revisa cuál y reemplázalo.",u:"Informativo"},
+ {k:"turn",c:"g",n:"Direccionales",m:"Direccional o intermitentes activos. Si parpadea rápido, hay un foco fundido.",a:"Ninguna.",u:"Informativo"},
+ {k:"cruise",c:"g",n:"Crucero",m:"El control crucero está activo.",a:"Ninguna.",u:"Informativo"},
+ {k:"high",c:"b",n:"Luces altas",m:"Las luces altas están encendidas.",a:"Bájalas ante tráfico de frente.",u:"Informativo"}
+];
+const FAULTS=[
+ {n:"Testigo de bolsa de aire encendido",s:"warn",sym:"Testigo ámbar fijo de airbag en el tablero.",c:"Falso contacto en el conector bajo el asiento, resorte reloj (espiral) del volante dañado o sensor de ocupante.",fix:"Escanear el módulo SRS. Con batería desconectada, revisar y asegurar conectores bajo los asientos. Si también fallan claxon o botones del volante, cambiar la espiral.",km:"Cualquier kilometraje",codes:["00588"],light:"airbag"},
+ {n:"Fuga en carcasa de termostato o bomba de agua",s:"crit",sym:"Olor dulce, gotas rosas, G13 que baja, testigo de temperatura.",c:"La carcasa de plástico se deforma con el calor.",fix:"Cambiar carcasa con empaque; suele hacerse junto con la bomba de agua.",km:"80,000–140,000 km",codes:["P0128","P0118"],light:"temp"},
+ {n:"Bobinas de encendido",s:"warn",sym:"Tirones, ralentí irregular, check engine parpadeando.",c:"Bobinas que fallan por calor y vibración.",fix:"Cambiar la bobina del cilindro marcado y revisar bujías.",km:"Cualquier kilometraje",codes:["P0300","P0301","P0302","P0303","P0304","P0305"],light:"engine"},
+ {n:"Válvula PCV",s:"warn",sym:"Silbido, ralentí inestable, consumo de aceite.",c:"El diafragma de la PCV se rompe.",fix:"Cambiar la válvula y revisar mangueras.",km:"90,000 km en adelante",codes:["P0171","P0507"],light:"engine"},
+ {n:"Tiptronic 09G con cambios bruscos",s:"crit",sym:"Golpe entre 2a y 3a, patina, tarda la reversa.",c:"ATF degradado; VW lo marcó sin cambio.",fix:"Cambio de ATF con nivel correcto y adaptación. Si sigue, cuerpo de válvulas.",km:"60,000 km en adelante",codes:["P0730","P0733","P0734"],light:"engine"},
+ {n:"Sensor MAF",s:"warn",sym:"Pérdida de potencia, tirones, consumo alto.",c:"Sensor sucio o dañado.",fix:"Limpiar con limpiador de MAF; cambiar si no mejora.",km:"Cualquier kilometraje",codes:["P0101","P0102","P0103"],light:"engine"},
+ {n:"Golpeteo en arranque en frío",s:"warn",sym:"Ruido de punterías los primeros segundos.",c:"Aceite incorrecto o bajo, tensor de cadena o seguidores.",fix:"Usar 5W-40 VW 502 00 al nivel correcto; si sigue, revisar tensor.",km:"100,000 km en adelante",codes:["P0016"],light:"oilp"},
+ {n:"Soportes de motor",s:"warn",sym:"Vibración en D detenido, golpe al acelerar.",c:"El hule se vence con los años.",fix:"Cambiar el soporte dañado; empieza por el del lado del motor.",km:"100,000 km en adelante",codes:[],light:null},
+ {n:"Válvula de purga EVAP",s:"info",sym:"Cuesta arrancar tras cargar gasolina.",c:"La válvula se queda abierta.",fix:"Cambiar válvula; revisar tapón de gasolina.",km:"Cualquier kilometraje",codes:["P0441","P0455","P0456"],light:"engine"},
+ {n:"Elevadores de ventana",s:"info",sym:"El vidrio se cae o no sube.",c:"Clips plásticos del regulador se rompen.",fix:"Cambiar regulador o kit de clips.",km:"Cualquier kilometraje",codes:[],light:null},
+ {n:"Sensor de velocidad de rueda",s:"info",sym:"ABS y ESC encendidos juntos.",c:"Sensor o cable dañado por agua o lodo.",fix:"Escanear para ver la rueda y cambiar ese sensor.",km:"Cualquier kilometraje",codes:["C0035","C0040"],light:"abs"}
+];
+const CODES={"00588":"Bolsa del conductor: resistencia alta (espiral o conector)",P0016:"Correlación cigüeñal / árbol de levas",P0101:"Rango del sensor MAF",P0102:"Señal MAF baja",P0103:"Señal MAF alta",P0118:"Temperatura de refrigerante alta (sensor)",P0128:"Termostato: no alcanza temperatura",P0171:"Mezcla pobre, banco 1",P0172:"Mezcla rica, banco 1",P0300:"Falla de encendido aleatoria",P0301:"Falla de encendido cilindro 1",P0302:"Falla de encendido cilindro 2",P0303:"Falla de encendido cilindro 3",P0304:"Falla de encendido cilindro 4",P0305:"Falla de encendido cilindro 5",P0420:"Eficiencia baja del catalizador",P0441:"Flujo incorrecto de purga EVAP",P0455:"Fuga grande en EVAP",P0456:"Fuga pequeña en EVAP",P0507:"Ralentí más alto de lo esperado",P0730:"Relación de marcha incorrecta",P0733:"Relación incorrecta en 3a",P0734:"Relación incorrecta en 4a",C0035:"Sensor de rueda delantero izquierdo",C0040:"Sensor de rueda delantero derecho"};
+
+/* ---------------- Helpers ---------------- */
+const $=s=>document.querySelector(s);
+const fmt=n=>Math.round(n).toLocaleString("es-MX");
+const icon=(k,col,w=1.8)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" style="${col?"color:"+col:""}">${IC[k]}</svg>`;
+const monthsSince=d=>d?(Date.now()-new Date(d))/2629800000:999;
+function mstate(m){
+  let p=0,left="",kmLeft=null;const last=S.done[m.id];
+  if(m.km){if(last==null){p=1.2;left="Sin registro"}else{const used=S.odo-last;p=used/m.km;kmLeft=m.km-used;left=kmLeft>=0?`Faltan ${fmt(kmLeft)} km`:`Vencido por ${fmt(-kmLeft)} km`}}
+  if(m.mo&&(!m.km||S.doneDate[m.id])){const mo=monthsSince(S.doneDate[m.id]);const pm=mo/m.mo;if(!m.km||pm>p){p=Math.max(p,pm);const r=m.mo-mo;left=S.doneDate[m.id]?(r>=0?`Faltan ${Math.ceil(r)} mes${Math.ceil(r)===1?"":"es"}`:`Vencido hace ${Math.ceil(-r)} mes${Math.ceil(-r)===1?"":"es"}`):"Sin registro";if(m.km)kmLeft=null}}
+  return {p,st:p>=1?"crit":p>=.85?"warn":"ok",left,kmLeft};
+}
+let tt;function toast(t){const e=$("#toast");e.textContent=t;e.classList.add("on");clearTimeout(tt);tt=setTimeout(()=>e.classList.remove("on"),1800)}
+
+/* vistas del auto (renders sin fondo) y puntos en % de cada imagen; la vista cambia sola según el punto elegido */
+const VIEWS={iso:{src:"jetta_iso.webp",ar:1400/907},side:{src:"jetta_side.webp",ar:1400/519},hood:{src:"jetta_hood.webp",ar:1100/1070}};
+const SPOTS=[
+ {k:"fuel",ic:"fuel",n:"Gasolina",pref:"iso",at:{}},
+ {k:"oil",ic:"oilp",n:"Aceite",pref:"hood",at:{hood:[43,58],iso:[17,57]}},
+ {k:"coolant",ic:"temp",n:"Refrigerante",pref:"hood",at:{hood:[31,55]}},
+ {k:"battery",ic:"batt",n:"Batería",pref:"hood",at:{hood:[66,36]}},
+ {k:"brakef",ic:"brake",n:"Frenos",pref:"hood",at:{hood:[83,47]}},
+ {k:"tires",ic:"tire",n:"Llantas",pref:"side",at:{side:[18,74],iso:[44,87]}},
+ {k:"lights",ic:"bulb",n:"Luces",pref:"side",at:{side:[95,36],iso:[27,78]}}
+];
+const DIMG={maint:"hood",lights:"iso",faults:"hood",specs:"side"};
+let userImg=null;try{const a=JSON.parse(localStorage.getItem("jetta6imgs")||"[]");userImg=a[a.length-1]||null}catch(e){}
+Object.values(VIEWS).forEach(v=>{const i=new Image();i.src=v.src});
+const srcOf=id=>id==="iso"&&userImg?userImg:VIEWS[id].src;
+let view="iso",spot="fuel";
+function setView(id){
+  if(id===view){renderHero();return}
+  view=id;const f=$("#frame");
+  if(matchMedia("(prefers-reduced-motion:reduce)").matches){renderHero();return}
+  f.classList.add("out");setTimeout(()=>{renderHero();const img=$("#carImg"),done=()=>requestAnimationFrame(()=>f.classList.remove("out"));img.complete?done():img.onload=done},260);
+}
+function renderSpots(){$("#spots").innerHTML=SPOTS.map(s=>`<button class="sp-chip" role="tab" data-spot="${s.k}" aria-selected="${s.k===spot}">${icon(s.ic,null,2)}${s.n}</button>`).join("")}
+function renderHero(){
+  const img=$("#carImg"),src=srcOf(view);
+  if(img.getAttribute("src")!==src)img.src=src;
+  document.querySelectorAll("#spots [data-spot]").forEach(b=>b.setAttribute("aria-selected",b.dataset.spot===spot));
+  const at=SPOTS.find(x=>x.k===spot).at[view],hs=$("#hs");
+  if(at&&!(view==="iso"&&userImg)){hs.hidden=false;hs.style.left=at[0]+"%";hs.style.top=at[1]+"%"}else hs.hidden=true;
+  sizeFrame();renderSpotCard();
+}
+function sizeFrame(){
+  const img=$("#carImg"),box=document.querySelector(".stagebox"),f=$("#frame");
+  const ar=view==="iso"&&userImg?(img.naturalWidth?img.naturalWidth/img.naturalHeight:1.6):VIEWS[view].ar;
+  if(view==="iso"&&userImg&&!img.naturalWidth)img.onload=sizeFrame;
+  const bw=box.clientWidth,bh=box.clientHeight;if(!bw)return;let w=bw,h=bw/ar;if(h>bh){h=bh;w=bh*ar}
+  f.style.width=w+"px";f.style.height=h+"px";
+}
+addEventListener("resize",sizeFrame);
+function pickSpot(k){
+  spot=k;const s=SPOTS.find(x=>x.k===k);
+  const b=$(`#spots [data-spot="${k}"]`),bar=$("#spots");if(b)bar.scrollTo({left:b.offsetLeft-bar.clientWidth/2+b.clientWidth/2,behavior:"smooth"});
+  if(s.pref&&s.pref!==view){setView(s.pref);return}
+  renderHero();
+}
+function renderSpotCard(){
+  const L=TANK*S.fuel/100,o=mstate(MAINT[0]),M=id=>mstate(MAINT.find(m=>m.id===id));
+  const info={
+    oil:["Aceite de motor",oilLabel(),"Varilla amarilla · 5W-40","oil"],
+    coolant:["Refrigerante G13",M("coolant").left,"Depósito blanco · motor frío","temp"],
+    battery:["Batería",M("battery").left.replace("Sin registro","Sin prueba registrada"),"Junto a la caja del filtro de aire","batt"],
+    brakef:["Líquido de frenos DOT 4",M("brakef").left,"Depósito junto a la pared de fuego","brake"],
+    fuel:["Gasolina",`${S.fuel}%`,`${L.toFixed(0)} L · ≈ ${fmt(L*KM_PER_L)} km · tapa a la derecha`,"fuel"],
+    tires:["Llantas",M("rot").left,"205/55 R16 · rotación cada 10,000 km","tpms"],
+    lights:["Faros y calaveras","Revisión","Si una direccional parpadea rápido, hay un foco fundido","bulb"]
+  }[spot];
+  const v=info[1].replace(/^Faltan /,"");
+  $("#spotCard").innerHTML=`<span class="light" style="background:var(--ink);color:var(--screen)">${icon(SPOTS.find(s=>s.k===spot).ic,null,2)}</span><span class="t"><b>${info[0]}</b><span class="sub">${info[2]}</span></span><span class="k num" style="${v.length>9?"font-size:15px":""}">${v}</span><svg class="chev" viewBox="0 0 10 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 2l6 6-6 6"/></svg>`;
+  $("#spotCard").dataset.target=info[3];
+}
+
+/* ---------------- Tablero (moderno, inspirado en el cluster del MK6) ---------------- */
+let gaugeShown=0,gaugeRaf;
+function gaugeSVG(p){
+  // 270° de segmentos, como la barra segmentada de gasolina del tablero VW
+  const N=34,cx=75,cy=75,r1=66,r2=56,start=-135,span=270,on=Math.round(p*N);
+  const col=S.fuel<15?"var(--crit)":S.fuel<25?"var(--warn)":"var(--ink)";
+  let o="";
+  for(let i=0;i<N;i++){const a=(start+span*(i/(N-1)))*Math.PI/180,x1=cx+r1*Math.sin(a),y1=cy-r1*Math.cos(a),x2=cx+r2*Math.sin(a),y2=cy-r2*Math.cos(a);
+    o+=`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${i<on?col:"var(--line)"}" stroke-width="3.2" stroke-linecap="round"/>`}
+  const lab=(t,txt)=>{const a=(start+span*t)*Math.PI/180,r=46;return `<text x="${(cx+r*Math.sin(a)).toFixed(1)}" y="${(cy-r*Math.cos(a)+3).toFixed(1)}" text-anchor="middle" font-size="8.5" font-weight="600" fill="var(--ink2)" font-family="Urbanist,sans-serif">${txt}</text>`};
+  return `<svg viewBox="0 0 150 150" aria-hidden="true">${o}${lab(0,"0")}${lab(.5,"½")}${lab(1,"1")}
+    <g transform="translate(62,112) scale(.72)" fill="none" stroke="var(--ink2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${IC.fuel}</g><path d="M82,124.5 l5,3.2 l-5,3.2z" fill="var(--ink2)"/></svg>`;
+}
+function renderCluster(){
+  const now=new Date(),clock=now.toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"});
+  const L=TANK*S.fuel/100;
+  const all=MAINT.map(m=>({m,s:mstate(m)})).filter(x=>x.s.kmLeft!=null).sort((a,b)=>a.s.kmLeft-b.s.kmLeft);
+  const nx=all[0];
+  const act=(S.active||[]).map(k=>LIGHTS.find(l=>l.k===k)).filter(Boolean);
+  $("#dash").innerHTML=`
+    <div class="top"><div><div class="ey sub">Tablero</div><h3 style="margin:2px 0 0;font-size:19px;font-weight:500">Estado actual</h3></div>
+      <div class="chips"><span class="chip num">${clock}</span><button class="chip num" data-sheet="odo" aria-label="Temperatura exterior">${(+S.temp).toFixed(1)}°</button></div></div>
+    <div class="body">
+      <button class="gauge" data-sheet="fuel" aria-label="Gasolina ${S.fuel}%, actualizar"><span id="gSvg">${gaugeSVG(gaugeShown)}</span><span class="c"><span><b class="num" id="gPct">${Math.round(gaugeShown*100)}%</b><span class="num">${fmt(L*KM_PER_L)} km</span></span></span></button>
+      <div class="odo">
+        <button data-sheet="odo"><span class="lbl">Odómetro</span><span class="v num">${fmt(S.odo)}<small>km</small></span></button>
+        <hr>
+        <button data-sheet="odo"><span class="lbl">Trip</span><span class="s num">${(+S.trip).toFixed(1)} km</span></button>
+        <hr>
+        <button data-open="maint"><span class="lbl">Próximo servicio</span><span class="s num" style="${nx&&nx.s.kmLeft<0?"color:var(--crit)":""}">${nx?(nx.s.kmLeft<0?"Vencido · ":"")+fmt(Math.abs(nx.s.kmLeft))+" km":"—"}</span></button>
+      </div>
+    </div>
+    <div class="warns">${act.length?act.map(l=>`<button class="warn" data-l="${l.k}"><span class="light">${icon(l.k,LCOL[l.c])}</span><span class="t"><b>${l.n}</b><span class="sub">Encendido en el tablero · ${l.u.toLowerCase()}</span></span><svg width="9" height="14" viewBox="0 0 10 16" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--ink2)"><path d="M2 2l6 6-6 6"/></svg></button>`).join(""):`<div class="warn"><span class="light" style="background:color-mix(in srgb,var(--lime) 55%,transparent);color:#26300a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12l5 5 9-10"/></svg></span><span class="t"><b>Sin testigos encendidos</b><span class="sub">Si se prende uno, márcalo en Testigos</span></span></div>`}</div>`;
+}
+function sweep(){
+  const target=S.fuel/100;
+  if(matchMedia("(prefers-reduced-motion:reduce)").matches){gaugeShown=target;renderCluster();return}
+  cancelAnimationFrame(gaugeRaf);const from=gaugeShown,t0=performance.now();
+  (function f(now){const k=Math.min(1,(now-t0)/900),e=1-Math.pow(1-k,3);gaugeShown=from+(target-from)*e;
+    const g=$("#gSvg"),p=$("#gPct");if(g){g.innerHTML=gaugeSVG(gaugeShown);p.textContent=Math.round(gaugeShown*100)+"%"}
+    if(k<1)gaugeRaf=requestAnimationFrame(f)})(t0);
+}
+setInterval(()=>{if(!$("#home").hidden){gaugeShown=S.fuel/100;renderCluster()}},30000);
+function oilLabel(){return S.oil<25?"Bajo":S.oil>80?"Sobre MAX":"Correcto"}
+
+/* ---------------- Render ---------------- */
+function renderHome(){
+  const hr=new Date().getHours();$("#hello").textContent=hr<12?"Buenos días":hr<19?"Buenas tardes":"Buenas noches";
+  $("#odoTag").textContent=`${fmt(S.odo)} km`;
+  {const st=MAINT.map(m=>mstate(m).st),nc=st.filter(x=>x==="crit").length,nw=st.filter(x=>x==="warn").length,na=(S.active||[]).length,p=$("#stPill");
+   const [cls,txt]=nc||na?["crit",`${nc+na} por atender`]:nw?["warn",`${nw} pronto`]:["ok","Todo en orden"];p.className="stpill "+cls;p.innerHTML=`<i></i>${txt}`}
+  const qi=p=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+  $("#quick").innerHTML=`<button class="qa" data-sheet="fuel"><span class="ic">${qi(IC.fuel)}</span><span>Gasolina<small class="num">${S.fuel}% · ${fmt(TANK*S.fuel/100*KM_PER_L)} km</small></span></button>
+    <button class="qa" data-sheet="odo"><span class="ic">${qi(IC.cruise)}</span><span>Kilómetros<small>Actualizar</small></span></button>
+    <button class="qa" data-open="lights"><span class="ic">${qi(IC.engine)}</span><span>Testigos<small>${(S.active||[]).length?(S.active.length+" encendido"+(S.active.length>1?"s":"")):"Ninguno"}</small></span></button>`;
+  const L=TANK*S.fuel/100;
+  const oc=mstate(MAINT[0]);
+  $("#fuelPct").innerHTML=oc.kmLeft!=null?`${fmt(Math.abs(oc.kmLeft))}<small>km</small>`:"—";$("#fuelSub").textContent=oc.kmLeft!=null&&oc.kmLeft<0?"Vencido · toca para registrar":"Toca para registrar el cambio";
+  if(oc.kmLeft!=null&&oc.kmLeft<0)$("#fuelPct").style.color="var(--crit)";else $("#fuelPct").style.color="";
+  const ft=$("#fuelTicks");ft.className="ticks"+(oc.st==="ok"?"":" "+oc.st);ft.firstElementChild.style.width=Math.min(100,oc.p*100)+"%";
+  $("#oilTxt").textContent=oilLabel();$("#oilTxt").style.color=S.oil<25||S.oil>80?"var(--crit)":"";
+  const ot=$("#oilTicks");ot.className="ticks"+(S.oil<25||S.oil>80?" crit":"");ot.firstElementChild.style.width=S.oil+"%";
+  $("#oilSub").textContent=S.oil<25?"Agrega aceite pronto":S.oil>80?"Sobrellenado":"Entre MIN y MAX";
+  const all=MAINT.map(m=>({m,s:mstate(m)})).sort((a,b)=>b.s.p-a.s.p);
+  const pend=all.filter(x=>x.s.st!=="ok");
+  $("#bellDot").hidden=!(pend.some(x=>x.s.st==="crit")||(S.active||[]).length);
+  renderCluster();
+  $("#nextPills").innerHTML=all.slice(0,5).map(x=>`<span class="tag" style="background:var(--white)">${x.m.s}${x.s.st!=="ok"?` <b style="color:var(--${x.s.st})">•</b>`:""}</span>`).join("");
+  // orbe: km al próximo servicio por kilometraje
+  const km=all.filter(x=>x.s.kmLeft!=null).sort((a,b)=>a.s.kmLeft-b.s.kmLeft)[0];
+  const kl=km?km.s.kmLeft:0,p=km?Math.min(1,Math.max(0,km.s.p)):0,C=2*Math.PI*66;
+  $("#orb").innerHTML=`<svg viewBox="0 0 142 142"><circle cx="71" cy="71" r="66" fill="none" stroke="var(--line)" stroke-width="3"/><circle cx="71" cy="71" r="66" fill="none" stroke="${kl<0?"var(--crit)":"var(--ink)"}" stroke-width="3" stroke-linecap="round" stroke-dasharray="${C*p} ${C}" transform="rotate(-90 71 71)"/></svg><div><div class="v num">${kl<0?"+":""}${fmt(Math.abs(kl))}<sup>km</sup></div><div class="sub" style="margin-top:4px">${kl<0?"vencido":"para "+km.m.s.toLowerCase()}</div></div>`;
+  const n=MAINT.length,c={ok:0,warn:0,crit:0};all.forEach(x=>c[x.s.st]++);
+  $("#stats").innerHTML=[["ok","Al día","var(--lime)"],["warn","Pronto","var(--mist)"],["crit","Vencido","var(--blush)"]].map(([k,l,col])=>`<div><b class="num">${Math.round(c[k]/n*100)}%</b><span>${l} · ${c[k]}</span><i style="background:${col}"></i></div>`).join("");
+  renderHero();
+}
+
+let dtab="maint",maintF="all",lightF="all";
+const DT=[["maint","Mantenimiento"],["lights","Testigos"],["faults","Fallas típicas"],["specs","Ficha técnica"]];
+const NAV=[["home","Inicio",'<path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5h-4V15h-5v5.5h-4A1.5 1.5 0 0 1 4 19z"/>'],["maint","Servicio",IC.service],["lights","Testigos",IC.engine],["faults","Fallas",'<path d="M12 3.5l9.5 16.5h-19zM12 10v4.2M12 17.2h.01"/>'],["specs","Ficha",'<rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="M8.5 8.5h7M8.5 12h7M8.5 15.5h4"/>']];
+function renderNav(){
+  const cur=$("#home").hidden?dtab:"home",pend=MAINT.filter(m=>mstate(m).st==="crit").length,act=(S.active||[]).length;
+  const bd={maint:pend,lights:act};
+  $("#nav").innerHTML=NAV.map(([k,n,p])=>`<button data-nav="${k}" aria-label="${n}"${k===cur?' aria-current="page"':""}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${k===cur?2.3:1.9}" stroke-linecap="round" stroke-linejoin="round">${p}</svg>${n}${bd[k]?`<span class="bd num">${bd[k]}</span>`:""}</button>`).join("");
+}
+function renderDetail(){
+  const pend=MAINT.filter(m=>mstate(m).st!=="ok").length;
+  const counts={maint:pend,lights:LIGHTS.length,faults:FAULTS.length,specs:null};
+  const eys={maint:`${pend} pendiente${pend===1?"":"s"}`,lights:`${(S.active||[]).length} encendido${(S.active||[]).length===1?"":"s"} · ${LIGHTS.length} en total`,faults:`${FAULTS.length} del 2.5 L`,specs:"Jetta MK6 · 2015"};
+  $("#dTitle").textContent=DT.find(d=>d[0]===dtab)[1];$("#dEy").textContent=eys[dtab];renderNav();
+  DT.forEach(([k])=>$("#p-"+k).hidden=k!==dtab);
+  {const di=$("#dImg"),src=srcOf(DIMG[dtab]);if(di.getAttribute("src")!==src){di.src=src;di.classList.remove("pop");void di.offsetWidth;di.classList.add("pop")}}
+  $("#mOdo").textContent=fmt(S.odo);
+  const lab={ok:"Al día",warn:"Pronto",crit:"Vencido"};
+  const rows=MAINT.map(m=>({m,s:mstate(m)})).filter(x=>maintF==="all"||(maintF==="due"?x.s.st!=="ok":x.s.st==="ok")).sort((a,b)=>b.s.p-a.s.p);
+  $("#maintList").innerHTML=rows.length?rows.map(({m,s},i)=>`<div class="mi" style="--i:${i}"><div class="hd"><b>${m.n}</b><span class="st s-${s.st}">${lab[s.st]}</span></div>
+    <div class="ticks ${s.st==="ok"?"":s.st}"><i style="width:${Math.max(3,Math.min(1,s.p)*100)}%"></i></div>
+    <div class="meta"><span>${m.d}</span><span class="num">${[m.km?fmt(m.km)+" km":"",m.mo?m.mo+" meses":""].filter(Boolean).join(" · ")}</span></div>
+    <div class="hd"><span class="sub num" style="flex:1">${s.left}</span><button class="pbtn" style="padding:8px 14px" data-done="${m.id}">Marcar hecho</button></div></div>`).join(""):`<p class="note">Nada en este filtro.</p>`;
+  $("#lightGrid").innerHTML=LIGHTS.filter(l=>lightF==="all"||l.c===lightF||(lightF==="g"&&l.c==="b")).map((l,i)=>`<button class="lg" style="--i:${i}" data-l="${l.k}"${(S.active||[]).includes(l.k)?' style="box-shadow:inset 0 0 0 2px var(--ink)"':""}><span class="light">${icon(l.k,LCOL[l.c])}</span>${l.n}${(S.active||[]).includes(l.k)?'<span class="st s-warn">Encendido</span>':""}</button>`).join("");
+  renderFaults();
+  $("#specs").innerHTML=SPECS.map(([h,r],i)=>`<h4${i?"":' style="margin-top:4px"'}>${h}</h4><div class="rows">${r.map(([a,b])=>`<div class="r"><span>${a}</span><span class="num">${b}</span></div>`).join("")}</div>`).join("");
+}
+function renderFaults(){
+  const q=$("#q").value.trim().toLowerCase(),code=q.toUpperCase();
+  $("#codeHit").innerHTML=CODES[code]?`<div class="spot" style="background:var(--card);margin:0 0 12px"><span class="light">${icon("engine",LCOL.y)}</span><span class="t"><b style="font-family:var(--mono)">${code}</b><span class="sub">${CODES[code]}</span></span></div>`:"";
+  const sv={crit:["Grave","crit"],warn:["Media","warn"],info:["Leve","info"]};
+  const list=FAULTS.filter(f=>!q||(f.n+f.sym+f.c+f.codes.join(" ")).toLowerCase().includes(q));
+  $("#faultList").innerHTML=list.length?list.map((f,i)=>`<article class="fault" style="--i:${i}"><div class="hd">${f.light?`<span class="light">${icon(f.light,LCOL[LIGHTS.find(l=>l.k===f.light).c])}</span>`:""}<b>${f.n}</b><span class="st s-${sv[f.s][1]}">${sv[f.s][0]}</span></div>
+    <dl><dt>Síntoma</dt><dd>${f.sym}</dd><dt>Causa</dt><dd>${f.c}</dd><dt>Solución</dt><dd>${f.fix}</dd><dt>Cuándo</dt><dd class="num">${f.km}</dd></dl>
+    ${f.codes.length?`<div class="codes">${f.codes.map(c=>`<span class="code">${c}</span>`).join("")}</div>`:""}</article>`).join(""):`<p class="note">Sin coincidencias. Prueba "vibración" o "P0171".</p>`;
+}
+function renderAll(){renderHome();renderDetail();renderNav()}
+
+/* ---------------- Navegación ---------------- */
+const ORDER=["home","maint","lights","faults","specs"];
+const curTab=()=>$("#home").hidden?dtab:"home";
+function animate(el,dir){el.classList.remove("slide-r","slide-l");if(!dir)return;void el.offsetWidth;el.classList.add(dir>0?"slide-r":"slide-l")}
+function go(k){
+  const from=curTab();if(k===from){scrollTo({top:0,behavior:"smooth"});return}
+  const dir=Math.sign(ORDER.indexOf(k)-ORDER.indexOf(from));
+  if(k==="home"){$("#detail").hidden=true;const h=$("#home");h.hidden=false;animate(h,dir);scrollTo(0,0);sizeFrame();renderCluster();renderNav();return}
+  dtab=k;renderDetail();$("#home").hidden=true;const d=$("#detail");d.hidden=false;animate(d,dir);scrollTo(0,0);
+}
+function goHome(){go("home")}
+function openDetail(k){go(k)}
+
+
+/* ---------------- Hoja inferior ---------------- */
+function openSheet(kind,arg){
+  const B=$("#sheetBody");let h="";
+  const btns=id=>`<div class="actions"><button class="pbtn" data-close>Cancelar</button><button class="pbtn dark" id="${id}">Guardar</button></div>`;
+  if(kind==="fuel")h=`<h3>Gasolina</h3><p class="muted">Mueve el control según la aguja del tablero.</p><div class="field"><label for="fIn">Nivel: <span id="fOut" class="num"></span></label><input id="fIn" type="range" min="0" max="100" value="${S.fuel}"></div><p class="muted num" id="fCalc"></p>${btns("fSave")}`;
+  if(kind==="oil")h=`<h3>Nivel de aceite</h3><p class="muted">Mide con el motor tibio, apagado 5 minutos y en piso plano.</p><div class="field"><label for="oIn">Marca en la varilla</label><input id="oIn" type="range" min="0" max="100" value="${S.oil}"><div class="sub" style="display:flex;justify-content:space-between"><span>Vacío</span><span>MIN</span><span>MAX</span><span>Exceso</span></div></div><p class="muted">5W-40 sintético VW 502 00. De MIN a MAX es aproximadamente 1 L.</p>${btns("oSave")}`;
+  if(kind==="odo")h=`<h3>Kilometraje</h3><p class="muted">Escribe lo que marca el odómetro; los servicios se recalculan.</p><div class="field"><label for="kIn">Kilómetros</label><input id="kIn" class="num" type="number" inputmode="numeric" min="0" value="${S.odo}"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div class="field" style="margin:0"><label for="tIn">Trip (km)</label><input id="tIn" class="num" type="number" step="0.1" min="0" value="${S.trip}"></div><div class="field" style="margin:0"><label for="cIn">Temp. exterior (°C)</label><input id="cIn" class="num" type="number" step="0.5" value="${S.temp}"></div></div>${btns("kSave")}`;
+  if(kind==="light"){const l=LIGHTS.find(x=>x.k===arg),t=l.c==="r"?"crit":l.c==="y"?"warn":"info";
+    h=`<div style="display:flex;gap:14px;align-items:center;margin-top:4px"><span class="light" style="width:60px;height:60px;border-radius:18px">${icon(l.k,LCOL[l.c]).replace("<svg",'<svg style="width:38px;height:38px"')}</span><div><h3 style="margin:0">${l.n}</h3><span class="st s-${t}">${l.u}</span></div></div>
+    <h4>Qué significa</h4><p>${l.m}</p><h4>Qué hacer</h4><p>${l.a}</p><div class="actions"><button class="pbtn" id="lTog">${(S.active||[]).includes(l.k)?"Ya se apagó":"Está encendido en mi tablero"}</button><button class="pbtn dark" data-close>Entendido</button></div>`}
+  if(kind==="done"){const m=MAINT.find(x=>x.id===arg);h=`<h3>${m.n}</h3><p class="muted">Registra cuándo se hizo.</p>${m.km?`<div class="field"><label for="dKm">Kilometraje</label><input id="dKm" class="num" type="number" value="${S.odo}"></div>`:""}<div class="field"><label for="dDate">Fecha</label><input id="dDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>${btns("dSave")}`}
+  if(kind==="menu"){const dark=isDark(),it=(k,n,ic)=>`<button data-nav="${k}">${ic}<span>${n}</span>${chev}</button>`,sv=p=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`,chev='<svg class="chev" viewBox="0 0 10 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 2l6 6-6 6"/></svg>';
+    h=`<h3>Menú</h3><div class="mlist">${NAV.map(([k,n,p])=>it(k,{maint:"Mantenimiento",lights:"Testigos del tablero",faults:"Fallas típicas",specs:"Ficha técnica"}[k]||n,sv(p))).join("")}</div>
+    <div class="mlist"><button data-sheet="odo">${sv(IC.cruise)}<span>Actualizar kilometraje</span>${chev}</button><button data-sheet="fuel">${sv(IC.fuel)}<span>Nivel de gasolina</span>${chev}</button><label for="png">${sv('<rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/>')}<span>Agregar foto del auto</span>${chev}</label><button data-theme-toggle>${sv(dark?'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>':'<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>')}<span>${dark?"Tema claro":"Tema oscuro"}</span>${chev}</button></div>
+    <div class="mlist"><a href="../" style="display:flex;align-items:center;gap:14px;padding:14px 16px;font-size:16px;font-weight:500;color:inherit;text-decoration:none">${sv('<path d="M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/>')}<span>Todos mis proyectos</span>${chev}</a></div>
+    ${standalone?"":`<p class="note">Para usarla como app: en Safari toca Compartir y luego <b>Agregar a pantalla de inicio</b>.</p>`}`}
+  B.innerHTML=h;const sh=$("#sheet"),sc=$("#scrim");sh.hidden=sc.hidden=false;sh.scrollTop=0;sh.style.transform="";document.body.classList.add("lock");requestAnimationFrame(()=>{sh.classList.add("on");sc.classList.add("on")});
+  B.querySelectorAll("[data-close]").forEach(b=>b.onclick=closeSheet);
+  const done=msg=>{save();closeSheet();renderAll();sweep();toast(msg)};
+  if(kind==="fuel"){const u=()=>{const v=+$("#fIn").value,L=TANK*v/100;$("#fOut").textContent=v+"%";$("#fCalc").textContent=`${L.toFixed(1)} L de 55 L · autonomía ≈ ${fmt(L*KM_PER_L)} km`};$("#fIn").oninput=u;u();$("#fSave").onclick=()=>{S.fuel=+$("#fIn").value;done("Gasolina guardada")}}
+  if(kind==="light")$("#lTog").onclick=()=>{const a=S.active||(S.active=[]),i=a.indexOf(arg);if(i>=0)a.splice(i,1);else a.push(arg);done(i>=0?"Testigo marcado como apagado":"Testigo agregado al tablero")};
+  if(kind==="oil")$("#oSave").onclick=()=>{S.oil=+$("#oIn").value;done("Nivel de aceite guardado")};
+  if(kind==="odo")$("#kSave").onclick=()=>{const v=parseInt($("#kIn").value,10);if(!(v>=0)){toast("Escribe un número válido");return}S.odo=v;const tr=parseFloat($("#tIn").value),tc=parseFloat($("#cIn").value);if(tr>=0)S.trip=tr;if(!isNaN(tc))S.temp=tc;done("Tablero actualizado")};
+  if(kind==="done")$("#dSave").onclick=()=>{const m=MAINT.find(x=>x.id===arg);if(m.km)S.done[m.id]=parseInt($("#dKm").value,10)||S.odo;S.doneDate[m.id]=$("#dDate").value;if(m.id==="oil")S.oil=70;done("Servicio registrado")};
+}
+function closeSheet(){const sh=$("#sheet"),sc=$("#scrim");if(sh.hidden)return;document.body.classList.remove("lock");sh.style.transform="";sh.classList.remove("on","drag");sc.classList.remove("on");setTimeout(()=>{sh.hidden=sc.hidden=true},320)}
+$("#scrim").onclick=closeSheet;
+
+/* ---------------- Eventos ---------------- */
+document.addEventListener("click",e=>{
+  const g=k=>e.target.closest(k);let t;
+  if(t=g("[data-spot]")){pickSpot(t.dataset.spot);return}
+  if(t=g("[data-nav]")){const k=t.dataset.nav;if(t.closest("#sheet"))closeSheet();go(k);renderNav();return}
+  if(t=g("[data-menu]")){openSheet("menu");return}
+  if(t=g("[data-theme-toggle]")){toggleTheme();openSheet("menu");return}
+  if(t=g("#spotCard")){const k=t.dataset.target;if(k==="oil"||k==="fuel")openSheet(k);else openSheet("light",k);return}
+  if(t=g("[data-sheet]")){openSheet(t.dataset.sheet);return}
+  if(t=g("[data-open]")){openDetail(t.dataset.open);return}
+  if(t=g("[data-dt]")){dtab=t.dataset.dt;renderDetail();return}
+  if(t=g("[data-l]")){openSheet("light",t.dataset.l);return}
+  if(t=g("[data-done]")){openSheet("done",t.dataset.done);return}
+  if(t=g("#maintSeg [data-f]")){maintF=t.dataset.f;[...t.parentNode.children].forEach(x=>x.setAttribute("aria-pressed",x===t));renderDetail();return}
+  if(t=g("#lightSeg [data-c]")){lightF=t.dataset.c;[...t.parentNode.children].forEach(x=>x.setAttribute("aria-pressed",x===t));renderDetail();return}
+});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet()});
+$("#q").oninput=renderFaults;
+const isDark=()=>{const r=document.documentElement;return r.dataset.theme?r.dataset.theme==="dark":matchMedia("(prefers-color-scheme:dark)").matches};
+function syncThemeColor(){const c=getComputedStyle(document.documentElement).getPropertyValue("--screen").trim();document.querySelectorAll('meta[name="theme-color"]').forEach(m=>{if(document.documentElement.dataset.theme)m.removeAttribute("media");m.content=c})}
+function toggleTheme(){const t=isDark()?"light":"dark";document.documentElement.dataset.theme=t;try{localStorage.setItem("jetta6theme",t)}catch(e){}syncThemeColor()}
+matchMedia("(prefers-color-scheme:dark)").addEventListener("change",syncThemeColor);
+const standalone=matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+$("#resetData").onclick=()=>{S=JSON.parse(JSON.stringify(DEFAULTS));save();renderAll();toast("Datos de ejemplo restablecidos")};
+$("#png").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{const im=new Image();im.onload=()=>{
+  const w=Math.min(1000,im.width),c=document.createElement("canvas");c.width=w;c.height=Math.round(im.height*w/im.width);c.getContext("2d").drawImage(im,0,0,c.width,c.height);
+  const url=c.toDataURL("image/webp",.9);userImg=url;
+  try{localStorage.setItem("jetta6imgs",JSON.stringify([url]))}catch(err){toast("Imagen agregada; no se pudo guardar para la próxima vez")}
+  closeSheet();if(!$("#detail").hidden)goHome();spot="fuel";view="";setView("iso");toast("Foto agregada")};im.src=rd.result};rd.readAsDataURL(f);e.target.value=""};
+
+/* ---------------- Gestos ---------------- */
+// Sin zoom con pellizco (Safari ignora user-scalable en algunos casos)
+["gesturestart","gesturechange"].forEach(t=>document.addEventListener(t,e=>e.preventDefault(),{passive:false}));
+
+// Deslizar horizontal: en el auto cambia de vista; en el resto cambia de sección
+function swipe(el,cb,skip){let x0,y0,t0,lock=null;
+  el.addEventListener("touchstart",e=>{if(e.touches.length>1||(skip&&skip(e))){x0=null;return}x0=e.touches[0].clientX;y0=e.touches[0].clientY;t0=Date.now();lock=null},{passive:true});
+  el.addEventListener("touchmove",e=>{if(x0==null||lock)return;const dx=e.touches[0].clientX-x0,dy=e.touches[0].clientY-y0;if(Math.abs(dx)>10||Math.abs(dy)>10)lock=Math.abs(dx)>Math.abs(dy)*1.3?"x":"y"},{passive:true});
+  el.addEventListener("touchend",e=>{if(x0==null||lock!=="x")return;const dx=e.changedTouches[0].clientX-x0,v=Math.abs(dx)/(Date.now()-t0);if(Math.abs(dx)>60||v>.45&&Math.abs(dx)>30)cb(dx<0?1:-1);x0=null},{passive:true});
+}
+swipe(document.querySelector(".phone"),d=>{const i=ORDER.indexOf(curTab())+d;if(i>=0&&i<ORDER.length){go(ORDER[i]);renderNav()}},
+  e=>e.target.closest(".spots,input,.dtabs")||!$("#sheet").hidden);
+
+// Hoja inferior: arrastrar hacia abajo para cerrar
+(()=>{const sh=$("#sheet");let y0=null,dy=0;
+  sh.addEventListener("touchstart",e=>{if(sh.scrollTop>0||e.target.closest("input"))return;y0=e.touches[0].clientY;dy=0},{passive:true});
+  sh.addEventListener("touchmove",e=>{if(y0==null)return;dy=e.touches[0].clientY-y0;if(dy>0){sh.classList.add("drag");sh.style.transform=`translateY(${dy}px)`;if(e.cancelable)e.preventDefault()}},{passive:false});
+  sh.addEventListener("touchend",()=>{if(y0==null)return;y0=null;sh.classList.remove("drag");if(dy>90)closeSheet();else sh.style.transform=""});
+})();
+
+syncThemeColor();
+renderSpots();renderAll();sweep();
+// Tarjetas aparecen suavemente al llegar a ellas
+if("IntersectionObserver" in window){const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target)}}),{rootMargin:"0px 0px -40px 0px"});document.querySelectorAll(".rv").forEach(el=>io.observe(el))}
+else document.querySelectorAll(".rv").forEach(el=>el.classList.add("in"));
+if("serviceWorker" in navigator&&location.protocol!=="file:")addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+</script>
+</body>
+</html>
