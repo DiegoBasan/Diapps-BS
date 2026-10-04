@@ -115,6 +115,11 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-of
 .knob button{width:34px;height:34px;border-radius:11px;background:var(--card);font-size:18px;font-weight:700;flex:none;transition:transform .5s var(--spring)}
 .knob button:active{transform:scale(.88);transition-duration:.1s}
 .note{font-size:12px;color:var(--ink2);margin:8px 4px 0;font-weight:500}
+.pipwrap{border-radius:16px;overflow:hidden;background:#16171A;aspect-ratio:16/9}
+.pipwrap video{width:100%;height:100%;display:block;object-fit:cover}
+.pipnav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px}
+.pipnav button{height:38px;padding:0 14px;border-radius:99px;background:var(--card2);font-weight:700;font-size:13.5px}
+.pipnav span{font-size:13px;font-weight:600;color:var(--ink2)}
 
 /* tarjetas */
 .card{background:var(--card);border-radius:26px;padding:16px;margin-top:14px}
@@ -233,14 +238,21 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-of
     <p class="note" id="pnote"></p>
   </section>
 
-  <section class="card rise" style="--i:1">
+  <section class="card rise pipcard" style="--i:1">
+    <div class="ch"><div><div class="ey">Ventana flotante sobre otras apps</div><h2>Acordes en PiP</h2></div><button class="chip key press" id="pipBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><rect x="12" y="11" width="7" height="6" rx="1.5" fill="currentColor"/></svg>Sacar</button></div>
+    <div class="pipwrap"><video id="pipv" muted playsinline autoplay aria-label="Vista previa del widget de acordes"></video></div>
+    <div class="pipnav"><button class="press" data-step="-1" aria-label="Acorde anterior">‹ Anterior</button><span id="pipPos" class="num"></span><button class="press" data-step="1" aria-label="Acorde siguiente">Siguiente ›</button></div>
+    <p class="note" id="pipNote">En la ventana flotante: ▶︎/❚❚ pausa o sigue la canción y ⏪/⏩ cambian de acorde (si tu iPhone los muestra).</p>
+  </section>
+
+  <section class="card rise" style="--i:2">
     <div class="ch"><div><div class="ey">Toca un acorde para verlo en el diapasón</div><h2>Acordes</h2></div><span class="chip key" id="keyChip">—</span></div>
     <div class="chords" id="chords"></div>
     <div class="secs" id="secs"></div>
     <div class="analysis" id="analysis"></div>
   </section>
 
-  <section class="card rise" style="--i:2">
+  <section class="card rise" style="--i:3">
     <div class="ch"><div><div class="ey">Notas que funcionan para el solo y la melodía</div><h2>Diapasón</h2></div><button class="chip press" data-edit>Editar acordes</button></div>
     <div class="scales" id="scales"></div>
     <div class="seg" id="lblMode"><button data-lm="note" aria-pressed="true">Notas</button><button data-lm="deg" aria-pressed="false">Grados</button><button data-lm="none" aria-pressed="false">Puntos</button></div>
@@ -377,7 +389,8 @@ function render(){
   $("#keyChip").textContent=nn(k.t)+(k.mode==="minor"?"m":"")+" · "+keyName(k);
   if(!selChord||!uniq.some(u=>u.root===selChord.root&&u.q===selChord.q))selChord=null;
   $("#chords").innerHTML=uniq.map((c,i)=>`<button class="chd press" style="--i:${i}" data-ch="${c.root}|${c.q}" aria-pressed="${!!selChord&&selChord.root===c.root&&selChord.q===c.q}"><b>${chordName({...c,bass:null})}</b><small>${QNAME[c.q]||c.q}</small>${chordSVG(c)}</button>`).join("");
-  $("#secs").innerHTML=s.sections.map(sec=>`<div class="sec"><span>${esc(sec.n)}</span><div>${sec.c.map(x=>{const c=parseChord(x);if(!c)return `<button disabled>${esc(x)}</button>`;const t={...c,root:(c.root+transpose+12)%12,bass:c.bass!=null?(c.bass+transpose+12)%12:null};return `<button data-ch="${t.root}|${t.q}" aria-pressed="${!!selChord&&selChord.root===t.root&&selChord.q===t.q}">${chordName(t)}</button>`}).join("")}</div></div>`).join("");
+  let fiCount=0;
+  $("#secs").innerHTML=s.sections.map(sec=>`<div class="sec"><span>${esc(sec.n)}</span><div>${sec.c.map(x=>{const c=parseChord(x);if(!c)return `<button disabled>${esc(x)}</button>`;const t={...c,root:(c.root+transpose+12)%12,bass:c.bass!=null?(c.bass+transpose+12)%12:null};return `<button data-ch="${t.root}|${t.q}" data-fi="${fiCount++}" aria-pressed="${!!selChord&&selChord.root===t.root&&selChord.q===t.q}">${chordName(t)}</button>`}).join("")}</div></div>`).join("");
   // análisis
   const outside=uniq.filter(c=>chordTones(c).some(n=>!(k.mode==="major"?SCALES.ion:SCALES.aeo).iv.map(i=>(k.t+i)%12).includes(n)));
   $("#analysis").innerHTML=`Tonalidad <b>${keyName(k)}</b>${transpose?` (transpuesta ${transpose>0?"+":""}${transpose})`:""}. Escala base: <b>${(k.mode==="major"?SCALES.ion:SCALES.aeo).iv.map(i=>nn(k.t+i)).join(" ")}</b>.`+
@@ -410,6 +423,7 @@ function render(){
   if(selChord)tips.push(`Ahora resaltadas en negro: notas de <b>${chordName(selChord)}</b> (${chordTones(selChord).map(nn).join(" ")}). Terminar frases en ellas suena “resuelto”.`);
   else tips.push(`Toca un acorde arriba para ver sus notas sobre el diapasón y saber a cuáles apuntar cuando suene.`);
   $("#tips").innerHTML=`<ul>${tips.map(t=>`<li>${t}</li>`).join("")}</ul>`;
+  {const pr=progression(),pp2=$("#pipPos");if(pp2)pp2.textContent=pr.length?`${(pip.idx%pr.length)+1} de ${pr.length}`:""}
   $("#kPitch").textContent=(transpose>0?"+":"")+transpose;
   $("#kPitchL").textContent=player.kind==="file"?"Tono del audio":"Tono (acordes)";
   $("#pnote").textContent=player.kind==="yt"?"YouTube no permite cambiar el tono del audio: el tono transpone acordes y diapasón. Con un audio tuyo (menú) también cambia el sonido.":player.kind==="file"?"Audio local: velocidad sin cambiar el tono y tono sin cambiar la velocidad.":"";
@@ -530,7 +544,7 @@ function gemSheet(){openSheet(`<h3>Búsqueda con Gemini</h3><p class="lbl">Con t
   <div class="field"><input id="gK" placeholder="API key de Gemini" value="${esc(S.gemKey)}" autocomplete="off"></div>
   <div class="field"><input id="gM" placeholder="Modelo" value="${esc(S.gemModel)}"></div>
   <div class="btns"><button class="btn" data-close>Cancelar</button><button class="btn dark" data-savegem>Guardar</button></div>`)}
-function selectSong(id){S.cur=id;save();transpose=0;selChord=null;scaleK=null;posF=0;const s=song();applyPitch();
+function selectSong(id){S.cur=id;save();transpose=0;selChord=null;pip.idx=0;scaleK=null;posF=0;const s=song();applyPitch();
   if(s.yt)loadVideo(s.yt);else if(player.kind==="yt"){if(player.yt&&player.yt.destroy)try{player.yt.destroy()}catch(e){}player.yt=null;player.kind=null;player.ready=false;$("#vid").innerHTML=`<div class="ph"><div><b>Sin video</b>Pega el link de YouTube de esta canción en la barra de arriba.</div></div>`}
   render();scrollTo({top:0,behavior:"smooth"})}
 
@@ -545,7 +559,8 @@ document.addEventListener("click",e=>{
   const g=s=>e.target.closest(s);let t;
   if(t=g("[data-sp]")){let i=RATES.indexOf(player.rate);if(i<0)i=RATES.indexOf(1);i=Math.max(0,Math.min(RATES.length-1,i+ +t.dataset.sp));player.setRate(RATES[i]);$("#kSpeed").textContent=RATES[i].toFixed(2)+"×";$("#kSpeed").animate([{transform:"scale(1.15)"},{transform:"none"}],{duration:400});return}
   if(t=g("[data-pt]")){transpose=Math.max(-12,Math.min(12,transpose+ +t.dataset.pt));applyPitch();render();$("#kPitch").animate([{transform:"scale(1.15)"},{transform:"none"}],{duration:400});return}
-  if(t=g("[data-ch]")){const [r,q]=t.dataset.ch.split("|");const same=selChord&&selChord.root===+r&&selChord.q===q;selChord=same?null:{root:+r,q,bass:null};render();if(!same)document.querySelector("#fb").scrollIntoView({behavior:"smooth",block:"nearest"});return}
+  if(t=g("[data-step]")){pipStep(+t.dataset.step);return}
+  if(t=g("[data-ch]")){if(t.dataset.fi!=null)pip.idx=+t.dataset.fi;const [r,q]=t.dataset.ch.split("|");const same=selChord&&selChord.root===+r&&selChord.q===q;selChord=same?null:{root:+r,q,bass:null};render();if(!same)document.querySelector("#fb").scrollIntoView({behavior:"smooth",block:"nearest"});return}
   if(t=g("[data-sc]")){scaleK=t.dataset.sc;render();return}
   if(t=g("[data-lm]")){labelMode=t.dataset.lm;document.querySelectorAll("[data-lm]").forEach(b=>b.setAttribute("aria-pressed",b===t));render();return}
   if(t=g("[data-pos]")){posF=+t.dataset.pos;render();return}
@@ -575,7 +590,57 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet()});
   sh.addEventListener("touchmove",e=>{if(sy==null)return;dy=e.touches[0].clientY-sy;if(dy>0){sh.classList.add("drag");sh.style.transform=`translateY(${dy}px)`;if(e.cancelable)e.preventDefault()}},{passive:false});
   sh.addEventListener("touchend",()=>{if(sy==null)return;sy=null;sh.classList.remove("drag");if(dy>90)closeSheet();else sh.style.transform=""});})();
 
-syncTheme();ppIcon();render();const s0=song();if(s0.yt)loadVideo(s0.yt);
+/* ======================= Widget PiP: lienzo dibujado → video en vivo → ventana flotante ======================= */
+const pip={idx:0,cv:null,ctx:null,stream:null};
+function progression(){const A=analyze();return A.s.sections.flatMap(x=>x.c).map(parseChord).filter(Boolean).map(c=>({...c,root:(c.root+transpose+12)%12,bass:c.bass!=null?(c.bass+transpose+12)%12:null}))}
+function pipStep(d){const pr=progression();if(!pr.length)return;pip.idx=(pip.idx+d+pr.length)%pr.length;const c=pr[pip.idx];selChord={root:c.root,q:c.q,bass:null};render()}
+function rr(x,y,w,h,r){const c=pip.ctx;c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()}
+function drawPip(){
+  const c=pip.ctx,W=960,H=540;if(!c)return;const A=analyze(),pr=progression();if(pr.length&&pip.idx>=pr.length)pip.idx=0;
+  const cur=pr[pip.idx],nxt=pr[(pip.idx+1)%Math.max(1,pr.length)],F="Urbanist,-apple-system,system-ui,sans-serif";
+  c.fillStyle="#16171A";c.fillRect(0,0,W,H);
+  // encabezado
+  c.fillStyle="#8E8E96";c.font=`600 26px ${F}`;c.textBaseline="alphabetic";c.fillText((A.s.title||"").slice(0,34),40,58);
+  const kt=`${nn(A.k.t)}${A.k.mode==="minor"?"m":""} · ${SCALES[scaleK||"pmin"].n}`;c.font=`700 24px ${F}`;const kw=c.measureText(kt).width+32;
+  rr(W-40-kw,28,kw,44,22);c.fillStyle="#C6EE3A";c.fill();c.fillStyle="#16171A";c.fillText(kt,W-40-kw+16,59);
+  if(!cur){c.fillStyle="#fff";c.font=`700 40px ${F}`;c.fillText("Sin acordes",40,280);return}
+  // acorde actual grande + diagrama
+  c.fillStyle="#fff";c.font=`800 150px ${F}`;c.fillText(chordName({...cur,bass:null}),40,250);
+  c.fillStyle="#8E8E96";c.font=`600 26px ${F}`;c.fillText(`${QNAME[cur.q]||cur.q} · notas ${chordTones(cur).map(nn).join(" ")}`,44,296);
+  const f=shapesFor(cur),fr=f.filter(x=>x>0),mx=fr.length?Math.max(...fr):1,mn=fr.length?Math.min(...fr):1,base=mx<=4?1:mn,x0=660,x1=910,y0=150,dy=56,dx=(x1-x0)/5;
+  c.strokeStyle="#4A4C53";c.lineWidth=4;for(let i=0;i<6;i++){c.beginPath();c.moveTo(x0+i*dx,y0);c.lineTo(x0+i*dx,y0+dy*4);c.stroke()}
+  for(let k=1;k<=4;k++){c.beginPath();c.moveTo(x0,y0+k*dy);c.lineTo(x1,y0+k*dy);c.stroke()}
+  if(base===1){c.fillStyle="#fff";c.fillRect(x0-2,y0-10,x1-x0+4,10)}else{c.fillStyle="#8E8E96";c.font=`700 28px ${F}`;c.fillText(base+"fr",x1+12,y0+42)}
+  f.forEach((x,i)=>{const cx=x0+i*dx;c.font=`800 28px ${F}`;c.textAlign="center";if(x<0){c.fillStyle="#8E8E96";c.fillText("×",cx,y0-20)}else if(x===0){c.strokeStyle="#fff";c.lineWidth=3;c.beginPath();c.arc(cx,y0-30,10,0,7);c.stroke()}
+    else{const root=(([4,9,2,7,11,4][i]+x)%12)===cur.root;c.fillStyle=root?"#C6EE3A":"#fff";c.beginPath();c.arc(cx,y0+(x-base+.5)*dy,20,0,7);c.fill()}c.textAlign="left"});
+  // progresión con el actual resaltado
+  const start=Math.max(0,Math.min(pip.idx-1,pr.length-5)),vis=pr.slice(start,start+6);let x=40;c.font=`700 30px ${F}`;
+  vis.forEach((ch,i)=>{const t=chordName({...ch,bass:null}),w=Math.max(70,c.measureText(t).width+34),on=start+i===pip.idx;if(x+w>610)return;rr(x,350,w,58,18);c.fillStyle=on?"#C6EE3A":"#27272B";c.fill();c.fillStyle=on?"#16171A":"#F3F3F4";c.fillText(t,x+(w-c.measureText(t).width)/2,390);x+=w+12});
+  c.fillStyle="#8E8E96";c.font=`600 24px ${F}`;c.fillText(`Sigue: ${nxt?chordName({...nxt,bass:null}):"—"}   ·   ${pip.idx+1} de ${pr.length}`,40,450);
+  // tiempo y loop
+  const d=player.duration()||0,tm=player.time()||0,bx=40,bw=W-80,by=490;rr(bx,by,bw,10,5);c.fillStyle="#27272B";c.fill();
+  if(d&&player.a!=null&&player.b!=null){rr(bx+bw*player.a/d,by-6,bw*(player.b-player.a)/d,22,8);c.fillStyle="rgba(198,238,58,.45)";c.fill()}
+  if(d){rr(bx,by,Math.max(10,bw*tm/d),10,5);c.fillStyle="#fff";c.fill()}
+  c.fillStyle="#8E8E96";c.font=`600 22px ${F}`;c.textAlign="right";c.fillText(d?`${fmt(tm)} / ${fmt(d)}${player.loop&&player.a!=null?"  ·  loop":""}`:"sin reproducir",W-40,475);c.textAlign="left";
+}
+function setupPip(){
+  const v=$("#pipv");pip.cv=document.createElement("canvas");pip.cv.width=960;pip.cv.height=540;pip.ctx=pip.cv.getContext("2d");drawPip();
+  if(!pip.cv.captureStream){$("#pipNote").textContent="Este navegador no puede crear la ventana flotante.";return}
+  pip.stream=pip.cv.captureStream(12);v.srcObject=pip.stream;v.muted=true;v.play().catch(()=>{});
+  setInterval(drawPip,120);
+  // ▶︎/❚❚ de la ventana flotante controlan la canción (el widget se reanuda solo)
+  let guard=false;v.addEventListener("pause",()=>{if(guard||!inPip())return;guard=true;if(player.ready){player.playing()?player.pause():player.play()}setTimeout(()=>{v.play().catch(()=>{});guard=false},60)});
+  try{const ms=navigator.mediaSession;if(ms){["nexttrack","seekforward"].forEach(a=>{try{ms.setActionHandler(a,()=>pipStep(1))}catch(e){}});["previoustrack","seekbackward"].forEach(a=>{try{ms.setActionHandler(a,()=>pipStep(-1))}catch(e){}})}}catch(e){}
+}
+const inPip=()=>document.pictureInPictureElement===$("#pipv")||$("#pipv").webkitPresentationMode==="picture-in-picture";
+$("#pipBtn").onclick=()=>{const v=$("#pipv");if(!pip.stream){toast("Tu navegador no permite ventana flotante");return}
+  if(!selChord)pipStep(0);drawPip();v.play().catch(()=>{});
+  try{if(inPip()){document.exitPictureInPicture?document.exitPictureInPicture():v.webkitSetPresentationMode("inline");return}
+    if(v.webkitSupportsPresentationMode&&v.webkitSupportsPresentationMode("picture-in-picture")){v.webkitSetPresentationMode("picture-in-picture");toast("Listo: sal de la app y el widget se queda flotando",2600);return}
+    if(v.requestPictureInPicture){v.requestPictureInPicture().then(()=>toast("Listo: el widget está flotando")).catch(()=>toast("iOS no dejó abrir la ventana flotante aquí",3000));return}
+    toast("Tu navegador no permite ventana flotante",3000)}catch(e){toast("No se pudo abrir la ventana flotante",3000)}};
+
+syncTheme();ppIcon();render();setupPip();const s0=song();if(s0.yt)loadVideo(s0.yt);
 if("serviceWorker" in navigator&&location.protocol!=="file:")addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 </script>
 </body>
