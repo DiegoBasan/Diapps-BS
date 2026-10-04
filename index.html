@@ -26,7 +26,7 @@ try{var t=localStorage.getItem("jetta6theme");if(t)document.documentElement.data
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700&family=Barlow+Semi+Condensed:wght@400;500;600&display=swap">
 <style>
-/* Layout: pantalla tipo iPhone gris claro; héroe con el auto desbordando a la derecha y barra flotante vertical; tarjetas con botón de flecha negro; detalle con pestañas con contador */
+/* Layout: pantalla tipo iPhone gris claro; héroe con el auto sobre la marca de agua MK6; selector de puntos de revisión que cambia la vista del auto; tarjetas con botón de flecha negro */
 :root{
   --glass:rgba(255,255,255,.55); --glassBorder:rgba(255,255,255,.75); --glassShadow:rgba(30,32,40,.14);
   --bg:#DCDCDF; --screen:#EDEDEF; --card:#F6F6F7; --white:#FFFFFF; --ink:#111113; --ink2:#85858C; --line:#DCDCE0;
@@ -42,10 +42,11 @@ try{var t=localStorage.getItem("jetta6theme");if(t)document.documentElement.data
   --bg:#050506; --screen:#121214; --card:#1B1B1E; --white:#242428; --ink:#F3F3F4; --ink2:#8E8E96; --line:#2D2D32;
   --mist:#5E6D7C; --blush:#8C5B65; --dock:rgba(46,46,52,.92); --scrim:rgba(0,0,0,.55); --glass:rgba(40,40,46,.55); --glassBorder:rgba(255,255,255,.12); --glassShadow:rgba(0,0,0,.5); color-scheme:dark}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{background:var(--screen)}
-/* Comportamiento de app nativa: sin zoom, sin rebote, sin resaltado al tocar */
-html{-webkit-text-size-adjust:100%;text-size-adjust:100%;overscroll-behavior:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
-body{margin:0;min-height:100dvh;overscroll-behavior-y:none}
+/* Comportamiento de app nativa: sin zoom ni resaltado al tocar; se conserva el rebote natural de iOS */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+body{margin:0;min-height:100dvh}
 body.lock{overflow:hidden}
 button,label,.nav,.dock,.tag,.lg,.th,.ey,.lbl,h1,h3,h4{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 img{-webkit-user-drag:none;-webkit-touch-callout:none;user-select:none}
@@ -72,40 +73,67 @@ h1 sup{font-size:14px;font-weight:500;letter-spacing:0;vertical-align:top;positi
 .tag{font-size:12.5px;font-weight:500;padding:6px 11px;border-radius:99px;background:var(--card);color:var(--ink)}
 button.tag{border:1px solid var(--line)}
 
-/* héroe */
-.hero{position:relative;height:310px;margin:12px -20px 0 -20px}
-.stagebox{position:absolute;left:8px;right:72px;top:0;bottom:44px;display:grid;place-items:center}
+/* encabezado */
+.brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px}
+.brand img{width:36px;height:36px;border-radius:10px;display:block}
+.brand small{display:block;font-size:12px;font-weight:500;color:var(--ink2);line-height:1.1}
+.ttl{font-size:42px;font-weight:600;letter-spacing:-.035em;margin-top:6px}
+.subttl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;color:var(--ink2);font-size:14px;font-weight:500}
+.subttl .odo-b{color:var(--ink);font-weight:600;padding:5px 11px;border-radius:99px;background:var(--white)}
+.stpill{display:inline-flex;align-items:center;gap:6px;padding:5px 11px 5px 9px;border-radius:99px;font-size:13px;font-weight:600}
+.stpill i{width:7px;height:7px;border-radius:50%;background:currentColor}
+.stpill.ok{background:color-mix(in srgb,var(--lime) 50%,transparent);color:#26300a}
+.stpill.warn{background:color-mix(in srgb,var(--warn) 20%,transparent);color:var(--warn)}
+.stpill.crit{background:color-mix(in srgb,var(--crit) 16%,transparent);color:var(--crit)}
+:root[data-theme="dark"] .stpill.ok{color:var(--lime)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .stpill.ok{color:var(--lime)}}
+
+/* héroe: auto sin sombra sobre marca de agua; la vista cambia según el punto elegido */
+.hero{position:relative;height:232px;margin:14px -20px 0;overflow:hidden}
+.wm{position:absolute;inset:0;display:grid;place-items:center;font-size:150px;font-weight:700;letter-spacing:-.06em;line-height:1;color:var(--white);pointer-events:none;transition:transform .7s cubic-bezier(.2,.8,.2,1)}
+.wm span{transform:translateY(-6px)}
+.stagebox{position:absolute;inset:6px 18px 2px;display:grid;place-items:center}
 .frame{position:relative}
-.frame img{display:block;width:100%;height:100%;max-width:none;filter:drop-shadow(0 16px 14px rgba(0,0,0,.22));transition:opacity .28s,transform .45s cubic-bezier(.2,.8,.2,1)}
-.frame.out img{opacity:0;transform:translateX(-14px) scale(.98)}
-.frame .shadow{position:absolute;left:6%;right:6%;bottom:-8px;height:22px;background:radial-gradient(50% 50% at 50% 50%,rgba(0,0,0,.26),transparent 70%)}
-.vlabel{position:absolute;left:20px;bottom:4px;font-size:12px;font-weight:600;color:var(--ink2)}
-.hs{position:absolute;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;display:grid;place-items:center}
-.hs i{width:10px;height:10px;border-radius:50%;background:var(--lime);box-shadow:0 0 0 3px rgba(255,255,255,.85),0 2px 6px rgba(0,0,0,.35)}
-.hs[aria-pressed="true"] i{width:14px;height:14px;animation:pulse 1.6s infinite}
-@keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(255,255,255,.9),0 0 0 6px rgba(198,238,58,.0)}50%{box-shadow:0 0 0 3px rgba(255,255,255,.9),0 0 0 10px rgba(198,238,58,.45)}}
-.dock{position:absolute;right:14px;top:6px;display:flex;flex-direction:column;gap:4px;padding:5px;border-radius:30px;background:var(--dock);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);z-index:2}
-.dock button{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:#fff;background:rgba(255,255,255,.08)}
-.dock button svg{width:19px;height:19px}
-.dock button[aria-pressed="true"]{background:#fff;color:#111113}
-.thumbs{display:flex;gap:8px;align-items:center;margin-top:2px}
-.th{width:64px;height:46px;border-radius:10px;border:1.5px solid var(--line);background:var(--card) center/contain no-repeat;flex:none}
-.th[aria-pressed="true"]{border-color:var(--ink)}
-.th{background-size:88% auto}
-.th.add{display:grid;place-items:center;color:var(--ink2);font-size:22px;font-weight:400;cursor:pointer}
+.frame img{display:block;width:100%;height:100%;max-width:none;transition:opacity .32s,transform .55s cubic-bezier(.2,.8,.2,1)}
+.frame.out img{opacity:0;transform:scale(.94) translateY(6px)}
+.frame.out .hs{opacity:0}
+.hs{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;display:grid;place-items:center;transition:left .5s cubic-bezier(.2,.8,.2,1),top .5s cubic-bezier(.2,.8,.2,1),opacity .2s;pointer-events:none}
+.hs i{width:13px;height:13px;border-radius:50%;background:var(--lime);box-shadow:0 0 0 3px #fff;animation:pulse 1.8s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 3px #fff,0 0 0 3px rgba(198,238,58,.6)}70%{box-shadow:0 0 0 3px #fff,0 0 0 16px rgba(198,238,58,0)}100%{box-shadow:0 0 0 3px #fff,0 0 0 16px rgba(198,238,58,0)}}
+.spots{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:16px -20px 0;padding:2px 20px;scroll-padding-inline:20px}
+.spots::-webkit-scrollbar{display:none}
+.sp-chip{flex:none;display:flex;align-items:center;gap:7px;height:40px;padding:0 15px 0 11px;border-radius:99px;background:var(--white);font-size:13.5px;font-weight:600;color:var(--ink);transition:background-color .25s,color .25s,transform .16s}
+.sp-chip:active{transform:scale(.94)}
+.sp-chip svg{width:19px;height:19px}
+.sp-chip[aria-selected="true"]{background:var(--ink);color:var(--screen)}
+#spotCard{margin-top:14px}
+#spotCard .sub,#spotCard b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#spotCard .k{white-space:nowrap}
+#spotCard .t{animation:fadeup .35s cubic-bezier(.2,.8,.2,1)}
+.chev{width:9px;height:14px;flex:none;color:var(--ink2)}
+/* accesos rápidos */
+.quick{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+.qa{background:var(--white);border-radius:22px;padding:14px 12px 13px;display:flex;flex-direction:column;align-items:flex-start;gap:12px;font-size:14px;font-weight:600;text-align:left;min-width:0;transition:transform .16s}
+.qa:active{transform:scale(.95)}
+.qa .ic{width:36px;height:36px;border-radius:12px;background:var(--card);display:grid;place-items:center}
+.qa .ic svg{width:20px;height:20px}
+.qa small{display:block;font-weight:500;color:var(--ink2);font-size:12px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.qa>span:last-child{min-width:0;max-width:100%}
+/* imagen de cada sección */
+.dimg{height:150px;display:flex;justify-content:center;align-items:center;margin:-4px 0 14px;overflow:hidden}
+.dimg img{height:150px;width:auto;max-width:100%;object-fit:contain;display:block}
+.pop{animation:pop .55s cubic-bezier(.2,.8,.2,1)}
+@keyframes pop{from{opacity:0;transform:scale(.94) translateY(8px)}}
+/* animaciones de entrada */
+@keyframes fadeup{from{opacity:0;transform:translateY(8px)}}
+.rv{opacity:0;transform:translateY(18px);transition:opacity .6s cubic-bezier(.2,.8,.2,1),transform .6s cubic-bezier(.2,.8,.2,1)}
+.rv.in{opacity:1;transform:none}
+.dpanel .mi,.dpanel .fault,.dpanel .lg{animation:fadeup .42s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i,0) * 32ms)}
 
 /* vidrio */
 .glass{background:var(--glass);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);border:1px solid var(--glassBorder);box-shadow:inset 0 1px 0 var(--glassBorder),0 12px 30px var(--glassShadow)}
-.hero .spot{position:absolute;left:16px;right:72px;width:auto;bottom:-4px;margin:0;z-index:3;border-radius:22px;padding:10px 12px}
-.hero .spot .light{width:40px;height:40px;border-radius:13px}
-.hero .spot .k{font-size:18px}
-.hero .spot .sub{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hero{touch-action:pan-y}
-.hdots{display:flex;gap:6px;justify-content:center;margin-top:12px}
-.hdots i{width:6px;height:6px;border-radius:99px;background:var(--line);transition:width .3s,background-color .3s}
-.hdots i.on{width:18px;background:var(--ink)}
 /* tablero moderno */
-.dash{background:var(--white);border-radius:28px;padding:18px 18px 16px;margin-top:22px}
+.dash{background:var(--white);border-radius:28px;padding:18px 18px 16px;margin-top:14px}
 .dash .top{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .dash .chips{display:flex;gap:6px}
 .dash .chip{font-size:12.5px;font-weight:600;padding:6px 10px;border-radius:99px;background:var(--card)}
@@ -164,7 +192,7 @@ button.tag{border:1px solid var(--line)}
 .spot{display:flex;align-items:center;gap:14px;margin-top:12px;background:var(--white);border-radius:24px;padding:12px 12px 12px 16px;width:100%;text-align:left}
 .spot .t{flex:1;min-width:0}
 .spot b{font-weight:600;font-size:15px;display:block}
-.spot .k{font-size:22px;font-weight:500;letter-spacing:-.02em}
+.spot .k{font-size:20px;font-weight:600;letter-spacing:-.02em;text-align:right}
 .svc{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;margin-top:16px}
 .svc .pills{display:flex;flex-direction:column;align-items:flex-start;gap:7px;min-width:0}
 .svc .pills .tag{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -266,26 +294,26 @@ input[type=range]{width:100%;accent-color:var(--ink)}
 <!-- INICIO -->
 <section class="screen" id="home">
   <div class="bar">
-    <button class="rb" id="btnTheme" aria-label="Cambiar tema"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+    <div class="brand"><img src="icons/icon.svg" alt=""><span>Mi Jetta<small id="hello">Hola</small></span></div>
     <span class="sp"></span>
     <button class="rb" data-open="maint" aria-label="Avisos de servicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg><span class="dot" id="bellDot" hidden></span></button>
     <button class="rb" data-menu aria-label="Menú"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
-    <button class="rb avatar" data-open="specs" aria-label="Mi perfil">D</button>
   </div>
 
-  <h1>Jetta MK6<br>2.5 Sport<sup>2015</sup></h1>
-  <div class="tags" id="tags"></div>
+  <h1 class="ttl">Jetta MK6</h1>
+  <div class="subttl"><span>2.5 Sport · 2015</span><button class="odo-b num" data-sheet="odo" id="odoTag"></button><button class="stpill" id="stPill" data-open="maint"></button></div>
 
   <div class="hero" id="hero">
-    <div class="stagebox"><div class="frame" id="frame"><div class="shadow"></div><img id="carImg" src="jetta_iso.webp" alt="Volkswagen Jetta MK6 gris oscuro"></div></div>
-    <button class="spot glass" id="spotCard"></button>
-    <div class="dock" id="dock"></div>
+    <div class="wm" aria-hidden="true"><span>MK6</span></div>
+    <div class="stagebox"><div class="frame" id="frame"><img id="carImg" src="jetta_iso.webp" alt="Volkswagen Jetta MK6 gris oscuro"><span class="hs" id="hs" hidden><i></i></span></div></div>
   </div>
-  <div class="thumbs" id="thumbs" style="margin-top:18px"></div>
+  <div class="spots" id="spots" role="tablist" aria-label="Puntos de revisión"></div>
+  <button class="spot" id="spotCard"></button>
+  <div class="quick" id="quick"></div>
 
-  <div class="dash" id="dash" aria-label="Tablero del Jetta"></div>
+  <div class="rv dash" id="dash" aria-label="Tablero del Jetta"></div>
 
-  <div class="card">
+  <div class="rv card">
     <div class="ch"><div><div class="ey">5W-40 sintético · VW 502 00</div><h3>Aceite de motor</h3></div>
       <button class="go ghost" data-sheet="oil" aria-label="Actualizar nivel de aceite"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M7 17L17 7M9 7h8v8"/></svg></button></div>
     <div class="split">
@@ -305,14 +333,14 @@ input[type=range]{width:100%;accent-color:var(--ink)}
 
 
 
-  <div class="card soft">
+  <div class="rv card soft">
     <div class="ch"><div><div class="ey">Mantenimiento</div><h3>Próximo servicio</h3></div>
       <button class="go" data-open="maint" aria-label="Ver mantenimiento"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M7 17L17 7M9 7h8v8"/></svg></button></div>
     <div class="svc"><div class="pills" id="nextPills"></div><div class="orb" id="orb"></div></div>
     <div class="stats" id="stats"></div>
   </div>
 
-  <div class="card">
+  <div class="rv card">
     <div class="ch"><div><div class="ey">Diagnóstico</div><h3>Testigos y fallas</h3></div>
       <button class="go" data-open="faults" aria-label="Ver fallas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M7 17L17 7M9 7h8v8"/></svg></button></div>
     <div class="split">
@@ -333,6 +361,7 @@ input[type=range]{width:100%;accent-color:var(--ink)}
   </div>
   <div class="dhead"><div><div class="ey sub" id="dEy"></div><h1 id="dTitle">Mantenimiento</h1></div>
     <button class="rb" data-sheet="odo" aria-label="Actualizar kilometraje"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 17a8 8 0 1 1 16 0M12 17l4-5"/></svg></button></div>
+  <div class="dimg"><img id="dImg" alt=""></div>
   <div class="dpanel">
     <div id="p-maint">
       <div class="ch" style="margin-bottom:12px"><div><div class="wb"><span class="h num" id="mOdo"></span><sup>km</sup></div><div class="sub">Intervalos de referencia · 2.5 L</div></div><button class="pbtn" data-sheet="odo">Actualizar</button></div>
@@ -392,6 +421,7 @@ const MAINT=[
  {id:"battery",n:"Batería",s:"Batería",d:"Prueba de carga",mo:36}
 ];
 const SPECS=[
+ ["Mi auto",[["Versión","2.5 Sport · 2015"],["Color","Gris Platino"],["Tapa de gasolina","Lado derecho"]]],
  ["Motor",[["Tipo","2.5 L · 5 cil. en línea · 20V"],["Potencia","170 hp @ 5,700 rpm"],["Torque","240 N·m @ 4,000 rpm"],["Distribución","Cadena"],["Combustible","Magna (87 oct.)"]]],
  ["Capacidades",[["Tanque","55 L"],["Aceite","≈ 6 L con filtro"],["Especificación","5W-40 VW 502 00"],["Refrigerante","G13"],["Frenos","DOT 4"]]],
  ["Transmisión y chasis",[["Automática","Tiptronic 6 vel. (09G)"],["Manual","5 velocidades"],["Llantas","205/55 R16 (base)"],["Presión","Etiqueta en la tapa de gasolina"]]],
@@ -471,49 +501,49 @@ function mstate(m){
 }
 let tt;function toast(t){const e=$("#toast");e.textContent=t;e.classList.add("on");clearTimeout(tt);tt=setTimeout(()=>e.classList.remove("on"),1800)}
 
-/* vistas del auto (renders mejorados, sin fondo) y puntos en % de cada imagen */
-const VIEWS=[
- {id:"iso",src:"jetta_iso.webp",ar:1400/907,n:"Vista 3/4"},
- {id:"side",src:"jetta_side.webp",ar:1400/519,n:"Lateral"},
- {id:"hood",src:"jetta_hood.webp",ar:1100/1070,n:"Cofre abierto"}
-];
+/* vistas del auto (renders sin fondo) y puntos en % de cada imagen; la vista cambia sola según el punto elegido */
+const VIEWS={iso:{src:"jetta_iso.webp",ar:1400/907},side:{src:"jetta_side.webp",ar:1400/519},hood:{src:"jetta_hood.webp",ar:1100/1070}};
 const SPOTS=[
+ {k:"fuel",ic:"fuel",n:"Gasolina",pref:"iso",at:{}},
  {k:"oil",ic:"oilp",n:"Aceite",pref:"hood",at:{hood:[43,58],iso:[17,57]}},
  {k:"coolant",ic:"temp",n:"Refrigerante",pref:"hood",at:{hood:[31,55]}},
  {k:"battery",ic:"batt",n:"Batería",pref:"hood",at:{hood:[66,36]}},
- {k:"brakef",ic:"brake",n:"Líquido de frenos",pref:"hood",at:{hood:[83,47]},nodock:1},
+ {k:"brakef",ic:"brake",n:"Frenos",pref:"hood",at:{hood:[83,47]}},
  {k:"tires",ic:"tire",n:"Llantas",pref:"side",at:{side:[18,74],iso:[44,87]}},
- {k:"lights",ic:"bulb",n:"Faros y calaveras",pref:"side",at:{side:[95,36],iso:[27,78]}},
- {k:"fuel",ic:"fuel",n:"Gasolina",pref:"iso",at:{}}
+ {k:"lights",ic:"bulb",n:"Luces",pref:"side",at:{side:[95,36],iso:[27,78]}}
 ];
-let views=VIEWS.map(v=>({...v}));
-try{JSON.parse(localStorage.getItem("jetta6imgs")||"[]").forEach((src,i)=>views.push({id:"u"+i,src,ar:0,n:"Mi foto",user:true}))}catch(e){}
-VIEWS.forEach(v=>{const i=new Image();i.src=v.src});
-let view=0,spot="oil";
-function setView(i,anim=true){
-  if(i===view&&$("#carImg").getAttribute("src")===views[i].src){renderHero();return}
-  view=i;const f=$("#frame");
-  if(!anim||matchMedia("(prefers-reduced-motion:reduce)").matches){renderHero();return}
-  f.classList.add("out");setTimeout(()=>{renderHero();requestAnimationFrame(()=>f.classList.remove("out"))},220);
+const DIMG={maint:"hood",lights:"iso",faults:"hood",specs:"side"};
+let userImg=null;try{const a=JSON.parse(localStorage.getItem("jetta6imgs")||"[]");userImg=a[a.length-1]||null}catch(e){}
+Object.values(VIEWS).forEach(v=>{const i=new Image();i.src=v.src});
+const srcOf=id=>id==="iso"&&userImg?userImg:VIEWS[id].src;
+let view="iso",spot="fuel";
+function setView(id){
+  if(id===view){renderHero();return}
+  view=id;const f=$("#frame");
+  if(matchMedia("(prefers-reduced-motion:reduce)").matches){renderHero();return}
+  f.classList.add("out");setTimeout(()=>{renderHero();const img=$("#carImg"),done=()=>requestAnimationFrame(()=>f.classList.remove("out"));img.complete?done():img.onload=done},260);
 }
+function renderSpots(){$("#spots").innerHTML=SPOTS.map(s=>`<button class="sp-chip" role="tab" data-spot="${s.k}" aria-selected="${s.k===spot}">${icon(s.ic,null,2)}${s.n}</button>`).join("")}
 function renderHero(){
-  const v=views[view],img=$("#carImg");
-  if(img.getAttribute("src")!==v.src)img.src=v.src;
-  $("#dock").innerHTML=SPOTS.filter(s=>!s.nodock).map(s=>`<button data-spot="${s.k}" aria-label="${s.n}" aria-pressed="${s.k===spot}">${icon(s.ic,null,2)}</button>`).join("");
-  $("#thumbs").innerHTML=views.map((v,i)=>`<button class="th" data-view="${i}" aria-pressed="${i===view}" aria-label="${v.n}" style="background-image:url('${v.src}')"></button>`).join("")+`<label class="th add" for="png" tabindex="0" aria-label="Agregar imagen PNG">+</label>`;
+  const img=$("#carImg"),src=srcOf(view);
+  if(img.getAttribute("src")!==src)img.src=src;
+  document.querySelectorAll("#spots [data-spot]").forEach(b=>b.setAttribute("aria-selected",b.dataset.spot===spot));
+  const at=SPOTS.find(x=>x.k===spot).at[view],hs=$("#hs");
+  if(at&&!(view==="iso"&&userImg)){hs.hidden=false;hs.style.left=at[0]+"%";hs.style.top=at[1]+"%"}else hs.hidden=true;
   sizeFrame();renderSpotCard();
 }
 function sizeFrame(){
-  const v=views[view],img=$("#carImg"),box=document.querySelector(".stagebox"),f=$("#frame");
-  const ar=v.ar||(img.naturalWidth?img.naturalWidth/img.naturalHeight:1.6);
-  if(!v.ar&&!img.naturalWidth){img.onload=sizeFrame}
-  const bw=box.clientWidth,bh=box.clientHeight-22;let w=bw,h=bw/ar;if(h>bh){h=bh;w=bh*ar}
+  const img=$("#carImg"),box=document.querySelector(".stagebox"),f=$("#frame");
+  const ar=view==="iso"&&userImg?(img.naturalWidth?img.naturalWidth/img.naturalHeight:1.6):VIEWS[view].ar;
+  if(view==="iso"&&userImg&&!img.naturalWidth)img.onload=sizeFrame;
+  const bw=box.clientWidth,bh=box.clientHeight;if(!bw)return;let w=bw,h=bw/ar;if(h>bh){h=bh;w=bh*ar}
   f.style.width=w+"px";f.style.height=h+"px";
 }
 addEventListener("resize",sizeFrame);
 function pickSpot(k){
   spot=k;const s=SPOTS.find(x=>x.k===k);
-  if(s.pref){const i=views.findIndex(v=>v.id===s.pref);if(i>=0&&i!==view){setView(i);return}}
+  const b=$(`#spots [data-spot="${k}"]`),bar=$("#spots");if(b)bar.scrollTo({left:b.offsetLeft-bar.clientWidth/2+b.clientWidth/2,behavior:"smooth"});
+  if(s.pref&&s.pref!==view){setView(s.pref);return}
   renderHero();
 }
 function renderSpotCard(){
@@ -523,11 +553,12 @@ function renderSpotCard(){
     coolant:["Refrigerante G13",M("coolant").left,"Depósito blanco · motor frío","temp"],
     battery:["Batería",M("battery").left.replace("Sin registro","Sin prueba registrada"),"Junto a la caja del filtro de aire","batt"],
     brakef:["Líquido de frenos DOT 4",M("brakef").left,"Depósito junto a la pared de fuego","brake"],
-    fuel:["Gasolina · tapa del lado derecho",`${S.fuel}%`,`${L.toFixed(0)} L · ≈ ${fmt(L*KM_PER_L)} km de autonomía`,"fuel"],
-    tires:["Llantas 205/55 R16",M("rot").left,"Presión: etiqueta en la tapa de gasolina","tpms"],
+    fuel:["Gasolina",`${S.fuel}%`,`${L.toFixed(0)} L · ≈ ${fmt(L*KM_PER_L)} km · tapa a la derecha`,"fuel"],
+    tires:["Llantas",M("rot").left,"205/55 R16 · rotación cada 10,000 km","tpms"],
     lights:["Faros y calaveras","Revisión","Si una direccional parpadea rápido, hay un foco fundido","bulb"]
   }[spot];
-  $("#spotCard").innerHTML=`<span class="light" style="background:var(--ink);color:var(--screen)">${icon(SPOTS.find(s=>s.k===spot).ic,null,2)}</span><span class="t"><b>${info[0]}</b><span class="sub">${info[2]}</span></span><span class="k num" style="${info[1].length>9?"font-size:15px;font-weight:600;max-width:40%;text-align:right":""}">${info[1]}</span>`;
+  const v=info[1].replace(/^Faltan /,"");
+  $("#spotCard").innerHTML=`<span class="light" style="background:var(--ink);color:var(--screen)">${icon(SPOTS.find(s=>s.k===spot).ic,null,2)}</span><span class="t"><b>${info[0]}</b><span class="sub">${info[2]}</span></span><span class="k num" style="${v.length>9?"font-size:15px":""}">${v}</span><svg class="chev" viewBox="0 0 10 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 2l6 6-6 6"/></svg>`;
   $("#spotCard").dataset.target=info[3];
 }
 
@@ -578,7 +609,14 @@ function oilLabel(){return S.oil<25?"Bajo":S.oil>80?"Sobre MAX":"Correcto"}
 
 /* ---------------- Render ---------------- */
 function renderHome(){
-  $("#tags").innerHTML=["2.5 L · 5 cil.","Tiptronic 6","Gris Platino","Tapa a la derecha",`${fmt(S.odo)} km`].map((t,i)=>i===4?`<button class="tag num" data-sheet="odo">${t}</button>`:`<span class="tag">${t}</span>`).join("");
+  const hr=new Date().getHours();$("#hello").textContent=hr<12?"Buenos días":hr<19?"Buenas tardes":"Buenas noches";
+  $("#odoTag").textContent=`${fmt(S.odo)} km`;
+  {const st=MAINT.map(m=>mstate(m).st),nc=st.filter(x=>x==="crit").length,nw=st.filter(x=>x==="warn").length,na=(S.active||[]).length,p=$("#stPill");
+   const [cls,txt]=nc||na?["crit",`${nc+na} por atender`]:nw?["warn",`${nw} pronto`]:["ok","Todo en orden"];p.className="stpill "+cls;p.innerHTML=`<i></i>${txt}`}
+  const qi=p=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+  $("#quick").innerHTML=`<button class="qa" data-sheet="fuel"><span class="ic">${qi(IC.fuel)}</span><span>Gasolina<small class="num">${S.fuel}% · ${fmt(TANK*S.fuel/100*KM_PER_L)} km</small></span></button>
+    <button class="qa" data-sheet="odo"><span class="ic">${qi(IC.cruise)}</span><span>Kilómetros<small>Actualizar</small></span></button>
+    <button class="qa" data-open="lights"><span class="ic">${qi(IC.engine)}</span><span>Testigos<small>${(S.active||[]).length?(S.active.length+" encendido"+(S.active.length>1?"s":"")):"Ninguno"}</small></span></button>`;
   const L=TANK*S.fuel/100;
   const oc=mstate(MAINT[0]);
   $("#fuelPct").innerHTML=oc.kmLeft!=null?`${fmt(Math.abs(oc.kmLeft))}<small>km</small>`:"—";$("#fuelSub").textContent=oc.kmLeft!=null&&oc.kmLeft<0?"Vencido · toca para registrar":"Toca para registrar el cambio";
@@ -615,14 +653,15 @@ function renderDetail(){
   const eys={maint:`${pend} pendiente${pend===1?"":"s"}`,lights:`${(S.active||[]).length} encendido${(S.active||[]).length===1?"":"s"} · ${LIGHTS.length} en total`,faults:`${FAULTS.length} del 2.5 L`,specs:"Jetta MK6 · 2015"};
   $("#dTitle").textContent=DT.find(d=>d[0]===dtab)[1];$("#dEy").textContent=eys[dtab];renderNav();
   DT.forEach(([k])=>$("#p-"+k).hidden=k!==dtab);
+  {const di=$("#dImg"),src=srcOf(DIMG[dtab]);if(di.getAttribute("src")!==src){di.src=src;di.classList.remove("pop");void di.offsetWidth;di.classList.add("pop")}}
   $("#mOdo").textContent=fmt(S.odo);
   const lab={ok:"Al día",warn:"Pronto",crit:"Vencido"};
   const rows=MAINT.map(m=>({m,s:mstate(m)})).filter(x=>maintF==="all"||(maintF==="due"?x.s.st!=="ok":x.s.st==="ok")).sort((a,b)=>b.s.p-a.s.p);
-  $("#maintList").innerHTML=rows.length?rows.map(({m,s})=>`<div class="mi"><div class="hd"><b>${m.n}</b><span class="st s-${s.st}">${lab[s.st]}</span></div>
+  $("#maintList").innerHTML=rows.length?rows.map(({m,s},i)=>`<div class="mi" style="--i:${i}"><div class="hd"><b>${m.n}</b><span class="st s-${s.st}">${lab[s.st]}</span></div>
     <div class="ticks ${s.st==="ok"?"":s.st}"><i style="width:${Math.max(3,Math.min(1,s.p)*100)}%"></i></div>
     <div class="meta"><span>${m.d}</span><span class="num">${[m.km?fmt(m.km)+" km":"",m.mo?m.mo+" meses":""].filter(Boolean).join(" · ")}</span></div>
     <div class="hd"><span class="sub num" style="flex:1">${s.left}</span><button class="pbtn" style="padding:8px 14px" data-done="${m.id}">Marcar hecho</button></div></div>`).join(""):`<p class="note">Nada en este filtro.</p>`;
-  $("#lightGrid").innerHTML=LIGHTS.filter(l=>lightF==="all"||l.c===lightF||(lightF==="g"&&l.c==="b")).map(l=>`<button class="lg" data-l="${l.k}"${(S.active||[]).includes(l.k)?' style="box-shadow:inset 0 0 0 2px var(--ink)"':""}><span class="light">${icon(l.k,LCOL[l.c])}</span>${l.n}${(S.active||[]).includes(l.k)?'<span class="st s-warn">Encendido</span>':""}</button>`).join("");
+  $("#lightGrid").innerHTML=LIGHTS.filter(l=>lightF==="all"||l.c===lightF||(lightF==="g"&&l.c==="b")).map((l,i)=>`<button class="lg" style="--i:${i}" data-l="${l.k}"${(S.active||[]).includes(l.k)?' style="box-shadow:inset 0 0 0 2px var(--ink)"':""}><span class="light">${icon(l.k,LCOL[l.c])}</span>${l.n}${(S.active||[]).includes(l.k)?'<span class="st s-warn">Encendido</span>':""}</button>`).join("");
   renderFaults();
   $("#specs").innerHTML=SPECS.map(([h,r],i)=>`<h4${i?"":' style="margin-top:4px"'}>${h}</h4><div class="rows">${r.map(([a,b])=>`<div class="r"><span>${a}</span><span class="num">${b}</span></div>`).join("")}</div>`).join("");
 }
@@ -631,7 +670,7 @@ function renderFaults(){
   $("#codeHit").innerHTML=CODES[code]?`<div class="spot" style="background:var(--card);margin:0 0 12px"><span class="light">${icon("engine",LCOL.y)}</span><span class="t"><b style="font-family:var(--mono)">${code}</b><span class="sub">${CODES[code]}</span></span></div>`:"";
   const sv={crit:["Grave","crit"],warn:["Media","warn"],info:["Leve","info"]};
   const list=FAULTS.filter(f=>!q||(f.n+f.sym+f.c+f.codes.join(" ")).toLowerCase().includes(q));
-  $("#faultList").innerHTML=list.length?list.map(f=>`<article class="fault"><div class="hd">${f.light?`<span class="light">${icon(f.light,LCOL[LIGHTS.find(l=>l.k===f.light).c])}</span>`:""}<b>${f.n}</b><span class="st s-${sv[f.s][1]}">${sv[f.s][0]}</span></div>
+  $("#faultList").innerHTML=list.length?list.map((f,i)=>`<article class="fault" style="--i:${i}"><div class="hd">${f.light?`<span class="light">${icon(f.light,LCOL[LIGHTS.find(l=>l.k===f.light).c])}</span>`:""}<b>${f.n}</b><span class="st s-${sv[f.s][1]}">${sv[f.s][0]}</span></div>
     <dl><dt>Síntoma</dt><dd>${f.sym}</dd><dt>Causa</dt><dd>${f.c}</dd><dt>Solución</dt><dd>${f.fix}</dd><dt>Cuándo</dt><dd class="num">${f.km}</dd></dl>
     ${f.codes.length?`<div class="codes">${f.codes.map(c=>`<span class="code">${c}</span>`).join("")}</div>`:""}</article>`).join(""):`<p class="note">Sin coincidencias. Prueba "vibración" o "P0171".</p>`;
 }
@@ -682,7 +721,6 @@ $("#scrim").onclick=closeSheet;
 document.addEventListener("click",e=>{
   const g=k=>e.target.closest(k);let t;
   if(t=g("[data-spot]")){pickSpot(t.dataset.spot);return}
-  if(t=g("[data-view]")){setView(+t.dataset.view);return}
   if(t=g("[data-nav]")){const k=t.dataset.nav;if(t.closest("#sheet"))closeSheet();go(k);renderNav();return}
   if(t=g("[data-menu]")){openSheet("menu");return}
   if(t=g("[data-theme-toggle]")){toggleTheme();openSheet("menu");return}
@@ -695,20 +733,19 @@ document.addEventListener("click",e=>{
   if(t=g("#maintSeg [data-f]")){maintF=t.dataset.f;[...t.parentNode.children].forEach(x=>x.setAttribute("aria-pressed",x===t));renderDetail();return}
   if(t=g("#lightSeg [data-c]")){lightF=t.dataset.c;[...t.parentNode.children].forEach(x=>x.setAttribute("aria-pressed",x===t));renderDetail();return}
 });
-document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet();if((e.key==="Enter"||e.key===" ")&&e.target.matches("label.th")){e.preventDefault();$("#png").click()}});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet()});
 $("#q").oninput=renderFaults;
 const isDark=()=>{const r=document.documentElement;return r.dataset.theme?r.dataset.theme==="dark":matchMedia("(prefers-color-scheme:dark)").matches};
 function syncThemeColor(){const c=getComputedStyle(document.documentElement).getPropertyValue("--screen").trim();document.querySelectorAll('meta[name="theme-color"]').forEach(m=>{if(document.documentElement.dataset.theme)m.removeAttribute("media");m.content=c})}
 function toggleTheme(){const t=isDark()?"light":"dark";document.documentElement.dataset.theme=t;try{localStorage.setItem("jetta6theme",t)}catch(e){}syncThemeColor()}
-$("#btnTheme").onclick=toggleTheme;
 matchMedia("(prefers-color-scheme:dark)").addEventListener("change",syncThemeColor);
 const standalone=matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
 $("#resetData").onclick=()=>{S=JSON.parse(JSON.stringify(DEFAULTS));save();renderAll();toast("Datos de ejemplo restablecidos")};
 $("#png").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{const im=new Image();im.onload=()=>{
   const w=Math.min(1000,im.width),c=document.createElement("canvas");c.width=w;c.height=Math.round(im.height*w/im.width);c.getContext("2d").drawImage(im,0,0,c.width,c.height);
-  const url=c.toDataURL("image/webp",.9);views.push({id:"u"+views.length,src:url,ar:c.width/c.height,n:"Mi foto",user:true});view=views.length-1;
-  try{localStorage.setItem("jetta6imgs",JSON.stringify(views.filter(v=>v.user).map(v=>v.src)))}catch(err){toast("Imagen agregada; no se pudo guardar para la próxima vez")}
-  closeSheet();if(!$("#detail").hidden)goHome();renderHero();toast("Imagen agregada")};im.src=rd.result};rd.readAsDataURL(f);e.target.value=""};
+  const url=c.toDataURL("image/webp",.9);userImg=url;
+  try{localStorage.setItem("jetta6imgs",JSON.stringify([url]))}catch(err){toast("Imagen agregada; no se pudo guardar para la próxima vez")}
+  closeSheet();if(!$("#detail").hidden)goHome();spot="fuel";view="";setView("iso");toast("Foto agregada")};im.src=rd.result};rd.readAsDataURL(f);e.target.value=""};
 
 /* ---------------- Gestos ---------------- */
 // Sin zoom con pellizco (Safari ignora user-scalable en algunos casos)
@@ -720,9 +757,8 @@ function swipe(el,cb,skip){let x0,y0,t0,lock=null;
   el.addEventListener("touchmove",e=>{if(x0==null||lock)return;const dx=e.touches[0].clientX-x0,dy=e.touches[0].clientY-y0;if(Math.abs(dx)>10||Math.abs(dy)>10)lock=Math.abs(dx)>Math.abs(dy)*1.3?"x":"y"},{passive:true});
   el.addEventListener("touchend",e=>{if(x0==null||lock!=="x")return;const dx=e.changedTouches[0].clientX-x0,v=Math.abs(dx)/(Date.now()-t0);if(Math.abs(dx)>60||v>.45&&Math.abs(dx)>30)cb(dx<0?1:-1);x0=null},{passive:true});
 }
-swipe($("#hero"),d=>{const n=views.length;setView((view+d+n)%n)});
 swipe(document.querySelector(".phone"),d=>{const i=ORDER.indexOf(curTab())+d;if(i>=0&&i<ORDER.length){go(ORDER[i]);renderNav()}},
-  e=>e.target.closest(".hero,.thumbs,input,.dtabs")||!$("#sheet").hidden);
+  e=>e.target.closest(".spots,input,.dtabs")||!$("#sheet").hidden);
 
 // Hoja inferior: arrastrar hacia abajo para cerrar
 (()=>{const sh=$("#sheet");let y0=null,dy=0;
@@ -732,7 +768,10 @@ swipe(document.querySelector(".phone"),d=>{const i=ORDER.indexOf(curTab())+d;if(
 })();
 
 syncThemeColor();
-renderAll();sweep();
+renderSpots();renderAll();sweep();
+// Tarjetas aparecen suavemente al llegar a ellas
+if("IntersectionObserver" in window){const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target)}}),{rootMargin:"0px 0px -40px 0px"});document.querySelectorAll(".rv").forEach(el=>io.observe(el))}
+else document.querySelectorAll(".rv").forEach(el=>el.classList.add("in"));
 if("serviceWorker" in navigator&&location.protocol!=="file:")addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 </script>
 </body>
