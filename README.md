@@ -7,6 +7,7 @@ https://diegobasan.github.io/Diapps-BS/
 | --- | --- |
 | `/` | Selector de proyectos (carpetas). Cada carpeta abre su app. |
 | `/jetta/` | Mi Jetta MK6: tablero, servicio, testigos y fallas. |
+| `/finanzas/` | Mis Finanzas: gastos, presupuesto, regla 50/30/20, mapa de gasto y asistente local. |
 
 ## Agregar un proyecto
 

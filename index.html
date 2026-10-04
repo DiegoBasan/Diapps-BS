@@ -96,7 +96,8 @@ h1 b{font-weight:700}
 .by .mini{width:26px;height:26px;flex:none;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-size:11.5px;font-weight:700;position:relative}
 .f-body{background:var(--f);border-radius:0 30px 30px 30px;display:flex;align-items:center;gap:16px;padding:12px 18px 22px 14px;position:relative;min-height:112px}
 .thumb{width:74px;height:74px;border-radius:50%;flex:none;overflow:hidden;display:grid;place-items:center;background:var(--fi);color:var(--f);font-size:26px;font-weight:600}
-.thumb img{width:100%;height:100%;object-fit:cover}
+.thumb img{display:block;width:100%;height:100%;object-fit:cover}
+.thumb.ico{display:block;border-radius:22.5%;width:70px;height:70px;margin:2px;box-shadow:0 0 0 1px color-mix(in srgb,var(--fi) 10%,transparent)}
 .thumb.soft{background:color-mix(in srgb,var(--fi) 10%,transparent);color:var(--fi)}
 .f-main{flex:1;min-width:0;padding-top:8px}
 .f-main b{display:block;font-size:19px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -178,8 +179,8 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:13px;background:var(--bg
    Para agregar una app nueva: crea su carpeta (ej. /mi-app/ con su index.html)
    y agrega una entrada aquí. Sin "href" se muestra como "Próximamente". */
 const PROJECTS=[
- {id:"jetta",name:"Mi Jetta MK6",desc:"Tablero, servicio, testigos y fallas",href:"jetta/",status:"live",prio:true,by:"Diego",progress:72,img:"jetta/jetta_iso.webp",updated:"2026-10-04"},
- {id:"next",name:"Próxima app",desc:"Espacio listo para el siguiente proyecto",status:"future",prio:false,by:"Diego",progress:6,letter:"P",updated:"2026-10-04"},
+ {id:"jetta",name:"Mi Jetta MK6",desc:"Tablero, servicio, testigos y fallas",href:"jetta/",status:"live",prio:true,by:"Diego",progress:72,icon:"jetta/icons/icon.svg",updated:"2026-10-04"},
+ {id:"finanzas",name:"Mis Finanzas",desc:"Gastos, presupuesto, ahorro y asistente",href:"finanzas/",status:"live",prio:true,by:"Diego",progress:60,icon:"finanzas/icons/icon.svg",updated:"2026-10-04"},
  {id:"idea",name:"Laboratorio de ideas",desc:"Pruebas rápidas de UI y prototipos",status:"future",prio:false,by:"Diego",progress:0,letter:"L",updated:"2026-10-04"}
 ];
 const STATUS={live:["Activo"],future:["Futuro"],done:["Terminado"]};
@@ -202,7 +203,7 @@ function render(){
   $("#list").innerHTML=l.length?l.map((p,i)=>`<div class="folder${i%3===1?" dark":""}" style="--i:${i}" role="link" tabindex="0" aria-label="${p.name}" data-id="${p.id}">
     <div class="f-top"><div class="tab"><span class="st">${svg(ICON.glass)}${STATUS[p.status][0]}</span><span class="tr">${svg(ICON.trend)}</span></div>
       <div class="by">Creado por <b>${p.by}</b><span class="mini">${p.by[0]}</span></div></div>
-    <div class="f-body"><span class="thumb${p.img?"":" soft"}">${p.img?`<img src="${p.img}" alt="">`:p.letter}</span>
+    <div class="f-body"><span class="thumb${p.icon?" ico":" soft"}">${p.icon?`<img src="${p.icon}" alt="">`:p.letter}</span>
       <span class="f-main"><b>${p.name}</b><span>${view==="stats"?p.progress+"% de avance":p.desc}</span><span class="prog"><i data-w="${p.progress}"></i></span></span>
       <button class="more" data-more="${p.id}" aria-label="Opciones de ${p.name}">${svg(ICON.dots,1)}</button></div></div>`).join("")
     :`<p class="empty">Ningún proyecto con estos filtros.</p>`;
@@ -228,7 +229,7 @@ document.addEventListener("click",e=>{
   if(t=g("[data-v]")){view=t.dataset.v;document.querySelectorAll("[data-v]").forEach(b=>b.removeAttribute("aria-current"));t.setAttribute("aria-current","page");render();toast({stats:"Ordenado por avance",folders:"Todos los proyectos",recent:"Más recientes primero"}[view]);return}
   if(g("#sort")){sortMode=(sortMode+1)%SORTS.length;if(view!=="folders")$('[data-v="folders"]').click();render();toast(SORTS[sortMode][0]);return}
   if(g("#newp")){openSheet(`<h3>Nuevo proyecto</h3><p>Cada proyecto vive en su propia carpeta de este repo, por ejemplo <code>/mi-app/</code>, y aparece aquí como una carpeta.</p><p>Pídeme la app nueva y la agrego al selector. Cuando un proyecto crezca, se puede mover a su propio repo.</p><div class="btns"><button class="btn dark" data-close>Entendido</button></div>`);return}
-  if(g("#bell")){openSheet(`<h3>Novedades</h3><div class="rows"><div><span>Mi Jetta MK6</span><span>Rediseño del inicio</span></div><div><span>Diapps</span><span>Selector de proyectos</span></div></div><div class="btns"><button class="btn dark" data-close>Listo</button></div>`);$("#bell .dot").hidden=true;return}
+  if(g("#bell")){openSheet(`<h3>Novedades</h3><div class="rows"><div><span>Mi Jetta MK6</span><span>Rediseño del inicio</span></div><div><span>Mis Finanzas</span><span>Proyecto nuevo</span></div><div><span>Diapps</span><span>Selector de proyectos</span></div></div><div class="btns"><button class="btn dark" data-close>Listo</button></div>`);$("#bell .dot").hidden=true;return}
   if(g("#grid")){openSheet(`<h3>Diapps</h3><p>Repo de pruebas con varias apps. Para instalar una en tu iPhone, ábrela y en Safari toca Compartir y luego <b>Agregar a pantalla de inicio</b>. Cada app se instala con su propio ícono.</p><div class="btns"><button class="btn dark" data-close>Cerrar</button></div>`);return}
 });
 
