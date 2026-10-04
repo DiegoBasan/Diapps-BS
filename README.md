@@ -8,6 +8,7 @@ https://diegobasan.github.io/Diapps-BS/
 | `/` | Selector de proyectos (carpetas). Cada carpeta abre su app. |
 | `/jetta/` | Mi Jetta MK6: tablero, servicio, testigos y fallas. |
 | `/habitos/` | Ritmo: hábitos diarios y semanales con reloj del día, semana, progreso y fuerza de cada hábito. |
+| `/musica/` | Riff: YouTube con loop y velocidad, audio propio con cambio de tono, acordes en diagrama y diapasón con escalas para el solo. |
 | `/cajas/` | Cajas: mapa de contenedores a escala, fotos de cada caja abierta y buscador de contenido. |
 | `/finanzas/` | Mis Finanzas: gastos, presupuesto, regla 50/30/20, mapa de gasto y asistente local. |
 
