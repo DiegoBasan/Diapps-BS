@@ -12,15 +12,14 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="format-detection" content="telephone=no">
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#EDEDEF" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#121214" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#EDEDEF">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <script>
-/* Aplica el tema guardado antes de pintar para evitar parpadeo */
-try{var t=localStorage.getItem("jetta6theme");if(t)document.documentElement.dataset.theme=t}catch(e){}
+/* Tema compartido entre las apps de Diapps: empieza en claro; el modo oscuro se elige en el menú */
+(function(){var t="light";try{t=localStorage.getItem("diapps-theme")||localStorage.getItem("jetta6theme")||"light"}catch(e){}document.documentElement.dataset.theme=t})();
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -35,9 +34,6 @@ try{var t=localStorage.getItem("jetta6theme");if(t)document.documentElement.data
   --font:"Urbanist",-apple-system,"SF Pro Text",system-ui,"Segoe UI",Roboto,sans-serif;
   --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
 }
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#050506; --screen:#121214; --card:#1B1B1E; --white:#242428; --ink:#F3F3F4; --ink2:#8E8E96; --line:#2D2D32;
-  --mist:#5E6D7C; --blush:#8C5B65; --dock:rgba(46,46,52,.92); --scrim:rgba(0,0,0,.55); --glass:rgba(40,40,46,.55); --glassBorder:rgba(255,255,255,.12); --glassShadow:rgba(0,0,0,.5); color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#050506; --screen:#121214; --card:#1B1B1E; --white:#242428; --ink:#F3F3F4; --ink2:#8E8E96; --line:#2D2D32;
   --mist:#5E6D7C; --blush:#8C5B65; --dock:rgba(46,46,52,.92); --scrim:rgba(0,0,0,.55); --glass:rgba(40,40,46,.55); --glassBorder:rgba(255,255,255,.12); --glassShadow:rgba(0,0,0,.5); color-scheme:dark}
@@ -86,7 +82,6 @@ button.tag{border:1px solid var(--line)}
 .stpill.warn{background:color-mix(in srgb,var(--warn) 20%,transparent);color:var(--warn)}
 .stpill.crit{background:color-mix(in srgb,var(--crit) 16%,transparent);color:var(--crit)}
 :root[data-theme="dark"] .stpill.ok{color:var(--lime)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .stpill.ok{color:var(--lime)}}
 
 /* héroe: auto sin sombra sobre marca de agua; la vista cambia según el punto elegido */
 .hero{position:relative;height:232px;margin:14px -20px 0;overflow:hidden}
@@ -736,10 +731,10 @@ document.addEventListener("click",e=>{
 });
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet()});
 $("#q").oninput=renderFaults;
-const isDark=()=>{const r=document.documentElement;return r.dataset.theme?r.dataset.theme==="dark":matchMedia("(prefers-color-scheme:dark)").matches};
+const isDark=()=>document.documentElement.dataset.theme==="dark";
 function syncThemeColor(){const c=getComputedStyle(document.documentElement).getPropertyValue("--screen").trim();document.querySelectorAll('meta[name="theme-color"]').forEach(m=>{if(document.documentElement.dataset.theme)m.removeAttribute("media");m.content=c})}
-function toggleTheme(){const t=isDark()?"light":"dark";document.documentElement.dataset.theme=t;try{localStorage.setItem("jetta6theme",t)}catch(e){}syncThemeColor()}
-matchMedia("(prefers-color-scheme:dark)").addEventListener("change",syncThemeColor);
+function toggleTheme(){const t=isDark()?"light":"dark";document.documentElement.dataset.theme=t;try{localStorage.setItem("diapps-theme",t)}catch(e){}syncThemeColor()}
+addEventListener("storage",e=>{if(e.key==="diapps-theme"&&e.newValue){document.documentElement.dataset.theme=e.newValue;syncThemeColor()}});
 const standalone=matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
 $("#resetData").onclick=()=>{S=JSON.parse(JSON.stringify(DEFAULTS));save();renderAll();toast("Datos de ejemplo restablecidos")};
 $("#png").onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{const im=new Image();im.onload=()=>{

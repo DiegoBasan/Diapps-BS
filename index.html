@@ -11,8 +11,11 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="format-detection" content="telephone=no">
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#F2F2F3" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0E0E10" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F2F2F3">
+<script>
+/* Tema compartido entre las apps de Diapps: empieza en claro; el modo oscuro se elige en el menú */
+(function(){var t="light";try{t=localStorage.getItem("diapps-theme")||localStorage.getItem("jetta6theme")||"light"}catch(e){}document.documentElement.dataset.theme=t})();
+</script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
@@ -29,13 +32,13 @@
   --lime:#C6EE3A; --scrim:rgba(0,0,0,.3); --sheet:#FFFFFF;
   --font:"Urbanist",-apple-system,"SF Pro Text",system-ui,sans-serif;
 }
-@media (prefers-color-scheme:dark){:root{
+:root[data-theme="dark"]{color-scheme:dark;
   --bg:#0E0E10; --ink:#F2F2F4; --ink2:#8C8C94; --line:#2C2C31; --chip:#1A1A1D;
   --f1:#232327; --f1back:#18181B; --f1ink:#F2F2F4;
   --f2:#ECECEE; --f2back:#1C1C1F; --f2ink:#141416;
   --glass:rgba(38,38,44,.6); --glassBorder:rgba(255,255,255,.1); --glassShadow:rgba(0,0,0,.5);
   --scrim:rgba(0,0,0,.55); --sheet:#1A1A1D;
-}}
+}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html{background:var(--bg);-webkit-text-size-adjust:100%;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
@@ -114,7 +117,7 @@ h1 b{font-weight:700}
 .nav button:active{transform:scale(.92)}
 .nav button svg{width:22px;height:22px}
 .nav button[aria-current="page"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
-@media (prefers-color-scheme:light){.nav button[aria-current="page"]{background:#fff;color:#141416;border-color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.12)}}
+:root:not([data-theme="dark"]) .nav button[aria-current="page"]{background:#fff;color:#141416;border-color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.12)}
 
 /* hoja inferior */
 .scrim{position:fixed;inset:0;background:var(--scrim);z-index:9;opacity:0;transition:opacity .25s}
@@ -230,9 +233,15 @@ document.addEventListener("click",e=>{
   if(g("#sort")){sortMode=(sortMode+1)%SORTS.length;if(view!=="folders")$('[data-v="folders"]').click();render();toast(SORTS[sortMode][0]);return}
   if(g("#newp")){openSheet(`<h3>Nuevo proyecto</h3><p>Cada proyecto vive en su propia carpeta de este repo, por ejemplo <code>/mi-app/</code>, y aparece aquí como una carpeta.</p><p>Pídeme la app nueva y la agrego al selector. Cuando un proyecto crezca, se puede mover a su propio repo.</p><div class="btns"><button class="btn dark" data-close>Entendido</button></div>`);return}
   if(g("#bell")){openSheet(`<h3>Novedades</h3><div class="rows"><div><span>Mi Jetta MK6</span><span>Rediseño del inicio</span></div><div><span>Mis Finanzas</span><span>Proyecto nuevo</span></div><div><span>Diapps</span><span>Selector de proyectos</span></div></div><div class="btns"><button class="btn dark" data-close>Listo</button></div>`);$("#bell .dot").hidden=true;return}
-  if(g("#grid")){openSheet(`<h3>Diapps</h3><p>Repo de pruebas con varias apps. Para instalar una en tu iPhone, ábrela y en Safari toca Compartir y luego <b>Agregar a pantalla de inicio</b>. Cada app se instala con su propio ícono.</p><div class="btns"><button class="btn dark" data-close>Cerrar</button></div>`);return}
+  if(g("#grid")){openSheet(`<h3>Diapps</h3><p>Repo de pruebas con varias apps. Para instalar una en tu iPhone, ábrela y en Safari toca Compartir y luego <b>Agregar a pantalla de inicio</b>. Cada app se instala con su propio ícono.</p><div class="btns"><button class="btn" data-theme-toggle>${isDark()?"Tema claro":"Tema oscuro"}</button><button class="btn dark" data-close>Cerrar</button></div>`);return}
+  if(g("[data-theme-toggle]")){toggleTheme();closeSheet();return}
 });
 
+const isDark=()=>document.documentElement.dataset.theme==="dark";
+function syncThemeColor(){document.querySelector('meta[name="theme-color"]').content=getComputedStyle(document.documentElement).getPropertyValue("--bg").trim()}
+function toggleTheme(){const t=isDark()?"light":"dark";document.documentElement.dataset.theme=t;try{localStorage.setItem("diapps-theme",t)}catch(e){}syncThemeColor();toast(t==="dark"?"Modo oscuro":"Modo claro")}
+addEventListener("storage",e=>{if(e.key==="diapps-theme"&&e.newValue){document.documentElement.dataset.theme=e.newValue;syncThemeColor()}});
+syncThemeColor();
 const h=new Date().getHours();$("#hi").textContent=h<12?"Buenos días":h<19?"Hola":"Buenas noches";
 render();
 if("serviceWorker" in navigator&&location.protocol!=="file:")addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
