@@ -552,9 +552,15 @@ async function testNotif(){
   if(!("Notification" in window)||!("serviceWorker" in navigator)){toast(navigator.standalone===false||!matchMedia("(display-mode: standalone)").matches?"Agrega Rutinas a tu pantalla de inicio para recibir notificaciones":"Este dispositivo no permite notificaciones aquí");return}
   let p=Notification.permission;if(p==="default")p=await Notification.requestPermission();
   if(p!=="granted"){toast("Permite las notificaciones de Rutinas en Ajustes → Notificaciones");return}
-  const reg=await navigator.serviceWorker.ready,next=S.habits.map(h=>({h,st:status(h)})).find(x=>!x.st.done);
+  const reg=await navigator.serviceWorker.ready;
+  // a los 10 s: en iPhone solo sale si Rutinas sigue abierta (iOS pausa la app en segundo plano; para avisos con la app cerrada hace falta Web Push con servidor)
+  let n=10;const btn=document.querySelector("[data-notif]");clearInterval(testNotif.t);
+  testNotif.t=setInterval(()=>{n--;if(btn)btn.lastChild.textContent=n>0?` Llega en ${n} s…`:" Probar notificación";if(n<=0)clearInterval(testNotif.t)},1000);
+  toast("Te llega en 10 segundos · deja Rutinas abierta",3000);
+  await new Promise(r=>setTimeout(r,10000));
+  const next=S.habits.map(h=>({h,st:status(h)})).find(x=>!x.st.done);
   await reg.showNotification("Rutinas",{body:next?`Te falta: ${next.h.n}${next.h.time?" ("+hhmm(next.h.time)+")":""}`:"¡Completaste todo por hoy!",icon:"icons/icon-192.png",badge:"icons/icon-192.png",tag:"prueba",data:{url:location.href}});
-  toast("Notificación enviada")}
+  toast("Notificación enviada");if(navigator.vibrate)navigator.vibrate(80)}
 
 /* --- Marcar: tocar suma; mantener presionado abre el detalle --- */
 let lastUndo=null;

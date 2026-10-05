@@ -323,9 +323,9 @@ label.btn{display:inline-flex;align-items:center;justify-content:center;cursor:p
 .nav button svg{width:23px;height:23px}
 .nav button[aria-current="page"]{color:var(--ink);background:color-mix(in srgb,var(--ink) 9%,transparent)}
 .nav .add{flex:none;width:54px;border-radius:50%;background:var(--ink);color:var(--bg);margin:0 4px}
-.actbar button{gap:5px;font-size:11px;color:var(--ink)}
-.actbar .ai{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--ac);color:#fff;box-shadow:0 4px 12px color-mix(in srgb,var(--ac) 35%,transparent)}
-.actbar .ai svg{width:18px;height:18px}
+.actbar button{height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;font-weight:600;color:var(--ink);line-height:1}
+.actbar .ai{width:26px;height:26px;display:grid;place-items:center;background:none!important;color:var(--ink)}
+.actbar .ai svg{width:24px;height:24px}
 .segtop{position:sticky;top:calc(6px + env(safe-area-inset-top,0px));z-index:6;display:flex;gap:2px;padding:3px;margin:12px 0 4px;border-radius:12px;background:color-mix(in srgb,var(--card2) 78%,transparent);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%)}
 .segtop button{flex:1;height:32px;border-radius:9px;font-size:13px;font-weight:600;color:var(--ink2);transition:background-color .2s,color .2s}
 .segtop button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12),0 0 0 .5px rgba(0,0,0,.04)}
@@ -372,10 +372,10 @@ label.btn{display:inline-flex;align-items:center;justify-content:center;cursor:p
 <main class="app" id="app"></main>
 <div class="lockv" id="lockv" hidden><img src="icons/icon.svg" alt=""><h2>Mis Finanzas</h2><p>Bloqueado</p><button class="btn dark" id="unlockBtn">Desbloquear con Face ID</button></div>
 <nav class="nav glass actbar" id="nav" aria-label="Acciones">
-  <button data-add><span class="ai" style="--ac:#FF453A"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 12h12"/></svg></span>Gasto</button>
-  <button data-addin><span class="ai" style="--ac:#30D158"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 6v12M6 12h12"/></svg></span>Ingreso</button>
-  <button data-split><span class="ai" style="--ac:#0A84FF"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v7M12 10l-6 5v5M12 10l6 5v5M12 10v10"/></svg></span>Nómina</button>
-  <button data-go="chat"><span class="ai" style="--ac:#BF5AF2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h14a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-8l-5 4v-4H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/></svg></span>Asistente</button>
+  <button data-add><span class="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg></span>Gasto</button>
+  <button data-addin><span class="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg></span>Ingreso</button>
+  <button data-split><span class="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M12 9l-6 5v6M12 9l6 5v6M12 9v11"/></svg></span>Nómina</button>
+  <button data-go="chat"><span class="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h14a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-8l-5 4v-4H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/></svg></span>Asistente</button>
 </nav>
 <div class="compose glass" id="compose" hidden><form id="chatForm" autocomplete="off">
   <input id="chatIn" placeholder="Pregunta o escribe “gasté 250 en tacos”" enterkeyhint="send">
@@ -417,7 +417,7 @@ const ACCS={
 const CARDS=["mp","bbva","nu","bbvaa"];
 const acc=k=>({...ACCS[k],...((S&&S.meta&&S.meta[k])||{})});
 const KEY="finz2";
-const APP_VERSION="v12 · 5 oct 2026";
+const APP_VERSION="v13 · 5 oct 2026";
 const today=()=>{const d=new Date();return iso(d)};
 const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 const parse=s=>{const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
@@ -566,9 +566,8 @@ function renderHome(){
   return header("","")+`
   <div class="hero2">${potList().length?`<button class="press" data-go="pots"><small>Apartado</small><b class="num">${money(potTotal())}</b></button>`:""}<button class="press" data-gocard="mp"><small>Libre en Mercado Pago</small><b class="num">${money(bl.mp)}</b></button></div>
   ${S.sample?`<button class="card setupban press" data-setup><span class="ci">${svg('<path d="M9 7H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-3M14 4h6v6M10 14L20 4"/>')}</span><span><b>Estás viendo datos de ejemplo</b><small>Toca aquí para pegar tu código de configuración y cargar tus saldos reales</small></span></button>`:""}
-  ${saldoCard()}
   <div class="minis" aria-label="Mis tarjetas">${CARDS.map((k,i)=>{const b=bl[k],a=acc(k);return `<button class="press" data-gocard="${k}" style="--i:${i}" aria-label="${a.n}">${cardFace(k)}<span class="cap"><span>${a.t==="cred"?(b>0?"A favor":"Debes"):"Saldo"}</span><span class="num ${a.t==="cred"&&b<0?"down":""}">${money(Math.abs(b))}</span></span></button>`}).join("")}</div>
-  ${potList().length?potsCard(true):""}
+  ${saldoCard()}
   <div class="card flat"><div class="ch" style="padding:16px 18px 0;margin-bottom:4px"><h2>Movimientos</h2><button class="pill press" data-acc="all">${showAll?"Ver menos":"Ver todos"}</button></div>
     <div class="search in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" placeholder="Buscar movimiento" value="${q.replace(/"/g,"&quot;")}" autocomplete="off" enterkeyhint="search"></div>
     ${list.length?list.map(txRow).join(""):`<div class="empty">${ql?`Sin resultados para “${esc(q)}”.`:"Aún no hay movimientos."}</div>`}</div>`;
@@ -1101,6 +1100,7 @@ function menu(){const it=(attr,ic,n)=>`<button ${attr}>${svg(ic)}<span>${n}</spa
   ${it("data-account",'<circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-4 5-6 8-6s6.5 2 8 6"/>',window.Nube&&Nube.user()?"Cuenta y respaldo · "+esc(Nube.user().email):"Iniciar sesión y respaldar")}
   ${it("data-setup",'<path d="M9 7H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-3M14 4h6v6M10 14L20 4"/>',"Pegar código de configuración")}
   <label for="mpFile">${svg('<path d="M12 20V9M7 14l5-5 5 5M5 4h14"/>')}<span>Importar estado de cuenta (Mercado Pago Excel o BBVA PDF)</span>${chev}</label>
+  ${it("data-resetsheet",'<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',"Borrar datos para volver a cargar")}
   ${it("data-bkexp",'<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',"Exportar respaldo completo (JSON)")}
   ${it("data-bkimp",'<path d="M12 20V9M7 14l5-5 5 5M5 4h14"/>',"Importar respaldo (JSON)")}
   ${it("data-export",'<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',"Exportar movimientos (CSV)")}
@@ -1160,6 +1160,16 @@ document.addEventListener("click",e=>{
   if(g("[data-split]")){splitSheet();return}
   if(g("[data-setup]")){setupSheet();return}
   if(g("[data-account]")){accountSheet();return}
+  if(g("[data-resetsheet]")){openSheet(`<h3>Borrar datos</h3><p class="lbl">Si algo se cargó raro, bórralo y vuelve a importar tus estados de cuenta. También se borra de tu cuenta en la nube. Antes puedes exportar un respaldo desde el menú.</p>
+    <div class="list"><button data-wipeimp>${svg('<path d="M4 4h16v16H4zM8 9h8M8 13h8M8 17h5"/>')}<span>Borrar lo importado de estados de cuenta<br><small class="muted">Quita movimientos de Mercado Pago y BBVA. Tus apartados conservan el saldo que confirmaste.</small></span></button>
+    <button data-wipeall style="color:var(--down)">${svg('<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>')}<span>Borrar todo Finanzas<br><small class="muted">Movimientos, apartados, tarjetas y chat. Luego pegas tu código de configuración y reimportas.</small></span></button></div>
+    <div class="btns"><button class="btn" data-close>Cancelar</button></div>`);return}
+  if(g("[data-wipeimp]")){if(!confirm("¿Borrar todos los movimientos importados de Mercado Pago y BBVA?"))return;const n=S.tx.filter(t=>t.src).length;
+    S.tx=S.tx.filter(t=>!t.src);P().mv=P().mv.filter(m=>!m.ref);P().refs=[];Object.keys(ACCS).forEach(k=>S.meta[k]={...(S.meta[k]||{}),start:0});
+    save();closeSheet();render();toast(`Listo: borré ${n} movimientos importados · ya puedes volver a importar`,3200);return}
+  if(g("[data-wipeall]")){if(!confirm("¿Borrar TODO lo de Finanzas? No se puede deshacer (salvo que tengas un respaldo)."))return;
+    S={tx:[],sample:false,goal:S.goal||20,nid:1,chat:(S.chat||[]).slice(0,1),meta:Object.fromEntries(Object.keys(ACCS).map(k=>[k,{...((S.meta||{})[k]||{}),start:0}])),pots:{items:{},mv:[],refs:[],alias:{},seq:0},v:3,income:S.income};
+    save();closeSheet();go("home");render();toast("Finanzas quedó en blanco · pega tu código y vuelve a importar",3400);return}
   if(g("[data-bkexp]")){Nube.exportJSON("finanzas",S);return}
   if(g("[data-bkimp]")){Nube.pickJSON("finanzas",d=>{if(!d||!Array.isArray(d.tx)){toast("Ese respaldo no es de Finanzas");return}if(!confirm("Esto reemplaza tus datos de Finanzas con los del respaldo. ¿Continuar?"))return;S=d;normS();save();closeSheet();render();toast("Respaldo restaurado")});return}
   if(g("[data-signup]")){doAuth("up");return}
