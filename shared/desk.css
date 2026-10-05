@@ -1,0 +1,41 @@
+/* Modo escritorio común a todas las apps de Diapps (pantallas de 1100px o más).
+   Cada app pone la clase "desk" en <body> y acomoda sus pantallas en columnas; aquí va lo compartido:
+   hojas como ventanas centradas, avisos abajo, barras de desplazamiento discretas y la barra superior. */
+@media (min-width:1100px){
+  body.desk{overflow-x:hidden}
+  body.desk .nav{display:none}
+  body.desk .sheet{left:50%;right:auto;top:50%;bottom:auto;width:min(560px,calc(100vw - 48px));max-width:none;margin:0;max-height:min(86vh,860px);
+    border-radius:28px;padding:18px 24px 24px;transform:translate(-50%,-47%) scale(.97);opacity:0;transition:transform .32s cubic-bezier(.2,.9,.25,1),opacity .2s;box-shadow:0 30px 80px rgba(0,0,0,.25)}
+  body.desk .sheet.on{transform:translate(-50%,-50%);opacity:1}
+  body.desk .sheet .grab{display:none}
+  body.desk .toast{bottom:28px}
+  body.desk ::-webkit-scrollbar{width:10px;height:10px}
+  body.desk ::-webkit-scrollbar-thumb{background:color-mix(in srgb,currentColor 18%,transparent);border-radius:10px;border:3px solid transparent;background-clip:padding-box}
+  body.desk ::-webkit-scrollbar-track{background:transparent}
+
+  /* barra superior del escritorio */
+  .dkbar{position:sticky;top:0;z-index:7;display:flex;align-items:center;gap:12px;padding:14px 28px;margin:0 -28px 6px;
+    background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%)}
+  .dkbar .dbrand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px;letter-spacing:-.01em;text-align:left}
+  .dkbar .dbrand img{width:34px;height:34px;border-radius:10px}
+  .dkbar .dbrand small{display:block;font-size:12px;font-weight:500;color:var(--ink2)}
+  .dkbar .sp{flex:1}
+  .dkbar .dtab{height:38px;padding:0 15px;border-radius:99px;font-size:13.5px;font-weight:600;color:var(--ink2);display:inline-flex;align-items:center;gap:7px;background:transparent;transition:background-color .2s,color .2s}
+  .dkbar .dtab:hover{background:color-mix(in srgb,var(--ink) 7%,transparent);color:var(--ink)}
+  .dkbar .dtab svg{width:17px;height:17px}
+  .dkbar .dtab.dark{background:var(--ink);color:var(--bg)}
+  .dkbar .dtab.dark:hover{opacity:.88}
+
+  body.desk .app{max-width:none;padding:0 28px 40px}
+  body.desk .dcol .bar{display:none}
+  body.desk .dcol{background:color-mix(in srgb,var(--card,#fff) 40%,transparent);border-radius:30px;padding:6px 16px 16px;scroll-margin-top:80px}
+  body.desk .dcol>section>h1:first-of-type,body.desk .dcol h1{font-size:28px;margin-top:10px}
+  /* rejilla de columnas: cada pantalla de la app es una columna */
+  .dgrid{display:grid;gap:22px;align-items:start}
+  .dcol{min-width:0}
+  .cgrid{grid-template-columns:minmax(380px,620px) repeat(2,minmax(300px,1fr))}
+  .rgrid{grid-template-columns:repeat(auto-fill,minmax(330px,1fr))}
+  .dcol>h1:first-child,.dcol .dh{font-size:26px;margin:4px 0 0;letter-spacing:-.025em}
+  .dflash{animation:dflash 1s ease}
+  @keyframes dflash{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--ink) 30%,transparent)}100%{box-shadow:0 0 0 18px transparent}}
+}

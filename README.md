@@ -46,3 +46,8 @@ La app usa `https://diapps-riff.netlify.app` por defecto; otra dirección se cam
 Firebase Authentication (correo y contraseña) + Firestore por REST, sin SDK. Cada app guarda su documento en
 `users/{uid}/apps/{app}`; las reglas de Firestore solo dejan a cada cuenta leer y escribir lo suyo.
 La configuración web de Firebase no es secreta. Incluye bloqueo con Face ID (passkey del dispositivo).
+
+## Modo escritorio (`shared/desk.css`, `shared/desk.js`)
+
+En pantallas de 1100px o más: el inicio se vuelve un mega dashboard que resume los datos de todas las apps
+(leídos del almacenamiento del navegador) y cada app muestra todas sus pantallas a la vez en columnas.

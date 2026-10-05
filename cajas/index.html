@@ -22,6 +22,8 @@
 <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="../shared/desk.css">
+<script src="../shared/desk.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800&family=Saira+Condensed:wght@600;700&display=swap">
 <style>
 /* Cajas: mapa de contenedores. El tamaño en pantalla corresponde al tamaño real de cada caja.
@@ -382,7 +384,15 @@ function renderItems(){
 
 /* ======================= Render y navegación ======================= */
 function render(anim){
-  const doIt=()=>{$("#app").innerHTML=`<section>${{map:renderMap,photos:renderPhotos,items:renderItems}[screen]()}</section>`;
+  const R={map:renderMap,photos:renderPhotos,items:renderItems};
+  if(window.Desk&&Desk.on){Desk.keepFocus(()=>{$("#app").innerHTML=Desk.frame({icon:"icons/icon.svg",name:"Cajas",sub:`${S.boxes.length} contenedores · ${S.boxes.reduce((n,b)=>n+(b.items||[]).length,0)} cosas anotadas`,cls:"cgrid",
+      tabs:[["map","Mapa",'<rect x="3" y="4" width="8" height="7" rx="1.5"/><rect x="13" y="4" width="8" height="7" rx="1.5"/><rect x="3" y="13" width="18" height="7" rx="1.5"/>'],["photos","Fotos",'<rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-8 8"/>'],["items","Cosas",'<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>']],
+      extra:`<button class="dtab" data-edit-mode aria-pressed="${editing}">${svg('<path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17v3z"/>')}${editing?"Terminar":"Editar"}</button>`,
+      cols:Object.fromEntries(Object.keys(R).map(k=>[k,`<section>${R[k]()}</section>`]))})});
+    $("#nav").hidden=true;
+    document.querySelectorAll("#q").forEach(qi=>qi.oninput=e=>{q=e.target.value;render()});return}
+  document.body.classList.remove("desk");$("#nav").hidden=false;
+  const doIt=()=>{$("#app").innerHTML=`<section>${R[screen]()}</section>`;
     document.querySelectorAll(".nav [data-go]").forEach(b=>b.dataset.go===screen?b.setAttribute("aria-current","page"):b.removeAttribute("aria-current"));
     $("[data-edit-mode]").setAttribute("aria-pressed",editing);
     const qi=$("#q");if(qi)qi.oninput=e=>{q=e.target.value;const pos=e.target.selectionStart;render();const n=$("#q");n.focus();n.setSelectionRange(pos,pos);
@@ -390,7 +400,7 @@ function render(anim){
       clearTimeout(render.st);render.st=setTimeout(()=>{const h=document.querySelector(".bx.hit");if(h){h.scrollIntoView({behavior:"smooth",block:"center"})}},900)}};
   if(anim&&document.startViewTransition&&!reduced)document.startViewTransition(doIt);else doIt();
 }
-function go(s){if(s===screen){scrollTo({top:0,behavior:"smooth"});return}screen=s;q="";render(true);scrollTo(0,0)}
+function go(s){if(window.Desk&&Desk.on&&Desk.go(s))return;if(s===screen){scrollTo({top:0,behavior:"smooth"});return}screen=s;q="";render(true);scrollTo(0,0)}
 
 /* ======================= Abrir caja: la caja crece hasta llenar la pantalla ======================= */
 let openId=null,openRect=null;
@@ -528,6 +538,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"){if(!$("#sheet").hid
 })();
 
 save();syncThemeColor();render();loadPhotos().then(()=>render());
+if(window.Desk)Desk.watch(()=>render());
 if("serviceWorker" in navigator&&location.protocol!=="file:")addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 </script>
 </body>

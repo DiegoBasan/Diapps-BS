@@ -22,6 +22,8 @@
 <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="../shared/desk.css">
+<script src="../shared/desk.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800&display=swap">
 <style>
 /* Rutinas: reloj de 24 h como pieza central + hábitos como cápsulas de segmentos.
@@ -491,7 +493,14 @@ function renderHabits(){
 /* ======================= Render y navegación ======================= */
 const ORDER=["today","week","stats","habits"];
 function render(anim){
-  const doIt=()=>{$("#app").innerHTML=`<section>${{today:renderToday,week:renderWeek,stats:renderStats,habits:renderHabits}[screen]()}</section>`;
+  const R={today:renderToday,week:renderWeek,stats:renderStats,habits:renderHabits};
+  if(window.Desk&&Desk.on){const h=new Date().getHours();
+    $("#app").innerHTML=Desk.frame({icon:"icons/icon.svg",name:"Rutinas",sub:`${h<12?"Buenos días":h<19?"Buenas tardes":"Buenas noches"}, Diego · hoy vas en ${Math.round(dayScore(today())*100)}%`,cls:"rgrid",
+      tabs:[["today","Hoy",'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>'],["week","Semana",'<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16"/>'],["stats","Progreso",'<path d="M4 19h16M7 16v-4M12 16V7M17 16v-6"/>'],["habits","Hábitos",'<rect x="4" y="4" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="2"/>']],
+      extra:`<button class="dtab dark" data-new>${svg('<path d="M12 5v14M5 12h14"/>',2.2)}Nuevo hábito</button>`,
+      cols:Object.fromEntries(Object.keys(R).map(k=>[k,`<section>${R[k]()}</section>`]))});$("#nav").hidden=true;after();return}
+  document.body.classList.remove("desk");$("#nav").hidden=false;
+  const doIt=()=>{$("#app").innerHTML=`<section>${R[screen]()}</section>`;
     document.querySelectorAll(".nav [data-go]").forEach(b=>b.dataset.go===screen?b.setAttribute("aria-current","page"):b.removeAttribute("aria-current"));after()};
   if(anim&&document.startViewTransition&&!reduced)document.startViewTransition(doIt);else doIt();
 }
@@ -502,7 +511,7 @@ function after(){
     const p=$("#pct");if(p)countUp(p,Math.round(dayScore(today())*100));
   }));
 }
-function go(s){if(s===screen){scrollTo({top:0,behavior:"smooth"});return}screen=s;render(true);scrollTo(0,0)}
+function go(s){if(window.Desk&&Desk.on&&Desk.go(s))return;if(s===screen){scrollTo({top:0,behavior:"smooth"});return}screen=s;render(true);scrollTo(0,0)}
 
 /* --- Marcar: tocar suma; mantener presionado abre el detalle --- */
 let lastUndo=null;
@@ -609,6 +618,7 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden&&screen===
 setInterval(()=>{if(screen==="today"&&$("#sheet").hidden&&!document.querySelector(".hab.holding"))render()},60000);
 
 save();syncThemeColor();render();
+if(window.Desk)Desk.watch(()=>render());
 if("serviceWorker" in navigator&&location.protocol!=="file:")addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 </script>
 </body>

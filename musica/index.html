@@ -22,6 +22,8 @@
 <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="../shared/desk.css">
+<script src="../shared/desk.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800&display=swap">
 <style>
 /* Riff: reproductor pequeño arriba (loop A–B, velocidad, tono), acordes en diagrama y diapasón vertical con las notas para el solo. */
@@ -52,6 +54,20 @@ input,textarea,select{font:inherit;color:inherit;font-size:16px}
 button:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 .num{font-variant-numeric:tabular-nums}
 .app{max-width:440px;margin:0 auto;padding:calc(10px + env(safe-area-inset-top,0px)) 18px calc(40px + env(safe-area-inset-bottom,0px))}
+/* Escritorio: video y controles | acordes y letra | diapasón completo, todo a la vista */
+@media (min-width:1100px){
+  body.desk .app{max-width:1800px;padding:12px 28px 40px;display:grid;gap:0 22px;align-items:start;
+    grid-template-columns:minmax(380px,1.15fr) minmax(340px,1fr) minmax(340px,.9fr);
+    grid-template-areas:"bar search search" "player chords fret" "pip chords fret" "pip sheet fret" "pip sheet fret";grid-template-rows:auto auto auto auto 1fr}
+  body.desk .app>.bar{grid-area:bar}
+  body.desk .app>.search{grid-area:search;margin-top:4px}
+  body.desk .app>section:nth-of-type(1){grid-area:player}
+  body.desk .app>section:nth-of-type(2){grid-area:pip}
+  body.desk .app>section:nth-of-type(3){grid-area:chords}
+  body.desk .app>section:nth-of-type(4){grid-area:fret;position:sticky;top:12px}
+  body.desk .app>section:nth-of-type(5){grid-area:sheet}
+  body.desk .cifra{max-height:70vh;overflow:auto}
+}
 .press{transition:transform .5s var(--spring)}
 .press:active{transform:scale(.94);transition-duration:.12s}
 .rise{animation:rise .7s var(--spring-soft) both;animation-delay:calc(var(--i,0) * 50ms)}
@@ -880,6 +896,7 @@ $("#pipBtn").onclick=()=>{const v=$("#pipv");if(!pip.stream){toast("Tu navegador
     toast("Tu navegador no permite ventana flotante",3000)}catch(e){toast("No se pudo abrir la ventana flotante",3000)}};
 
 syncTheme();ppIcon();render();setupPip();const s0=song();if(s0.yt)loadVideo(s0.yt);
+if(window.Desk){document.body.classList.toggle("desk",Desk.on);Desk.watch(()=>render())}
 if("serviceWorker" in navigator&&location.protocol!=="file:")addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 </script>
 </body>
