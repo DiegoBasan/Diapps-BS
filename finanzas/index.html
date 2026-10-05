@@ -417,7 +417,7 @@ const ACCS={
 const CARDS=["mp","bbva","nu","bbvaa"];
 const acc=k=>({...ACCS[k],...((S&&S.meta&&S.meta[k])||{})});
 const KEY="finz2";
-const APP_VERSION="v13 · 5 oct 2026";
+const APP_VERSION="v14 · 5 oct 2026";
 const today=()=>{const d=new Date();return iso(d)};
 const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 const parse=s=>{const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
@@ -476,8 +476,10 @@ function migrate(){if((S.v||0)>=3)return;S.tx.forEach(t=>{if(t.src!=="mp")return
 /* ======================= Utilidades ======================= */
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const money=(n,dec)=>(n<0?"-":"")+"$"+Math.abs(n).toLocaleString("es-MX",{minimumFractionDigits:dec?2:0,maximumFractionDigits:dec?2:0});
-const short=n=>{const a=Math.abs(n);return (n<0?"-":"")+(a>=1e6?(a/1e6).toFixed(1)+"M":a>=1e4?(a/1e3).toFixed(1)+"k":a>=1e3?(a/1e3).toFixed(1)+"k":Math.round(a))};
+/* Ocultar montos (botón ojo): se recuerda en este dispositivo */
+let hideAmt=false;try{hideAmt=localStorage.getItem("diapps-fin-hide")==="1"}catch(e){}
+const money=(n,dec)=>hideAmt?"$•••":(n<0?"-":"")+"$"+Math.abs(n).toLocaleString("es-MX",{minimumFractionDigits:dec?2:0,maximumFractionDigits:dec?2:0});
+const short=n=>{if(hideAmt)return "•••";const a=Math.abs(n);return (n<0?"-":"")+(a>=1e6?(a/1e6).toFixed(1)+"M":a>=1e4?(a/1e3).toFixed(1)+"k":a>=1e3?(a/1e3).toFixed(1)+"k":Math.round(a))};
 const pct=(a,b)=>b?((a-b)/b*100):null;
 const svg=(p,w=1.8)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
 const MES=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -512,6 +514,7 @@ let screen="home",range="1M",mode="candle",q="",binc="all",heatPick=null;
 function header(title,sub){
   const h=new Date().getHours(),pend=balances();
   return `<div class="bar"><button class="brand press" data-menu><img src="icons/icon.svg" alt=""><span>Mis Finanzas<small>${h<12?"Buenos días":h<19?"Buenas tardes":"Buenas noches"}, Diego</small></span></button><span class="sp"></span>
+  <button class="rb press" data-eye aria-label="${hideAmt?"Mostrar montos":"Ocultar montos"}">${svg(hideAmt?'<path d="M3 3l18 18M10.6 6.1A9.6 9.6 0 0 1 12 6c6 0 9.5 6 9.5 6a16 16 0 0 1-2.7 3.4M6.6 7.6A16.4 16.4 0 0 0 2.5 12s3.5 6 9.5 6c1.6 0 3-.4 4.3-1M9.9 10a3 3 0 0 0 4.1 4.1"/>':'<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>')}</button>
   <button class="rb press" data-go="chat" aria-label="Asistente">${svg('<path d="M5 5h14a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-8l-5 4v-4H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/>')}</button>
   <button class="rb press" data-menu aria-label="Menú">${svg('<path d="M4 7h16M4 12h16M4 17h16"/>',2)}</button></div>
   <div class="segtop" role="tablist">${[["home","Inicio"],["budget","Tarjetas"],["pots","Apartados"],["stats","Análisis"]].map(([k,n])=>`<button data-go="${k}" aria-pressed="${screen===k}">${n}</button>`).join("")}</div>
@@ -1047,6 +1050,7 @@ function renderDesk(){
   const R={home:renderHome,budget:renderBudget,pots:renderPots,stats:renderStats};
   a.innerHTML=`<div class="dkbar"><button class="dbrand press" data-menu><img src="icons/icon.svg" alt=""><span>Mis Finanzas<small>${h<12?"Buenos días":h<19?"Buenas tardes":"Buenas noches"} · ${money(liquid(balances()))} disponible${potList().length?" · "+money(potTotal())+" apartado":""}</small></span></button><span class="sp"></span>
     ${DTABS.map(([k,n,ic])=>`<button class="dtab" data-go="${k}">${svg(ic)}${n}</button>`).join("")}
+    <button class="dtab" data-eye aria-label="Ocultar montos">${svg(hideAmt?'<path d="M3 3l18 18M10.6 6.1A9.6 9.6 0 0 1 12 6c6 0 9.5 6 9.5 6a16 16 0 0 1-2.7 3.4M6.6 7.6A16.4 16.4 0 0 0 2.5 12s3.5 6 9.5 6c1.6 0 3-.4 4.3-1M9.9 10a3 3 0 0 0 4.1 4.1"/>':'<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>')}</button>
     <button class="dtab" data-go="chat">${svg('<path d="M5 5h14a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-8l-5 4v-4H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/>')}Asistente</button>
     <button class="dtab dark" data-add>${svg('<path d="M12 5v14M5 12h14"/>',2.2)}Agregar</button><button class="dtab" data-menu aria-label="Menú">${svg('<path d="M4 7h16M4 12h16M4 17h16"/>',2)}</button></div>
     <div class="dgrid fgrid">${Object.keys(R).map(k=>`<section class="dcol" data-col="${k}">${R[k]()}</section>`).join("")}</div>
@@ -1125,6 +1129,7 @@ function editCard(k){const a=acc(k);
 document.addEventListener("click",e=>{
   const g=s=>e.target.closest(s);let t;
   if(t=g("[data-go]")){closeSheet();go(t.dataset.go);return}
+  if(g("[data-eye]")){hideAmt=!hideAmt;try{localStorage.setItem("diapps-fin-hide",hideAmt?"1":"0")}catch(e){}render();toast(hideAmt?"Montos ocultos":"Montos visibles");return}
   if(g("[data-add]")){txSheet();return}
   if(g("[data-addin]")){txSheet();draft.type="in";draft.cat="sueldo";if(S.lastAcc)draft.acc=S.lastAcc;txSheet(null,true);return}
   if(t=g("[data-range]")){range=t.dataset.range;render();return}
