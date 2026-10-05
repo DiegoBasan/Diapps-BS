@@ -180,6 +180,10 @@ h2{font-size:19px;font-weight:600;margin:0;letter-spacing:-.01em}
 .cc .bal b{display:block;font-size:9cqw;font-weight:700;opacity:1;letter-spacing:-.02em}
 .mini{display:inline-block;width:22px;height:14px;border-radius:3.5px;flex:none;position:relative;overflow:hidden}
 .mini::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.15)}
+.wsel{margin-bottom:12px;justify-content:space-between}.wsel button{flex:1;min-width:0;padding:0}
+.projbig{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px}.projbig b{font-size:30px;font-weight:700;letter-spacing:-.03em}.projbig .lbl{width:100%}
+.warnl{display:flex;flex-direction:column;gap:6px;margin-top:10px;font-size:13px;background:color-mix(in srgb,var(--down) 10%,var(--card2));border-radius:16px;padding:10px 12px}
+.field textarea{width:100%;min-height:120px;border:0;border-radius:16px;background:var(--card2);padding:12px 14px;outline:none;font:500 13px ui-monospace,Menlo,monospace;color:var(--ink);resize:vertical}
 .pots{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
 .pot{display:flex;flex-direction:column;gap:2px;text-align:left;background:var(--card2);border-radius:18px;padding:12px 13px;min-width:0;animation:rise2 .5s cubic-bezier(.2,.9,.25,1) both;animation-delay:calc(var(--i) * 30ms)}
 .pot .pn{font-size:13px;font-weight:600;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -310,8 +314,8 @@ label.btn{display:inline-flex;align-items:center;justify-content:center;cursor:p
   <button data-go="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5h-4V15h-5v5.5h-4A1.5 1.5 0 0 1 4 19z"/></svg>Inicio</button>
   <button data-go="budget"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h3"/></svg>Tarjetas</button>
   <button class="add" data-add aria-label="Agregar movimiento"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+  <button data-go="pots"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5h16v10a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5z"/><path d="M3 5.5h18v3H3zM10 12.5h4"/></svg>Apartados</button>
   <button data-go="stats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16M7 16v-4M12 16V7M17 16v-6"/></svg>Análisis</button>
-  <button data-go="chat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h14a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-8l-5 4v-4H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/></svg>Asistente</button>
 </nav>
 <div class="compose glass" id="compose" hidden><form id="chatForm" autocomplete="off">
   <input id="chatIn" placeholder="Pregunta o escribe “gasté 250 en tacos”" enterkeyhint="send">
@@ -530,13 +534,13 @@ function renderBudget(){
   <div class="wallet" style="margin-top:16px">${order2.map(k=>`<button data-card="${k}" aria-label="${acc(k).n}">${cardFace(k,k===selCard?{bal:bl[k]}:{})}</button>`).join("")}</div>
   <div class="cardinfo">
     <div><div class="lbl">${a.t==="cred"?"Por pagar":"Saldo"}</div><div class="v num ${a.t==="cred"&&bl[selCard]<0?"down":""}">${money(a.t==="cred"?-bl[selCard]:bl[selCard])}</div></div>
-    <div><div class="lbl">Gastado este mes</div><div class="v num">${money(spentCard)}</div></div>
+    <div><div class="lbl">${a.t==="cred"&&a.limit?"Disponible":"Gastado este mes"}</div><div class="v num">${money(a.t==="cred"&&a.limit?a.limit+bl[selCard]:spentCard)}</div>${a.t==="cred"&&a.limit?`<div class="lbl" style="margin-top:2px">de ${money(a.limit)} · gastado este mes ${money(spentCard)}</div>`:""}</div>
   </div>
   ${selCard==="mp"?potsCard():""}
   <div class="card flat"><div class="ch" style="padding:18px 18px 0;margin-bottom:4px"><div><div class="ey">${a.t==="cred"?"Crédito":"Débito"}${a.last?" · ••"+a.last:""}</div><h2>${a.n}</h2></div><button class="pill press" data-editcard="${selCard}">${svg('<path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17v3z"/>')}Editar</button></div>
     ${cardTx.slice(0,5).map(txRow).join("")||`<div class="empty">Sin movimientos con esta tarjeta.</div>`}
     ${cardTx.length>5?`<button class="tx press" data-acc="${selCard}" style="justify-content:center;color:var(--ink2);font-weight:600">Ver los ${cardTx.length} movimientos</button>`:""}</div>
-  <div class="folders">${["cash","save"].map(k=>`<button class="fold press" data-acc="${k}">${mini(k)}<span>${acc(k).n}</span><em class="num">${money(bl[k])}</em></button>`).join("")}</div>
+  <div class="folders">${["cash","save"].map(k=>`<button class="fold press" data-editcard="${k}">${mini(k)}<span>${acc(k).n}</span><em class="num">${money(bl[k])}</em></button>`).join("")}</div>
   <div class="card">
     <div class="ch"><div><div class="ey">Gastos</div><h2>Presupuesto</h2></div><button class="pill press" data-add>${svg('<path d="M12 5v14M5 12h14"/>',2.2)}Agregar</button></div>
     <div class="periods">
@@ -623,8 +627,8 @@ function answer(raw){
     if(/apartad/.test(s))return `Tienes <b>${money(potTotal())}</b> en ${potList().length} apartados:<ul>${potList().map(k=>`<li>${P().items[k].n}: <b>${money(potBal(k))}</b></li>`).join("")}</ul>`}
   // registrar movimiento
   if(amt&&/(gaste|pague|compre|registra|agrega|anota|me gaste|cargue|puse)/.test(s)){const cat=catFrom(raw)||"otros";const note=raw.replace(/\$?\s*\d[\d,\.]*/,"").replace(/(gast[eé]|pagu[eé]|compr[eé]|registra|agrega|anota|cargu[eé]|puse|en|de|me)\b/gi,"").replace(/\s+/g," ").trim().replace(/^./,c=>c.toUpperCase());
-    const tx={id:S.nid++,d:t,type:"out",cat,a:amt,acc:/efectivo|cash/.test(s)?"cash":/\bnu\b/.test(s)?"nu":/mercado ?pago|\bmp\b/.test(s)?"mp":/aqua/.test(s)?"bbvaa":"bbva",note:note||CATS[cat].n};S.tx.push(tx);
-    return `Listo, registré <b>${money(amt)}</b> en <b>${CATS[cat].n}</b> (${acc(tx.acc).n}). Este mes llevas ${money(mO+amt)} gastados.`}
+    const tx={id:S.nid++,d:t,type:"out",cat,a:amt,acc:/efectivo|cash/.test(s)?"cash":/\bnu\b/.test(s)?"nu":/mercado ?pago|\bmp\b/.test(s)?"mp":/aqua/.test(s)?"bbvaa":"bbva",note:note||CATS[cat].n};if(tx.acc==="mp"){const pk=suggestPot(cat,raw);if(pk){tx.pot=pk;potMv(pk,-amt,t,"wd",{tx:tx.id})}}S.tx.push(tx);
+    return `Listo, registré <b>${money(amt)}</b> en <b>${CATS[cat].n}</b> (${acc(tx.acc).n}${tx.pot?`, del apartado ${P().items[tx.pot].n}: te quedan <b>${money(potBal(tx.pot))}</b>`:""}). Este mes llevas ${money(mO+amt)} gastados.`}
   if(amt&&/(me pagaron|cobre|recibi|ingreso|deposito|me depositaron)/.test(s)){const cat=/sueldo|quincena|nomina/.test(s)?"sueldo":"extra";S.tx.push({id:S.nid++,d:t,type:"in",cat,a:amt,acc:/mercado ?pago/.test(s)?"mp":"bbva",note:CATS[cat].n});return `Anotado: ingreso de <b>${money(amt)}</b> como ${CATS[cat].n}.`}
   // preguntas largas o abiertas: mejor que las conteste la IA con contexto
   if(raw.trim().length>55||/(realista|deberia|conviene|plan|estrategia|como puedo|que me recomiendas|por que|meta)/.test(s))return null;
@@ -677,7 +681,8 @@ const potKey=n=>{let k=norm(potBase(n));let i=0;while(P().alias[k]&&i++<9)k=P().
 function potEnsure(raw,d){const k=potKey(raw),it=P().items[k];const plan=+(potClean(raw).match(/\s(\d[\d,.]*)$/)||[])[1]?.replace(/,/g,"")||0;
   if(!it)P().items[k]={n:potBase(raw),plan,base:0,baseSeq:0,created:d||today()};else if(plan&&!it.planSet)it.plan=plan;return k}
 function potMv(k,a,d,t,extra={}){const m={s:++P().seq,d,k,a:Math.round(a*100)/100,t,...extra};P().mv.push(m);return m}
-const potBal=k=>{const it=P().items[k];if(!it)return 0;return it.base+sum(P().mv.filter(m=>m.k===k&&m.s>it.baseSeq),m=>m.a)};
+const potBal=k=>{const it=P().items[k];if(!it)return 0;return it.base+sum(P().mv.filter(m=>m.k===k&&m.s>it.baseSeq&&!(it.baseDate&&m.ref&&m.d<=it.baseDate)),m=>m.a)};
+function potSetBal(k,v,d=today()){const it=P().items[k];it.base=v;it.baseSeq=P().seq;it.baseDate=d}
 const potList=()=>Object.keys(P().items).sort((a,b)=>potBal(b)-potBal(a));
 const potTotal=()=>sum(potList(),potBal);
 /* Último reparto: el día más reciente con depósitos a 3 o más apartados */
@@ -806,11 +811,90 @@ function splitSheet(){const ks=potList(),ls=lastSplit();
   <div class="btns"><button class="btn" data-close>Cancelar</button><button class="btn dark" data-splitsave>Apartar</button></div>`);
   const upd=()=>{const t=sum([...document.querySelectorAll("[data-sp]")],i=>parseFloat(i.value)||0),inc=parseFloat($("#spIn").value)||0;$("#spTot").innerHTML=`Total a apartar <b>${money(t)}</b>${inc?` · te quedan <b>${money(inc-t)}</b> disponibles`:""}`};
   document.querySelectorAll("[data-sp],#spIn").forEach(i=>i.oninput=upd);upd()}
+/* --- código de configuración: saldos reales sin ponerlos en el código público de la app --- */
+function decodeSetup(txt){txt=String(txt||"").trim().replace(/^.*#setup=/,"");
+  if(txt.startsWith("{"))return JSON.parse(txt);
+  const b=txt.replace(/-/g,"+").replace(/_/g,"/");return JSON.parse(decodeURIComponent(escape(atob(b+"===".slice((b.length+3)%4)))))}
+function applySetup(c){
+  const d=c.date||today();
+  // empezar en limpio: sin datos de ejemplo, las cuentas sin dato quedan en $0 hasta que pongas su saldo
+  if(S.sample){S.tx=[];S.sample=false;S.nid=1;Object.keys(ACCS).forEach(k=>S.meta[k]={...(S.meta[k]||{}),start:0})}
+  Object.entries(c.alias||{}).forEach(([from,to])=>{const f=norm(from),t2=norm(to);P().alias[f]=t2;
+    if(P().items[f]&&f!==t2){if(!P().items[t2])P().items[t2]={...P().items[f],n:to};P().mv.forEach(m=>{if(m.k===f)m.k=t2});S.tx.forEach(x=>{if(x.pot===f)x.pot=t2});delete P().items[f]}});
+  (c.pots||[]).forEach(([n,bal,plan])=>{const k=potKey(n);if(!P().items[k])P().items[k]={n,plan:0,base:0,baseSeq:0,created:d};const it=P().items[k];it.n=n;if(plan!=null){it.plan=plan;it.planSet=true}potSetBal(k,bal,d)});
+  Object.entries(c.cards||{}).forEach(([k,v])=>{S.meta[k]={...(S.meta[k]||{}),...v};if(v.bal!=null)setAccBal(k,v.bal,d)});
+  if(c.income)S.income={...(S.income||{}),...c.income};
+  save();
+}
+/* Ajusta el saldo inicial de una cuenta para que hoy tenga el saldo indicado (en crédito: negativo = deuda) */
+function setAccBal(k,v,d=today()){S.meta[k]={...(S.meta[k]||{}),start:0};const b=balances(d)[k];S.meta[k].start=Math.round((v-b)*100)/100;delete S.meta[k].bal}
+function setupSheet(){openSheet(`<h3>Código de configuración</h3><p class="lbl">Pega el código que te di. Carga tus saldos reales (apartados, tarjetas e ingreso semanal) solo en este iPhone.</p>
+  <div class="field"><textarea id="setupIn" placeholder="Pega aquí el código"></textarea></div>
+  <div class="btns"><button class="btn" data-close>Cancelar</button><button class="btn dark" data-setupgo>Aplicar</button></div>`)}
+
+/* --- elegir solo el apartado de un gasto: el que más usaste para esa categoría, o uno con nombre parecido --- */
+const CAT_POT={auto:["gas","gasolina","jetta","carro"],comida:["e","comida","salidas"],salud:["gym","salud"],super:["bulk","super","despensa"],ocio:["libre","ocio"],compras:["libre","hold"],transporte:["gas","transporte"]};
+function suggestPot(cat,note){
+  if(!potList().length)return "";const n=norm(note||"");
+  if(/\bgas\b|gasolin|petro ?7|pemex/.test(n)&&P().items.gas)return "gas";
+  const cnt={};S.tx.filter(t=>t.pot&&t.cat===cat&&P().items[t.pot]).slice(-40).forEach(t=>cnt[t.pot]=(cnt[t.pot]||0)+1);
+  const best=Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0];if(best)return best[0];
+  return (CAT_POT[cat]||[]).find(k=>P().items[k])||"";
+}
+
+/* --- predicción semanal (te pagan cada semana) --- */
+const INC=()=>({weekly:4200,day:4,...(S.income||{})});
+const DIAS=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+function nextPaydays(n){const out=[],day=INC().day;let d=today();while(parse(d).getDay()!==day)d=addDays(d,1);for(let i=0;i<n;i++){out.push(d);d=addDays(d,7)}return out}
+/* Gasto típico semanal de un apartado: mediana de lo retirado por semana en las últimas 8 semanas */
+function potWeeklyOut(k){const t=today(),w=[];for(let i=1;i<=8;i++){const a=addDays(t,-7*i),b=addDays(t,-7*(i-1)-1);w.push(-sum(P().mv.filter(m=>m.k===k&&m.t==="wd"&&m.d>=a&&m.d<=b),m=>m.a))}
+  const hasData=P().mv.some(m=>m.k===k&&m.t==="wd"&&m.d>=addDays(t,-56));if(!hasData)return 0;w.sort((a,b)=>a-b);return (w[3]+w[4])/2}
+function potWeeklyAuto(k){const l=P().mv.filter(m=>m.k===k&&m.t==="auto"&&m.d>=addDays(today(),-56));return sum(l,m=>m.a)/8}
+function forecast(){
+  const ks=potList(),inc=INC().weekly,planOf=k=>P().items[k].plan||0;
+  const fixed=sum(ks.filter(k=>k!=="hold"),planOf),rest=inc-fixed,scale=fixed>inc&&inc>0?inc/fixed:1;
+  // si el pago no alcanza para todos los repartos, cada uno recibe la misma proporción (más realista que suponer que sí)
+  const per=ks.map(k=>{const add=k==="hold"?Math.max(0,rest)+planOf(k):Math.round(planOf(k)*scale),auto=potWeeklyAuto(k),out=potWeeklyOut(k);return {k,n:P().items[k].n,bal:potBal(k),add,auto,out,delta:add+auto-out}});
+  return {per,inc,fixed,rest,scale,days:nextPaydays(12)};
+}
+let projW=4;
+function renderPots(){
+  const ks=potList();
+  if(!ks.length)return header("Apartados",`<span>Mercado Pago</span>`)+potsCard()+`<div class="card"><p class="lbl">¿Ya tienes tus saldos? Usa el código de configuración.</p><div class="btns"><button class="btn dark" data-setup>Pegar código</button></div></div>`;
+  const F=forecast(),W=[1,2,3,4,6,8,12],tot=potTotal(),totW=w=>sum(F.per,p=>p.bal+p.delta*w);
+  const weeks=Array.from({length:13},(_,w)=>({w,v:totW(w)})),max=Math.max(...weeks.map(x=>x.v),1),min=Math.min(0,...weeks.map(x=>x.v));
+  const H=130,bw=340/13;
+  const bars=weeks.map((x,i)=>{const h=(x.v-min)/(max-min||1)*(H-24);return `<rect x="${i*bw+3}" y="${H-16-h}" width="${bw-6}" height="${Math.max(2,h)}" rx="4" fill="${x.w===projW?"var(--ink)":x.w===0?"var(--lime)":"color-mix(in srgb,var(--ink) 18%,var(--card))"}"/>${i%2===0||x.w===projW?`<text x="${i*bw+bw/2}" y="${H-3}" text-anchor="middle" font-size="9" fill="var(--ink2)">${x.w?"S"+x.w:"hoy"}</text>`:""}`}).join("");
+  const end=F.days[projW-1];
+  const short2=F.per.filter(p=>p.delta<0).map(p=>({...p,wk:p.bal>0?Math.ceil(p.bal/-p.delta):0})).filter(p=>p.wk<=12).sort((a,b)=>a.wk-b.wk);
+  return header("Apartados",`<span>Mercado Pago · ${ks.length} apartados</span><button class="chip num" data-split>Repartir</button>`)+`
+  <div class="card">
+    <div class="ch"><div><div class="ey">Hoy tienes apartado</div><h2 class="num" style="font-size:30px">${money(tot)}</h2></div><button class="pill press" data-income>${money(F.inc)}/sem</button></div>
+    <div class="cardinfo" style="margin-top:0"><div><div class="lbl">Repartes por semana</div><div class="v num">${money(F.fixed)}</div></div><div><div class="lbl">${F.rest>=0?"Queda para HOLD":"Te faltan"}</div><div class="v num ${F.rest<0?"down":""}">${money(Math.abs(F.rest))}</div></div></div>
+    ${F.rest<0?`<p class="lbl" style="margin-top:10px">Tus repartos suman más que tu pago de ${money(F.inc)}. La predicción supone que cada apartado recibe el ${Math.round(F.scale*100)}% de su reparto. Baja algún apartado para que cuadre.</p>`:""}
+  </div>
+  <div class="card">
+    <div class="ch"><div><div class="ey">Predicción · te pagan cada ${DIAS[INC().day]}</div><h2>En ${projW} semana${projW>1?"s":""}</h2></div><span class="pill num">${fdate(end)}</span></div>
+    <div class="seg2 wsel">${W.map(w=>`<button data-projw="${w}" aria-pressed="${w===projW}">${w}S</button>`).join("")}</div>
+    <div class="projbig"><span class="lbl">Tendrías apartado</span><b class="num">${money(totW(projW))}</b><span class="num ${totW(projW)>=tot?"up":"down"}">${totW(projW)>=tot?"+":""}${money(totW(projW)-tot)}</span></div>
+    <svg class="chart" viewBox="0 0 340 ${H}" font-family="Urbanist,sans-serif" font-weight="600">${bars}</svg>
+    <p class="lbl" style="margin-top:6px">Cada semana: lo que apartas a cada uno − lo que sueles sacar de él (mediana de las últimas 8 semanas)${F.per.some(p=>p.auto)?" + los $15 por compra a Emergencia":""}.</p>
+    ${short2.length?`<div class="warnl">${short2.slice(0,3).map(p=>`<span>⚠︎ <b>${esc(p.n)}</b> ${p.wk?`se acaba en ~${p.wk} semana${p.wk>1?"s":""}`:"no alcanza"}: sacas ~${money(p.out)}/sem y apartas ${money(p.add)}. Súbelo a ${money(Math.ceil(p.out/10)*10)}.</span>`).join("")}</div>`:""}
+  </div>
+  <div class="card flat"><div class="ch" style="padding:18px 18px 0;margin-bottom:4px"><h2>Por apartado</h2><span class="lbl">hoy → semana ${projW}</span></div>
+    ${F.per.map(p=>{const v=p.bal+p.delta*projW;return `<button class="tx press" data-pot="${esc(p.k)}"><span class="t"><b>${esc(p.n)}</b><small>${p.delta>=0?"+":"−"}${money(Math.abs(p.delta))}/sem${p.out?` · sacas ~${money(p.out)}`:""}</small></span><span class="a num"><span class="muted" style="font-weight:500">${money(p.bal)} →</span> <span class="${v<0?"down":""}">${money(v)}</span></span></button>`}).join("")}
+  </div>
+  <div class="btns" style="margin-top:14px"><label class="btn" for="mpFile">Importar Excel</label><button class="btn" data-setup>Pegar código</button></div>`;
+}
+function incomeSheet(){const I=INC();openSheet(`<h3>Tu pago semanal</h3><p class="lbl">Se usa para predecir cuánto tendrás en cada apartado semana a semana.</p>
+  <div class="field"><div class="lbl" style="margin-bottom:6px">Te pagan libres por semana</div><input id="incW" inputmode="decimal" value="${I.weekly}"></div>
+  <div class="lbl" style="margin-top:14px">Día de pago</div><div class="chips">${DIAS.map((d,i)=>`<button data-payday="${i}" aria-pressed="${i===I.day}">${d}</button>`).join("")}</div>
+  <div class="btns"><button class="btn" data-close>Cancelar</button><button class="btn dark" data-incsave>Guardar</button></div>`)}
 
 /* ======================= Render y navegación ======================= */
-const ORDER=["home","budget","stats","chat"];
+const ORDER=["home","budget","pots","stats","chat"];
 function render(){
-  const a=$("#app");a.innerHTML=`<section class="screen">${{home:renderHome,budget:renderBudget,stats:renderStats,chat:renderChat}[screen]()}</section>`;
+  const a=$("#app");a.innerHTML=`<section class="screen">${{home:renderHome,budget:renderBudget,pots:renderPots,stats:renderStats,chat:renderChat}[screen]()}</section>`;
   document.querySelectorAll("[data-go]").forEach(b=>b.closest(".nav")&&(b.dataset.go===screen?b.setAttribute("aria-current","page"):b.removeAttribute("aria-current")));
   $("#nav").hidden=screen==="chat";$("#compose").hidden=screen!=="chat";
   const qi=$("#q");if(qi){qi.oninput=e=>{q=e.target.value;const pos=e.target.selectionStart;render();const n=$("#q");n.focus();n.setSelectionRange(pos,pos)}}
@@ -825,6 +909,7 @@ $("#scrim").onclick=closeSheet;
 let draft;
 function txSheet(t,keep){
   if(!keep)draft=t?{...t}:{id:null,d:today(),type:"out",cat:"comida",a:"",acc:S.lastAcc||"bbva",note:""};
+  if(draft.type==="out"&&draft.acc==="mp"&&draft.pot==null&&!draft.id)draft.pot=suggestPot(draft.cat,draft.note);
   const cats=draft.type==="in"?IN:OUT;if(!cats.includes(draft.cat))draft.cat=cats[0];
   openSheet(`<h3>${draft.id?"Editar movimiento":"Nuevo movimiento"}</h3>
    <div class="seg"><button data-type="out" aria-pressed="${draft.type==="out"}">Gasto</button><button data-type="in" aria-pressed="${draft.type==="in"}">Ingreso</button></div>
@@ -843,8 +928,9 @@ function toggleTheme(){const t=isDark()?"light":"dark";document.documentElement.
 addEventListener("storage",e=>{if(e.key==="diapps-theme"&&e.newValue){document.documentElement.dataset.theme=e.newValue;syncThemeColor();render()}});
 function menu(){const it=(attr,ic,n)=>`<button ${attr}>${svg(ic)}<span>${n}</span>${chev}</button>`;
   openSheet(`<h3>Menú</h3>
-  <div class="list">${it('data-go="home"','<path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5h-4V15h-5v5.5h-4A1.5 1.5 0 0 1 4 19z"/>',"Inicio")}${it('data-go="budget"','<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18"/>',"Tarjetas y presupuesto")}${it('data-go="stats"','<path d="M4 19h16M7 16v-4M12 16V7M17 16v-6"/>',"Análisis")}${it('data-go="chat"','<path d="M5 5h14a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-8l-5 4v-4H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/>',"Asistente")}</div>
+  <div class="list">${it('data-go="home"','<path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5h-4V15h-5v5.5h-4A1.5 1.5 0 0 1 4 19z"/>',"Inicio")}${it('data-go="budget"','<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18"/>',"Tarjetas y presupuesto")}${it('data-go="pots"','<path d="M4 8.5h16v10a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5z"/><path d="M3 5.5h18v3H3z"/>',"Apartados y predicción")}${it('data-go="stats"','<path d="M4 19h16M7 16v-4M12 16V7M17 16v-6"/>',"Análisis")}${it('data-go="chat"','<path d="M5 5h14a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-8l-5 4v-4H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/>',"Asistente")}</div>
   <div class="list">${it("data-theme-toggle",isDark()?'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>':'<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',isDark()?"Tema claro":"Tema oscuro")}
+  ${it("data-setup",'<path d="M9 7H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-3M14 4h6v6M10 14L20 4"/>',"Pegar código de configuración")}
   <label for="mpFile">${svg('<path d="M12 20V9M7 14l5-5 5 5M5 4h14"/>')}<span>Importar estado de cuenta de Mercado Pago</span>${chev}</label>
   ${it("data-export",'<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',"Exportar movimientos (CSV)")}
   ${S.sample?it("data-wipe",'<path d="M4 7h16M6 7l1 13h10l1-13M9 7V4h6v3"/>',"Borrar datos de ejemplo y empezar"):it("data-reset",'<path d="M4 12a8 8 0 1 0 3-6.2M4 4v4h4"/>',"Cargar datos de ejemplo")}
@@ -852,9 +938,14 @@ function menu(){const it=(attr,ic,n)=>`<button ${attr}>${svg(ic)}<span>${n}</spa
   <div class="field"><div class="lbl" style="margin-bottom:8px">Meta de ahorro: <b id="gv" style="color:var(--ink)">${S.goal}%</b> del ingreso</div><input id="goal" type="range" min="0" max="50" step="5" value="${S.goal}" style="width:100%;accent-color:var(--ink);height:auto;padding:0;background:none"></div>
   <p class="lbl" style="margin-top:14px">${S.sample?"Estás viendo datos de ejemplo. ":""}Todo se guarda solo en este iPhone, no se envía a ningún lado.</p>`);
   $("#goal").oninput=e=>{S.goal=+e.target.value;$("#gv").textContent=S.goal+"%";save()};}
-function editCard(k){const a=acc(k);openSheet(`<h3>${a.n}</h3><div style="max-width:300px;margin:0 auto">${cardFace(k)}</div>
+function editCard(k){const a=acc(k);
+  if(!CARDS.includes(k)){openSheet(`<h3>${a.n}</h3><div class="field"><div class="lbl" style="margin-bottom:6px">Saldo actual</div><input id="cBal" inputmode="decimal" placeholder="${Math.round(balances()[k])}"></div>
+    <div class="btns"><button class="btn" data-acc="${k}">Ver movimientos</button><button class="btn dark" data-saveacc="${k}">Guardar</button></div>`);return}
+  openSheet(`<h3>${a.n}</h3><div style="max-width:300px;margin:0 auto">${cardFace(k)}</div>
   <div class="field"><div class="lbl" style="margin-bottom:6px">Últimos 4 dígitos</div><input id="last4" inputmode="numeric" maxlength="4" placeholder="0000" value="${a.last||""}"></div>
   <div class="field"><div class="lbl" style="margin-bottom:6px">Tipo</div><div class="seg"><button data-ctype="deb" aria-pressed="${a.t==="deb"}">Débito</button><button data-ctype="cred" aria-pressed="${a.t==="cred"}">Crédito</button></div></div>
+  <div class="row2"><div class="field"><div class="lbl" style="margin-bottom:6px">${a.t==="cred"?"Deuda actual":"Saldo actual"}</div><input id="cBal" inputmode="decimal" placeholder="${Math.round(a.t==="cred"?-balances()[k]:balances()[k])}"></div>
+  <div class="field"><div class="lbl" style="margin-bottom:6px">Límite de crédito</div><input id="cLim" inputmode="decimal" placeholder="Solo crédito" value="${a.limit||""}"></div></div>
   <p class="lbl" style="margin-top:12px">Es solo un diseño visual para saber con qué tarjeta pagaste. Nunca guardes aquí el número completo, CVV ni NIP.</p>
   <div class="btns"><button class="btn" data-close>Cancelar</button><button class="btn dark" data-savecard="${k}">Guardar</button></div>`)}
 
@@ -867,12 +958,14 @@ document.addEventListener("click",e=>{
   if(t=g("[data-mode]")){mode=t.dataset.mode;render();return}
   if(t=g("[data-tx]")){const x=S.tx.find(y=>y.id===+t.dataset.tx);if(x.type==="move"){draft={...x};openSheet(`<h3>${x.note}</h3><div class="list"><button>${svg(CATS.move.ic)}${acc(x.acc).n} → ${acc(x.to).n}</button><button>${svg('<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16"/>')}${fdate(x.d)} · ${money(x.a)}</button></div><p class="lbl" style="margin-top:10px">Las transferencias entre tus cuentas no cuentan como gasto ni ingreso.</p><div class="btns"><button class="btn red" data-del>Eliminar</button><button class="btn dark" data-close>Cerrar</button></div>`)}else txSheet(x);return}
   if(t=g("[data-cat]")){q=CATS[t.dataset.cat].n;screen="home";render();scrollTo(0,0);return}
-  if(t=g("[data-acc]")){q=acc(t.dataset.acc).n;screen="home";render();scrollTo(0,0);return}
+  if(t=g("[data-acc]")){closeSheet();q=acc(t.dataset.acc).n;screen="home";render();scrollTo(0,0);return}
   if(t=g("[data-gocard]")){selCard=t.dataset.gocard;go("budget");return}
   if(t=g("[data-card]")){if(t.dataset.card!==selCard){selCard=t.dataset.card;render()}return}
   if(t=g("[data-editcard]")){editCard(t.dataset.editcard);return}
   if(t=g("[data-ctype]")){t.parentNode.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b===t));return}
-  if(t=g("[data-savecard]")){const k=t.dataset.savecard,l=$("#last4").value.replace(/\D/g,"").slice(0,4),ty=$('[data-ctype][aria-pressed="true"]').dataset.ctype;S.meta[k]={...(S.meta[k]||{}),last:l,t:ty};save();closeSheet();render();toast("Tarjeta actualizada");return}
+  if(t=g("[data-saveacc]")){const v=$("#cBal").value.replace(/[,$\s]/g,"");if(v!=="")setAccBal(t.dataset.saveacc,parseFloat(v)||0);save();closeSheet();render();toast("Saldo actualizado");return}
+  if(t=g("[data-savecard]")){const k=t.dataset.savecard,l=$("#last4").value.replace(/\D/g,"").slice(0,4),ty=$('[data-ctype][aria-pressed="true"]').dataset.ctype;S.meta[k]={...(S.meta[k]||{}),last:l,t:ty};const lim=$("#cLim").value.replace(/[,$\s]/g,""),cb=$("#cBal").value.replace(/[,$\s]/g,"");
+    if(lim!=="")S.meta[k].limit=parseFloat(lim)||0;if(cb!=="")setAccBal(k,ty==="cred"?-Math.abs(parseFloat(cb)||0):parseFloat(cb)||0);save();closeSheet();render();toast("Tarjeta actualizada");return}
   if(g("[data-theme-toggle]")){toggleTheme();closeSheet();return}
   if(t=g("[data-day]")){heatPick=heatPick===t.dataset.day?null:t.dataset.day;render();return}
   if(t=g("[data-ask]")){ask(t.dataset.ask);return}
@@ -880,23 +973,30 @@ document.addEventListener("click",e=>{
   if(g("[data-menu]")){menu();return}
   if(g("[data-close]")){closeSheet();return}
   if(t=g("[data-type]")){draft.type=t.dataset.type;draft.a=$("#amt").value;draft.note=$("#note").value;draft.d=$("#date").value;txSheet(null,true);return}
-  if(t=g("[data-pc]")){draft.cat=t.dataset.pc;t.parentNode.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b===t));return}
-  if(t=g("[data-pa]")){const was=draft.acc;draft.acc=t.dataset.pa;if(draft.acc!=="mp")draft.pot="";if((was==="mp")!==(draft.acc==="mp")&&potList().length){draft.a=$("#amt").value;draft.note=$("#note").value;draft.d=$("#date").value;const y=$("#sheet").scrollTop;txSheet(null,true);$("#sheet").scrollTop=y}else t.parentNode.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b===t));return}
-  if(t=g("[data-ppot]")){draft.pot=t.dataset.ppot;t.parentNode.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b===t));return}
+  if(t=g("[data-pc]")){draft.cat=t.dataset.pc;t.parentNode.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b===t));
+    if(draft.acc==="mp"&&!draft.potManual&&!draft.id){draft.pot=suggestPot(draft.cat,$("#note")&&$("#note").value);document.querySelectorAll("[data-ppot]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.ppot===(draft.pot||"")))}return}
+  if(t=g("[data-pa]")){const was=draft.acc;draft.acc=t.dataset.pa;if(draft.acc!=="mp")draft.pot="";else if(!draft.potManual)draft.pot=null;if((was==="mp")!==(draft.acc==="mp")&&potList().length){draft.a=$("#amt").value;draft.note=$("#note").value;draft.d=$("#date").value;const y=$("#sheet").scrollTop;txSheet(null,true);$("#sheet").scrollTop=y}else t.parentNode.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b===t));return}
+  if(t=g("[data-ppot]")){draft.pot=t.dataset.ppot;draft.potManual=true;t.parentNode.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b===t));return}
   if(t=g("[data-pot]")){potSheet(t.dataset.pot);return}
   if(t=g("[data-potsave]")){const k=t.dataset.potsave,it=P().items[k],bv=$("#pBal").value.trim(),pv=$("#pPlan").value.trim(),mg=$("#pMerge")&&$("#pMerge").value;
     if(pv!==""){it.plan=parseFloat(pv.replace(/[,$]/g,""))||0;it.planSet=true}
     if(mg){const to=P().items[mg],tot=potBal(k)+potBal(mg);P().mv.forEach(m=>{if(m.k===k)m.k=mg});S.tx.forEach(x=>{if(x.pot===k)x.pot=mg});P().alias[k]=mg;to.base=tot;to.baseSeq=P().seq;delete P().items[k];
-      if(bv!==""){to.base=parseFloat(bv.replace(/[,$]/g,""))||0}save();closeSheet();render();toast(`Unido con ${to.n}`);return}
-    if(bv!==""){it.base=parseFloat(bv.replace(/[,$]/g,""))||0;it.baseSeq=P().seq}save();closeSheet();render();toast("Apartado actualizado");return}
+      if(bv!=="")potSetBal(mg,parseFloat(bv.replace(/[,$]/g,""))||0);save();closeSheet();render();toast(`Unido con ${to.n}`);return}
+    if(bv!=="")potSetBal(k,parseFloat(bv.replace(/[,$]/g,""))||0);save();closeSheet();render();toast("Apartado actualizado");return}
   if(t=g("[data-potdel]")){const k=t.dataset.potdel;if(!confirm(`¿Eliminar el apartado ${P().items[k].n} y sus movimientos?`))return;P().mv=P().mv.filter(m=>m.k!==k);S.tx.forEach(x=>{if(x.pot===k)delete x.pot});delete P().items[k];save();closeSheet();render();return}
   if(g("[data-split]")){splitSheet();return}
+  if(g("[data-setup]")){setupSheet();return}
+  if(g("[data-setupgo]")){try{const c=decodeSetup($("#setupIn").value);applySetup(c);closeSheet();go("pots");render();toast(`Listo: ${(c.pots||[]).length} apartados con saldo real`,2800)}catch(err){toast("Ese código no es válido")}return}
+  if(t=g("[data-projw]")){projW=+t.dataset.projw;render();return}
+  if(g("[data-income]")){incomeSheet();return}
+  if(t=g("[data-payday]")){t.parentNode.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b===t));return}
+  if(g("[data-incsave]")){S.income={weekly:parseFloat($("#incW").value.replace(/[,$]/g,""))||0,day:+($("[data-payday][aria-pressed=true]")||{dataset:{payday:4}}).dataset.payday};save();closeSheet();render();toast("Pago semanal guardado");return}
   if(g("[data-splitsave]")){const d=today(),inc=parseFloat($("#spIn").value)||0;let n=0,tot=0;
     if(inc>0)S.tx.push({id:S.nid++,d,type:"in",cat:"sueldo",a:inc,acc:"mp",note:"Depósito a Mercado Pago"});
     document.querySelectorAll("[data-sp]").forEach(i=>{const v=parseFloat(i.value)||0;if(v>0){potMv(i.dataset.sp,v,d,"dep");n++;tot+=v}});
     save();closeSheet();render();toast(`Apartaste ${money(tot)} en ${n} apartados`);return}
   if(g("[data-savetx]")){const a=parseFloat(($("#amt").value||"").replace(/[,$\s]/g,""));if(!(a>0)){toast("Escribe un monto");return}
-    const rec={...draft,a,note:$("#note").value.trim(),d:$("#date").value||today()};
+    const rec={...draft,a,note:$("#note").value.trim(),d:$("#date").value||today()};delete rec.potManual;
     if(rec.type!=="out"||rec.acc!=="mp")delete rec.pot;if(!rec.pot)delete rec.pot;
     if(rec.id){const i=S.tx.findIndex(x=>x.id===rec.id);S.tx[i]=rec}else{rec.id=S.nid++;S.tx.push(rec)}S.lastAcc=rec.acc;
     // el gasto sale del apartado: se registra el retiro ligado a este movimiento
@@ -921,6 +1021,7 @@ $("#chatForm").onsubmit=e=>{e.preventDefault();const i=$("#chatIn");ask(i.value)
   sh.addEventListener("touchend",()=>{if(sy==null)return;sy=null;sh.classList.remove("drag");if(dy>90)closeSheet();else sh.style.transform=""});
 })();
 
+if(/#setup=/.test(location.hash)){try{const c=decodeSetup(location.hash);if(confirm(`¿Cargar ${(c.pots||[]).length} apartados con tus saldos reales en este dispositivo?`)){applySetup(c);screen="pots"}}catch(e){}history.replaceState(null,"",location.pathname)}
 $("#mpFile").onchange=e=>{const f=[...e.target.files];e.target.value="";importFiles(f)};
 save();syncThemeColor();render();
 if("serviceWorker" in navigator&&location.protocol!=="file:")addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
