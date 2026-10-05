@@ -24,6 +24,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="../shared/desk.css">
 <script src="../shared/desk.js"></script>
+<script src="../shared/nube.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800&family=Saira+Condensed:wght@600;700&display=swap">
 <style>
 /* Cajas: mapa de contenedores. El tamaño en pantalla corresponde al tamaño real de cada caja.
@@ -89,7 +90,7 @@ h1{font-size:40px;font-weight:600;letter-spacing:-.035em;line-height:1.05;margin
 .zh{display:flex;align-items:baseline;justify-content:space-between;margin:0 4px 10px}
 .zh h2{font-size:19px;font-weight:600;margin:0;letter-spacing:-.01em}
 .zh span{font-size:13px;color:var(--ink2);font-weight:500}
-.map{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:46px;grid-auto-flow:dense;gap:8px}
+.map{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:32px;grid-auto-flow:dense;gap:6px}
 .bx{--c:var(--g1);position:relative;grid-column:span var(--w);grid-row:span var(--h);display:block;width:100%;height:100%;text-align:center;
   animation:drop .8s var(--spring) both;animation-delay:calc(var(--i,0) * 35ms);transition:transform .5s var(--spring),opacity .35s,filter .35s}
 @keyframes drop{from{opacity:0;transform:translateY(-26px) scale(.9)}}
@@ -304,7 +305,7 @@ const DEFAULT_BOXES=[
 const KEY="cajas1";
 let S;try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 if(!S||!Array.isArray(S.boxes)){S={zones:DEFAULT_ZONES,boxes:DEFAULT_BOXES.map((b,i)=>({id:"b"+(i+1),...b})),nid:DEFAULT_BOXES.length+1}}
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast("No se pudo guardar")}};
+const save=()=>{if(window.SYNC)SYNC.touch();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast("No se pudo guardar")}};
 if(!S.v||S.v<2){const big=S.boxes.filter(b=>b.s==="xl");S.boxes=S.boxes.filter(b=>b.s!=="xl").concat(big);S.v=2;save()}
 
 /* ======================= Fotos en IndexedDB (aguanta muchas fotos, no como localStorage) ======================= */
@@ -462,7 +463,7 @@ function editor(b,zone){draft=b?{...b,items:[...(b.items||[])]}:{id:null,n:"",z:
 function preview(){const pv=$("#pv");if(!pv)return;const n=($("#bn")&&$("#bn").value)||draft.n||"Caja";pv.innerHTML=boxHTML({...draft,n,id:"_"},0)}
 function menu(){const chev='<svg class="chev" viewBox="0 0 10 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 2l6 6-6 6"/></svg>',it=(a,ic,n)=>`<button ${a}>${svg(ic)}<span>${n}</span>${chev}</button>`,dark=document.documentElement.dataset.theme==="dark";
   openSheet(`<h3>Menú</h3><div class="mlist">${it('data-go="map"','<rect x="3.5" y="4" width="9" height="7" rx="2"/><rect x="3.5" y="13" width="9" height="7" rx="2"/><rect x="14.5" y="4" width="6" height="16" rx="2"/>',"Mapa")}${it('data-go="photos"','<rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="9" cy="10" r="1.8"/>',"Fotos")}${it('data-go="items"','<path d="M8 6h12M8 12h12M8 18h12"/>',"Contenido")}${it("data-zones",'<path d="M4 6h16M4 12h16M4 18h16"/>',"Renombrar o agregar zonas")}</div>
-  <div class="mlist">${it("data-theme-toggle",dark?'<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2"/>':'<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',dark?"Tema claro":"Tema oscuro")}
+  <div class="mlist">${it("data-account",'<circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-4 5-6 8-6s6.5 2 8 6"/>',window.Nube&&Nube.user()?"Cuenta · "+Nube.user().email:"Iniciar sesión y respaldar")}${it("data-theme-toggle",dark?'<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2"/>':'<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',dark?"Tema claro":"Tema oscuro")}
   <a href="../">${svg('<path d="M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/>')}<span>Todos mis proyectos</span>${chev}</a></div>
   <p class="lbl" style="margin-top:14px">Las fotos se guardan solo en este iPhone (dentro de la app). Si borras los datos de Safari se pierden.</p>`)}
 function zonesSheet(){openSheet(`<h3>Zonas</h3>${S.zones.map(z=>`<div class="field"><input type="text" data-zname="${z.id}" value="${esc(z.n)}" maxlength="20"></div>`).join("")}
@@ -506,6 +507,7 @@ document.addEventListener("click",async e=>{
     if(isNew)setTimeout(()=>{const el=document.querySelector(`.bx[data-box="${draft.id}"]`);if(el){el.scrollIntoView({behavior:"smooth",block:"center"});el.animate([{transform:"scale(.6)",opacity:0},{transform:"none",opacity:1}],{duration:700,easing:SPR.b.css})}},120);return}
   if(g("[data-delbox]")){if(!confirm(`¿Eliminar "${draft.n}" y sus fotos?`))return;for(const p of photosOf(draft.id))await delPhoto(p.id);await loadPhotos();S.boxes=S.boxes.filter(b=>b.id!==draft.id);save();closeSheet();if($("#viewer"))closeViewer();render(true);toast("Caja eliminada");return}
   if(g("[data-close]")){closeSheet();return}
+  if(g("[data-account]")){closeSheet();setTimeout(()=>Nube.accountSheet({open:openSheet,close:closeSheet,toast:m=>toast(m),sync:window.SYNC}),480);return}
   if(g("[data-theme-toggle]")){closeSheet();setTimeout(toggleTheme,200);return}
 });
 document.addEventListener("input",e=>{if(e.target.id==="bn")preview()});
@@ -539,6 +541,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"){if(!$("#sheet").hid
 
 save();syncThemeColor();render();loadPhotos().then(()=>render());
 if(window.Desk)Desk.watch(()=>render());
+window.SYNC=window.Nube?Nube.sync("cajas",{get:()=>S,set:d=>{S=d;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}render();toast("Datos actualizados desde tu cuenta")}}):null;
 if("serviceWorker" in navigator&&location.protocol!=="file:")addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 </script>
 </body>

@@ -53,5 +53,32 @@
   async function unlock(){const l=get(LOCK);if(!l)return true;
     await navigator.credentials.get({publicKey:{challenge:rnd(32),allowCredentials:[{type:"public-key",id:unb64(l.id)}],userVerification:"required",timeout:60000}});return true}
 
-  window.Nube={signIn,signUp,signOut,resetPassword,user,load,save,lock:{available:lockAvailable,enable:lockEnable,disable:lockDisable,on:lockOn,unlock}};
+  /* ---------- Sincronizador para cualquier app ----------
+     o.get() da el estado, o.set(d) lo reemplaza (y redibuja). La app llama sync.touch() al guardar un cambio del usuario.
+     Gana la versión más reciente (campo _u). Los guardados del primer segundo (al abrir) no cuentan como cambio. */
+  function sync(app,o){let t=null,ready=false;setTimeout(()=>ready=true,1500);
+    const st={msg:"",at:0,
+      touch(){if(!ready)return;o.get()._u=Date.now();if(user())st.push()},
+      push(){clearTimeout(t);t=setTimeout(async()=>{t=null;try{const d=o.get();await save(app,d,d._u||Date.now());st.msg="";st.at=Date.now()}catch(e){st.msg=e.message}},1500)},
+      async pull(){if(!user()||t)return false;try{const r=await load(app),d=o.get();
+        if(r&&r.data&&r.updated>(d._u||0)){o.set(r.data);st.msg="";st.at=Date.now();return true}
+        if(d._u&&(!r||d._u>r.updated))await save(app,d,d._u);st.msg="";st.at=Date.now()}catch(e){st.msg=e.message}return false}};
+    document.addEventListener("visibilitychange",()=>{if(!document.hidden)st.pull()});setTimeout(()=>st.pull(),400);
+    return st}
+  /* Hoja de cuenta reutilizable. u: {open(html),close(),toast(msg),sync} */
+  const escA=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  function accountSheet(u){const me=user(),st=u.sync;
+    if(!me){u.open(`<h3>Cuenta y respaldo</h3><p class="lbl" style="margin:0 0 6px">Con tu cuenta de Diapps tus datos se respaldan y quedan iguales en todos tus dispositivos. Es la misma cuenta que en Finanzas.</p>
+      <form id="nbF" autocomplete="on"><div class="field"><input id="nbE" type="email" autocomplete="username" placeholder="Correo" autocapitalize="off" style="width:100%;height:48px;border:0;border-radius:16px;background:var(--card2,#f2f2f3);padding:0 14px;font:inherit;font-size:16px"></div>
+      <div class="field"><input id="nbP" type="password" autocomplete="current-password" placeholder="Contraseña" style="width:100%;height:48px;border:0;border-radius:16px;background:var(--card2,#f2f2f3);padding:0 14px;font:inherit;font-size:16px"></div>
+      <div class="btns"><button type="button" class="btn" id="nbUp">Crear cuenta</button><button class="btn dark" id="nbIn">Entrar</button></div></form>`);
+      const go=async up=>{const e=document.getElementById("nbE").value.trim(),p=document.getElementById("nbP").value;if(!e||!p){u.toast("Escribe correo y contraseña");return}
+        try{u.toast(up?"Creando cuenta…":"Entrando…");await(up?signUp(e,p):signIn(e,p));const got=st?await st.pull():false;if(st&&!got)st.push();u.close();u.toast(got?"Datos actualizados desde tu cuenta":"Listo, respaldado en tu cuenta")}catch(err){u.toast("No se pudo: "+err.message)}};
+      document.getElementById("nbF").onsubmit=ev=>{ev.preventDefault();go(false)};document.getElementById("nbUp").onclick=()=>go(true);return}
+    u.open(`<h3>Cuenta y respaldo</h3><p style="margin:4px 0 2px;font-weight:600">${escA(me.email)}</p><p class="lbl" style="margin:0">${st&&st.msg?"⚠︎ "+escA(st.msg):st&&st.at?"Sincronizado "+new Date(st.at).toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"}):"Conectado"}</p>
+      <div class="btns"><button class="btn" id="nbOut">Cerrar sesión</button><button class="btn dark" id="nbSync">Sincronizar ahora</button></div>`);
+    document.getElementById("nbSync").onclick=async()=>{if(!st)return;u.toast("Sincronizando…");const got=await st.pull();if(!got&&!st.msg){st.push()}setTimeout(()=>{u.toast(st.msg?"⚠︎ "+st.msg:"Sincronizado");u.close()},got?0:1800)};
+    document.getElementById("nbOut").onclick=()=>{signOut();u.close();u.toast("Sesión cerrada")}}
+
+  window.Nube={signIn,signUp,signOut,resetPassword,user,load,save,sync,accountSheet,lock:{available:lockAvailable,enable:lockEnable,disable:lockDisable,on:lockOn,unlock}};
 })();

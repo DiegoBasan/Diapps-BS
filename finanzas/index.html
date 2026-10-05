@@ -124,6 +124,26 @@ h2{font-size:19px;font-weight:600;margin:0;letter-spacing:-.01em}
 .tx{display:flex;align-items:center;gap:12px;width:100%;padding:12px 18px;text-align:left}
 .tx+.tx{border-top:1px solid var(--line)}
 .ci{width:42px;height:42px;border-radius:14px;background:var(--card2);display:grid;place-items:center;flex:none}
+.ci.cc2{background:color-mix(in srgb,var(--cc) 20%,var(--card));color:color-mix(in srgb,var(--cc) 80%,var(--ink))}
+.dotc{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.hero2{display:flex;gap:10px;margin-top:14px}
+.hero2 button{flex:1;text-align:left;background:var(--card);border-radius:22px;padding:14px 16px;min-width:0}
+.hero2 small{display:block;font-size:12.5px;color:var(--ink2);font-weight:600}
+.hero2 b{display:block;font-size:27px;font-weight:700;letter-spacing:-.03em;margin-top:2px;white-space:nowrap}
+.qa{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+.qa button{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 4px 10px;background:var(--card);border-radius:20px;font-size:12.5px;font-weight:700}
+.qa span{width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:var(--qc);color:#fff}
+:root[data-theme="dark"] .qa button:first-child span{background:#fff;color:#111}
+.qa svg{width:20px;height:20px}
+.wkcard{padding:16px 18px}.wkcard h2 small{white-space:nowrap}
+.wbar{height:10px;border-radius:9px;background:var(--card2);overflow:hidden}.wbar i{display:block;height:100%;border-radius:9px;transition:width .6s}
+.search.in{margin:10px 18px 4px}
+.stack{display:flex;gap:3px;height:14px;border-radius:8px;overflow:hidden;margin:14px 0 6px}.stack i{display:block;min-width:4px}
+.catl{display:flex;flex-direction:column;margin:6px -6px 0}
+.catl button{display:flex;align-items:center;gap:12px;padding:9px 6px;text-align:left;border-radius:14px}
+.catl .ci{width:36px;height:36px;border-radius:12px}.catl .ci svg{width:18px;height:18px}
+.catl .t{flex:1;min-width:0}.catl b{display:block;font-size:14.5px;font-weight:600}.catl small{display:block;font-size:12px;color:var(--ink2)}
+.catl .a{text-align:right}.catl .a small.down{color:var(--down)}.catl .a small.up{color:var(--up)}
 .ci svg{width:20px;height:20px}
 .tx .t{flex:1;min-width:0}
 .tx b{display:block;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -220,6 +240,9 @@ body.locked{overflow:hidden}
 .pot small{font-size:11px;color:var(--ink2);font-weight:500}
 .pb{display:block;height:5px;border-radius:9px;background:var(--line);margin:6px 0 3px;overflow:hidden}.pb i{display:block;height:100%;border-radius:9px;background:var(--ink)}
 .potmini{display:block;width:100%;text-align:left}.potmini .chev{width:9px;height:14px;color:var(--ink2)}
+.potrow span{box-shadow:inset 3px 0 0 var(--pc,transparent)}
+.pot{box-shadow:inset 0 3px 0 var(--pc,transparent)}
+.pdot{display:inline-block;width:10px;height:10px;border-radius:50%;flex:none;margin-right:2px}
 .potrow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.potrow span{background:var(--card2);border-radius:14px;padding:8px 10px;min-width:0}
 .potrow b{display:block;font-size:15px;font-weight:700}.potrow small{display:block;font-size:11px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .splitl label{display:flex;align-items:center;gap:12px;padding:10px 16px;font-size:15px;font-weight:500}
@@ -359,21 +382,21 @@ label.btn{display:inline-flex;align-items:center;justify-content:center;cursor:p
 <script>
 /* ======================= Datos ======================= */
 const CATS={
- comida:{n:"Comida fuera",k:"want",ic:'<path d="M7 3v8a2 2 0 0 0 2 2v8M5 3v5M9 3v5M17 3c-2 2-2 6 0 8v10"/>',w:["comida","restaurante","tacos","taco","cafe","café","starbucks","pizza","sushi","hamburguesa","torta","antojo","desayuno","cena","comer"]},
- super:{n:"Súper",k:"need",ic:'<circle cx="9" cy="20" r="1.4"/><circle cx="17" cy="20" r="1.4"/><path d="M3 4h2l2.5 11h11L21 8H6.2"/>',w:["super","súper","despensa","mandado","walmart","soriana","costco","oxxo","chedraui","bodega"]},
- auto:{n:"Auto",k:"need",ic:'<path d="M5 16v-4l2-5h10l2 5v4M4 16h16M6 16v2.5M18 16v2.5M7.5 12.5h.01M16.5 12.5h.01"/>',w:["gasolina","gas ","auto","jetta","carro","coche","servicio","aceite","llanta","verificacion","estacionamiento","caseta","lavado"]},
- casa:{n:"Casa",k:"need",ic:'<path d="M4 10.5L12 4l8 6.5V20H4z"/>',w:["renta","luz","agua","internet","casa","cfe","telmex","izzi","gas lp","predial","mantenimiento"]},
- transporte:{n:"Transporte",k:"need",ic:'<rect x="5" y="3" width="14" height="15" rx="3"/><path d="M5 11h14M8 21v-3M16 21v-3"/>',w:["uber","didi","metro","taxi","camion","camión","transporte","metrobus"]},
- salud:{n:"Salud",k:"need",ic:'<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/>',w:["salud","doctor","farmacia","medicina","gym","gimnasio","dentista","consulta","seguro"]},
- ocio:{n:"Ocio",k:"want",ic:'<path d="M4 7h16v3a2 2 0 0 0 0 4v3H4v-3a2 2 0 0 0 0-4z"/>',w:["ocio","cine","salida","fiesta","bar","antro","concierto","boletos","juego","videojuego","viaje","cerveza","chelas"]},
- subs:{n:"Suscripciones",k:"want",ic:'<path d="M17 2l3 3-3 3M4 11V9a4 4 0 0 1 4-4h12M7 22l-3-3 3-3M20 13v2a4 4 0 0 1-4 4H4"/>',w:["suscripcion","suscripción","netflix","spotify","icloud","youtube","disney","hbo","max","prime","chatgpt","claude","app"]},
- compras:{n:"Compras",k:"want",ic:'<path d="M5 8h14l-1 13H6zM9 8V6a3 3 0 0 1 6 0v2"/>',w:["compras","ropa","amazon","mercado libre","tenis","zapatos","regalo","tienda","liverpool"]},
- deuda:{n:"Créditos y deudas",k:"need",ic:'<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18M7 15h4"/>',w:["credito","crédito","deuda","mensualidad","tarjeta"]},
- otros:{n:"Otros",k:"want",ic:'<circle cx="6" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18" cy="12" r="1.3"/>',w:[]},
- sueldo:{n:"Sueldo",k:"in",ic:'<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>',w:["sueldo","quincena","nomina","nómina","pago","salario"]},
- extra:{n:"Ingreso extra",k:"in",ic:'<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>',w:["extra","venta","vendi","vendí","bono","regalo","reembolso","freelance"]}
+ comida:{c:"#FF8A65",n:"Comida fuera",k:"want",ic:'<path d="M7 3v8a2 2 0 0 0 2 2v8M5 3v5M9 3v5M17 3c-2 2-2 6 0 8v10"/>',w:["comida","restaurante","tacos","taco","cafe","café","starbucks","pizza","sushi","hamburguesa","torta","antojo","desayuno","cena","comer"]},
+ super:{c:"#3DD68C",n:"Súper",k:"need",ic:'<circle cx="9" cy="20" r="1.4"/><circle cx="17" cy="20" r="1.4"/><path d="M3 4h2l2.5 11h11L21 8H6.2"/>',w:["super","súper","despensa","mandado","walmart","soriana","costco","oxxo","chedraui","bodega"]},
+ auto:{c:"#4DA3FF",n:"Auto",k:"need",ic:'<path d="M5 16v-4l2-5h10l2 5v4M4 16h16M6 16v2.5M18 16v2.5M7.5 12.5h.01M16.5 12.5h.01"/>',w:["gasolina","gas ","auto","jetta","carro","coche","servicio","aceite","llanta","verificacion","estacionamiento","caseta","lavado"]},
+ casa:{c:"#9B7BFF",n:"Casa",k:"need",ic:'<path d="M4 10.5L12 4l8 6.5V20H4z"/>',w:["renta","luz","agua","internet","casa","cfe","telmex","izzi","gas lp","predial","mantenimiento"]},
+ transporte:{c:"#FFB020",n:"Transporte",k:"need",ic:'<rect x="5" y="3" width="14" height="15" rx="3"/><path d="M5 11h14M8 21v-3M16 21v-3"/>',w:["uber","didi","metro","taxi","camion","camión","transporte","metrobus"]},
+ salud:{c:"#FF6FA8",n:"Salud",k:"need",ic:'<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/>',w:["salud","doctor","farmacia","medicina","gym","gimnasio","dentista","consulta","seguro"]},
+ ocio:{c:"#E879F9",n:"Ocio",k:"want",ic:'<path d="M4 7h16v3a2 2 0 0 0 0 4v3H4v-3a2 2 0 0 0 0-4z"/>',w:["ocio","cine","salida","fiesta","bar","antro","concierto","boletos","juego","videojuego","viaje","cerveza","chelas"]},
+ subs:{c:"#22C3D6",n:"Suscripciones",k:"want",ic:'<path d="M17 2l3 3-3 3M4 11V9a4 4 0 0 1 4-4h12M7 22l-3-3 3-3M20 13v2a4 4 0 0 1-4 4H4"/>',w:["suscripcion","suscripción","netflix","spotify","icloud","youtube","disney","hbo","max","prime","chatgpt","claude","app"]},
+ compras:{c:"#F59E0B",n:"Compras",k:"want",ic:'<path d="M5 8h14l-1 13H6zM9 8V6a3 3 0 0 1 6 0v2"/>',w:["compras","ropa","amazon","mercado libre","tenis","zapatos","regalo","tienda","liverpool"]},
+ deuda:{c:"#EF5350",n:"Créditos y deudas",k:"need",ic:'<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18M7 15h4"/>',w:["credito","crédito","deuda","mensualidad","tarjeta"]},
+ otros:{c:"#9FA4AE",n:"Otros",k:"want",ic:'<circle cx="6" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="18" cy="12" r="1.3"/>',w:[]},
+ sueldo:{c:"#1F9D55",n:"Sueldo",k:"in",ic:'<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>',w:["sueldo","quincena","nomina","nómina","pago","salario"]},
+ extra:{c:"#2BBF8A",n:"Ingreso extra",k:"in",ic:'<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>',w:["extra","venta","vendi","vendí","bono","regalo","reembolso","freelance"]}
 };
-CATS.move={n:"Transferencia",k:"move",ic:'<path d="M4 8h14l-3-3M20 16H6l3 3"/>',w:[]};
+CATS.move={c:"#9FA4AE",n:"Transferencia",k:"move",ic:'<path d="M4 8h14l-3-3M20 16H6l3 3"/>',w:[]};
 const OUT=Object.keys(CATS).filter(k=>k!=="move").filter(k=>CATS[k].k!=="in"),IN=["sueldo","extra"];
 /* Tus tarjetas (diseño visual) + efectivo y ahorro. t: deb | cred | cash | save */
 const ACCS={
@@ -387,7 +410,7 @@ const ACCS={
 const CARDS=["bbva","bbvaa","nu","mp"];
 const acc=k=>({...ACCS[k],...((S&&S.meta&&S.meta[k])||{})});
 const KEY="finz2";
-const APP_VERSION="v9 · 5 oct 2026";
+const APP_VERSION="v10 · 5 oct 2026";
 const today=()=>{const d=new Date();return iso(d)};
 const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 const parse=s=>{const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
@@ -479,9 +502,9 @@ function header(title,sub){
   return `<div class="bar"><button class="brand press" data-menu><img src="icons/icon.svg" alt=""><span>Mis Finanzas<small>${h<12?"Buenos días":h<19?"Buenas tardes":"Buenas noches"}, Diego</small></span></button><span class="sp"></span>
   <button class="rb press" data-go="chat" aria-label="Asistente">${svg('<path d="M5 5h14a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-8l-5 4v-4H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/>')}</button>
   <button class="rb press" data-menu aria-label="Menú">${svg('<path d="M4 7h16M4 12h16M4 17h16"/>',2)}</button></div>
-  <h1>${title}</h1>${sub?`<div class="subttl">${sub}</div>`:""}`;
+  ${title?`<h1>${title}</h1>`:""}${sub?`<div class="subttl">${sub}</div>`:""}`;
 }
-function txRow(t){const c=CATS[t.cat]||CATS.otros,mv=t.type==="move";return `<button class="tx press" data-tx="${t.id}"><span class="ci">${svg(c.ic)}</span><span class="t"><b>${t.note||c.n}</b><small>${mini(t.acc)}${mv?`${acc(t.acc).n} → ${acc(t.to).n}`:`${c.n} · ${acc(t.acc).n}${t.pot&&P().items[t.pot]?" · "+esc(P().items[t.pot].n):""}`}</small></span><span class="a num ${t.type==="in"?"up":mv?"muted":""}">${t.type==="in"?"+":mv?"":"-"}${money(t.a)}<small>${fdate(t.d)}</small></span></button>`}
+function txRow(t){const c=CATS[t.cat]||CATS.otros,mv=t.type==="move";return `<button class="tx press" data-tx="${t.id}"><span class="ci cc2" style="--cc:${c.c}">${svg(c.ic)}</span><span class="t"><b>${t.note||c.n}</b><small>${mini(t.acc)}${mv?`${acc(t.acc).n} → ${acc(t.to).n}`:`${c.n} · ${acc(t.acc).n}${t.pot&&P().items[t.pot]?` · <i class="pdot" style="width:7px;height:7px;background:${potColor(t.pot)}"></i>`+esc(P().items[t.pot].n):""}`}</small></span><span class="a num ${t.type==="in"?"up":mv?"muted":""}">${t.type==="in"?"+":mv?"":"-"}${money(t.a)}<small>${fdate(t.d)}</small></span></button>`}
 
 /* --- velas del saldo disponible --- */
 function candles(){
@@ -520,49 +543,60 @@ function monthBars(){
   const bars=ms.map((m,j)=>{const x=L+j*gw+gw*.18,bw=gw*.26;return `<rect x="${x}" y="${Y(m.o)}" width="${bw}" height="${H-bot-Y(m.o)}" rx="3" fill="url(#hatch)" stroke="var(--ink2)" stroke-width=".8" style="transform-origin:0 ${H-bot}px;transform-box:view-box;animation:grow .7s cubic-bezier(.2,.8,.2,1) both;animation-delay:${j*60}ms"/><rect x="${x+bw+4}" y="${Y(m.i)}" width="${bw}" height="${H-bot-Y(m.i)}" rx="3" fill="var(--ink)" style="transform-origin:0 ${H-bot}px;transform-box:view-box;animation:grow .7s cubic-bezier(.2,.8,.2,1) both;animation-delay:${j*60+40}ms"/><text x="${x+bw+2}" y="${H-5}" text-anchor="middle" fill="var(--ink2)" font-size="9.5">${m.lab}</text>`}).join("");
   return {ms,svg:`<svg class="chart" viewBox="0 0 ${W} ${H}" font-family="Urbanist,sans-serif" font-weight="600"><defs><pattern id="hatch" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="4" stroke="var(--ink2)" stroke-width="1.4"/></pattern></defs><style>@keyframes grow{from{transform:scaleY(0)}}</style>${g}${bars}</svg>`};
 }
+/* Inicio: lo que más usas arriba (saldo, botones, tu semana, apartados) y los movimientos; las gráficas viven en Análisis */
+let showAll=false;
 function renderHome(){
   const ql=norm(q.trim());
-  const list=(ql?S.tx.filter(t=>norm(`${t.note} ${CATS[t.cat].n} ${acc(t.acc).n} ${t.a}`).includes(ql)):S.tx).slice().sort((a,b)=>b.d.localeCompare(a.d)||b.id-a.id).slice(0,ql?40:8);
-  const mb=monthBars(),cm=mb.ms.at(-1),movs=S.tx.filter(t=>t.d>=monthStart()).length,net=cm.i-cm.o;
-  const liq=liquid(balances()),sr=cm.i?Math.round(net/cm.i*100):null;
-  return header("Finanzas",`<span>${MESL[new Date().getMonth()]} ${new Date().getFullYear()}</span><button class="chip num" data-go="budget">${money(liq)} disponible</button>`)+`
-  <div class="minis" aria-label="Mis tarjetas">${CARDS.map((k,i)=>{const b=balances()[k],a=acc(k);return `<button class="press" data-gocard="${k}" style="--i:${i}" aria-label="${a.n}">${cardFace(k)}<span class="cap"><span>${a.t==="cred"?"Debes":"Saldo"}</span><span class="num ${a.t==="cred"&&b<0?"down":""}">${money(a.t==="cred"?-b:b)}</span></span></button>`}).join("")}</div>
+  const list=(ql?S.tx.filter(t=>norm(`${t.note} ${CATS[t.cat].n} ${acc(t.acc).n} ${t.a}`).includes(ql)):S.tx).slice().sort((a,b)=>b.d.localeCompare(a.d)||b.id-a.id).slice(0,ql?40:showAll?300:6);
+  const bl=balances(),liq=liquid(bl),t=today(),wk=addDays(t,-((parse(t).getDay()+6)%7)),wkO=sum(outs(wk,t)),inc=INC().weekly||0;
+  const pay=nextPaydays(1)[0],dd=Math.round((parse(pay)-parse(t))/864e5),wp=inc?Math.min(100,wkO/inc*100):0;
+  const QA=[["data-add","Gasto",'<path d="M12 5v14M5 12h14"/>',"#111"],["data-addin","Ingreso",'<path d="M12 19V5M6 11l6-6 6 6"/>',"#1F9D55"],["data-split","Repartir",'<path d="M12 3v18M5 8l7-5 7 5M5 16l7 5 7-5"/>',"#4DA3FF"],["data-go=\"chat\"","Asistente",'<path d="M5 5h14a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-8l-5 4v-4H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/>',"#9B7BFF"]];
+  return header("","")+`
+  <div class="hero2"><button class="press" data-go="budget"><small>Disponible</small><b class="num">${money(liq)}</b></button>${potList().length?`<button class="press" data-go="pots"><small>En apartados</small><b class="num">${money(potTotal())}</b></button>`:""}</div>
+  <div class="qa">${QA.map(([a,n,ic,c])=>`<button class="press" ${a} style="--qc:${c}"><span>${svg(ic,2.2)}</span>${n}</button>`).join("")}</div>
   ${S.sample?`<button class="card setupban press" data-setup><span class="ci">${svg('<path d="M9 7H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-3M14 4h6v6M10 14L20 4"/>')}</span><span><b>Estás viendo datos de ejemplo</b><small>Toca aquí para pegar tu código de configuración y cargar tus saldos reales</small></span></button>`:""}
+  <div class="card wkcard"><div class="ch" style="margin-bottom:8px"><div><div class="ey"><i class="dotc" style="background:#FFB020"></i>Esta semana</div><h2 class="num">${money(wkO)} <small class="muted" style="font-size:15px;font-weight:500">gastado${inc?` de ${money(inc)}`:""}</small></h2></div><span class="pill">${dd===0?"Hoy te pagan":dd===1?"Pago mañana":`Pago en ${dd} días`}</span></div>
+    ${inc?`<div class="wbar"><i style="width:${wp}%;background:${wp>85?"var(--down)":wp>60?"#FFB020":"#3DD68C"}"></i></div>`:""}</div>
+  <div class="minis" aria-label="Mis tarjetas">${CARDS.map((k,i)=>{const b=bl[k],a=acc(k);return `<button class="press" data-gocard="${k}" style="--i:${i}" aria-label="${a.n}">${cardFace(k)}<span class="cap"><span>${a.t==="cred"?(b>0?"A favor":"Debes"):"Saldo"}</span><span class="num ${a.t==="cred"&&b<0?"down":""}">${money(Math.abs(b))}</span></span></button>`}).join("")}</div>
   ${potList().length?potsCard(true):""}
-  <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" placeholder="Buscar movimiento" value="${q.replace(/"/g,"&quot;")}" autocomplete="off" enterkeyhint="search"><span class="kbd">/</span></div>
-  ${ql?`<div class="card flat">${list.length?list.map(txRow).join(""):`<div class="empty">Sin resultados para “${q}”.</div>`}</div>`:`
-  <div class="card flat">
+  <div class="card flat"><div class="ch" style="padding:16px 18px 0;margin-bottom:4px"><h2>Movimientos</h2><button class="pill press" data-acc="all">${showAll?"Ver menos":"Ver todos"}</button></div>
+    <div class="search in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" placeholder="Buscar movimiento" value="${q.replace(/"/g,"&quot;")}" autocomplete="off" enterkeyhint="search"></div>
+    ${list.length?list.map(txRow).join(""):`<div class="empty">${ql?`Sin resultados para “${esc(q)}”.`:"Aún no hay movimientos."}</div>`}</div>`;
+}
+/* Gráfica de saldo e ingresos/gastos (ahora en Análisis) */
+function saldoCard(){const liq=liquid(balances());return `<div class="card flat">
     <div class="tb"><span class="tok"><i>$</i>Saldo</span><span class="sp"></span><span class="seg2">${["7D","1M","3M"].map(r=>`<button data-range="${r}" aria-pressed="${r===range}">${r}</button>`).join("")}</span>
       <span class="seg2"><button data-mode="candle" aria-pressed="${mode==="candle"}" aria-label="Velas">${svg('<path d="M7 3v4M7 15v6M17 3v6M17 17v4"/><rect x="5" y="7" width="4" height="8"/><rect x="15" y="9" width="4" height="8"/>')}</button><button data-mode="line" aria-pressed="${mode==="line"}" aria-label="Línea">${svg('<path d="M3 17l6-6 4 4 8-8"/>')}</button></span></div>
     <div style="padding:6px 8px 0">${candleSVG()}</div>
-    <div class="foot"><span>Débito + efectivo − tarjetas de crédito</span><b class="num">${money(liq)}</b></div>
-  </div>
-  <div class="card">
+    <div class="foot"><span>Débito + efectivo − tarjetas de crédito</span><b class="num">${money(liq)}</b></div></div>`}
+function ioCard(){const mb=monthBars(),cm=mb.ms.at(-1),net=cm.i-cm.o,sr=cm.i?Math.round(net/cm.i*100):null;return `<div class="card">
     <div class="ch"><div><div class="ey">Últimos 6 meses</div><h2>Ingresos / Gastos</h2></div>${sr!=null?`<span class="chip ${sr>=S.goal?"ok":"bad"}"><i></i>${sr}% ahorro</span>`:`<span class="pill">6M</span>`}</div>
-    <div class="stats"><div><div class="lbl">Movs. mes</div><div class="v num">${movs}</div></div><div><div class="lbl">Gastado</div><div class="v num">${money(cm.o)}</div></div><div><div class="lbl">Neto mes</div><div class="v num ${net>=0?"up":"down"}">${net>=0?"+":""}${money(net)}</div></div></div>
     ${mb.svg}
-    <div class="legend"><span><i style="background:var(--ink)"></i>Ingresos</span><span><i style="background:repeating-linear-gradient(45deg,var(--ink2) 0 1.5px,transparent 1.5px 3px);outline:1px solid var(--ink2)"></i>Gastos</span></div>
-  </div>
-  <div class="card flat"><div class="ch" style="padding:18px 18px 0;margin-bottom:4px"><h2>Movimientos</h2><button class="pill press" data-add>${svg('<path d="M12 5v14M5 12h14"/>',2.2)}Agregar</button></div>
-    ${list.length?list.map(txRow).join(""):`<div class="empty">Aún no hay movimientos.</div>`}</div>`}`;
-}
-
-/* --- tarjetas y presupuesto --- */
-let selCard="bbva";
-function renderBudget(){
+    <div class="legend"><span><i style="background:var(--ink)"></i>Ingresos</span><span><i style="background:repeating-linear-gradient(45deg,var(--ink2) 0 1.5px,transparent 1.5px 3px);outline:1px solid var(--ink2)"></i>Gastos</span><span style="margin-left:auto">Neto mes <b class="${net>=0?"up":"down"}">${net>=0?"+":""}${money(net)}</b></span></div></div>`}
+/* Presupuesto del mes con colores por categoría (en Análisis) */
+function budgetBlock(){
   const t=today(),wk=addDays(t,-((parse(t).getDay()+6)%7)),ms=monthStart();
   const dayO=sum(outs(t,t)),avgDay=sum(outs(addDays(t,-30),addDays(t,-1)))/30;
   const wkO=sum(outs(wk,t)),pwkO=sum(outs(addDays(wk,-7),addDays(t,-7)));
   const mO=sum(outs(ms,t)),dom=parse(t).getDate(),pmO=sum(outs(monthStart(-1),addDays(monthStart(-1),dom-1)));
   const cur=outs(ms,t),tot=sum(cur)||1,byCat={};cur.forEach(x=>byCat[x.cat]=(byCat[x.cat]||0)+x.a);
-  const order=Object.entries(byCat).sort((a,b)=>b[1]-a[1]),top=order.slice(0,4),rest=order.slice(4);
-  const shades=["var(--ink)","color-mix(in srgb,var(--ink) 62%,var(--card))","color-mix(in srgb,var(--ink) 38%,var(--card))","color-mix(in srgb,var(--ink) 20%,var(--card))","color-mix(in srgb,var(--ink) 10%,var(--card))"];
-  const groups=top.map(([k,v],i)=>({k,v,c:shades[i],n:CATS[k].n})).concat(rest.length?[{k:"otros*",v:sum(rest,r=>r[1]),c:shades[4],n:"Otros"}]:[]);
-  let cells=[],run=0;groups.forEach(g=>{const n=Math.round((run+g.v)/tot*100)-Math.round(run/tot*100);run+=g.v;for(let i=0;i<n;i++)cells.push(g.c)});while(cells.length<100)cells.push("var(--card2)");cells=cells.slice(0,100);
+  const order=Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
   const prev={};outs(monthStart(-1),addDays(monthStart(-1),dom-1)).forEach(x=>prev[x.cat]=(prev[x.cat]||0)+x.a);
-  const bl=balances(),a=acc(selCard),cardTx=S.tx.filter(x=>x.acc===selCard||x.to===selCard).sort((x,y)=>y.d.localeCompare(x.d)||y.id-x.id);
+  return `<div class="card">
+    <div class="ch"><div><div class="ey"><i class="dotc" style="background:#FF8A65"></i>Gastos de ${MESL[new Date().getMonth()].toLowerCase()}</div><h2>Presupuesto</h2></div><button class="pill press" data-add>${svg('<path d="M12 5v14M5 12h14"/>',2.2)}Agregar</button></div>
+    <div class="periods">
+      <div><div class="lbl">Hoy</div><div class="v num">${money(dayO)}</div>${chgHTML(pct(dayO,avgDay),true)}</div>
+      <div><div class="lbl">Semana</div><div class="v num">${money(wkO)}</div>${chgHTML(pct(wkO,pwkO),true)}</div>
+      <div><div class="lbl">Mes</div><div class="v num">${money(mO)}</div>${chgHTML(pct(mO,pmO),true)}</div>
+    </div>
+    <div class="stack">${order.map(([k,v])=>`<i style="flex:${v};background:${CATS[k].c}" title="${CATS[k].n}"></i>`).join("")||`<i style="flex:1;background:var(--card2)"></i>`}</div>
+    <div class="catl">${order.map(([k,v])=>{const p=pct(v,prev[k]||0);return `<button class="press" data-cat="${k}"><span class="ci cc2" style="--cc:${CATS[k].c}">${svg(CATS[k].ic)}</span><span class="t"><b>${CATS[k].n}</b><small>${Math.round(v/tot*100)}% del mes</small></span><span class="a"><b class="num">${money(v)}</b><small class="num ${p==null||!isFinite(p)?"muted":p>0?"down":"up"}">${p==null||!isFinite(p)?"nuevo":(p>0?"+":"")+p.toFixed(0)+"% vs mes pasado"}</small></span></button>`}).join("")||`<div class="empty">Sin gastos este mes.</div>`}</div></div>`;
+}
+/* --- tarjetas --- */
+let selCard="bbva";
+function renderBudget(){
+  const ms=monthStart(),bl=balances(),a=acc(selCard),cardTx=S.tx.filter(x=>x.acc===selCard||x.to===selCard).sort((x,y)=>y.d.localeCompare(x.d)||y.id-x.id);
   const spentCard=sum(cardTx.filter(x=>x.type==="out"&&x.d>=ms));
-  const shown=OUT.filter(k=>k!=="otros"||byCat.otros).filter(k=>binc==="all"||byCat[k]);
   const order2=CARDS.filter(k=>k!==selCard).concat(selCard);
   return header("Tarjetas",`<span>Toca una tarjeta para verla</span>`)+`
   <div class="wallet" style="margin-top:16px">${order2.map(k=>`<button data-card="${k}" aria-label="${acc(k).n}">${cardFace(k,k===selCard?{bal:bl[k]}:{})}</button>`).join("")}</div>
@@ -574,18 +608,7 @@ function renderBudget(){
   <div class="card flat"><div class="ch" style="padding:18px 18px 0;margin-bottom:4px"><div><div class="ey">${a.t==="cred"?"Crédito":"Débito"}${a.last?" · ••"+a.last:""}</div><h2>${a.n}</h2></div><button class="pill press" data-editcard="${selCard}">${svg('<path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17v3z"/>')}Editar</button></div>
     ${cardTx.slice(0,5).map(txRow).join("")||`<div class="empty">Sin movimientos con esta tarjeta.</div>`}
     ${cardTx.length>5?`<button class="tx press" data-acc="${selCard}" style="justify-content:center;color:var(--ink2);font-weight:600">Ver los ${cardTx.length} movimientos</button>`:""}</div>
-  <div class="folders">${["cash","save"].map(k=>`<button class="fold press" data-editcard="${k}">${mini(k)}<span>${acc(k).n}</span><em class="num">${money(bl[k])}</em></button>`).join("")}</div>
-  <div class="card">
-    <div class="ch"><div><div class="ey">Gastos</div><h2>Presupuesto</h2></div><button class="pill press" data-add>${svg('<path d="M12 5v14M5 12h14"/>',2.2)}Agregar</button></div>
-    <div class="periods">
-      <div><div class="lbl">Hoy</div><div class="v num">${money(dayO)}</div>${chgHTML(pct(dayO,avgDay),true)}</div>
-      <div><div class="lbl">Semana</div><div class="v num">${money(wkO)}</div>${chgHTML(pct(wkO,pwkO),true)}</div>
-      <div><div class="lbl">Mes</div><div class="v num">${money(mO)}</div>${chgHTML(pct(mO,pmO),true)}</div>
-    </div>
-    <div class="grid" aria-label="Distribución del gasto del mes">${cells.map((c,i)=>`<i style="background:${c};--k:${i}"></i>`).join("")}</div>
-    <div class="legend">${groups.map(g=>`<span><i style="background:${g.c}"></i>${g.n} ${Math.round(g.v/tot*100)}%</span>`).join("")}</div>
-  </div>
-  <div class="folders">${shown.map(k=>{const v=byCat[k]||0,p=pct(v,prev[k]||0);return `<button class="fold press" data-cat="${k}"><span class="fi">${svg(CATS[k].ic)}</span><span>${CATS[k].n}</span><em class="num ${p==null||!isFinite(p)?"muted":p>0?"down":"up"}">${p==null||!isFinite(p)?(v?"nuevo":"—"):(p>0?"+":"")+p.toFixed(0)+"%"}</em></button>`}).join("")}</div>`;
+  <div class="folders">${["cash","save"].map(k=>`<button class="fold press" data-editcard="${k}">${mini(k)}<span>${acc(k).n}</span><em class="num">${money(bl[k])}</em></button>`).join("")}</div>`;
 }
 
 /* --- análisis --- */
@@ -600,7 +623,7 @@ function renderStats(){
   const lev=v=>!v?0:v<=qs[0]?1:v<=qs[1]?2:v<=qs[2]?3:4,HC=["var(--card2)","color-mix(in srgb,var(--ink) 18%,var(--card))","color-mix(in srgb,var(--ink) 40%,var(--card))","color-mix(in srgb,var(--ink) 68%,var(--card))","var(--ink)"];
   let cells="",d=start,monthsL=[];const ndays=Math.round((parse(end)-parse(start))/864e5)+1;
   for(let k=0;k<ndays;k++){const v=daily[d]||0;cells+=`<i data-day="${d}" style="background:${HC[lev(v)]};${heatPick===d?"outline:1.5px solid var(--up);outline-offset:1px":""}"></i>`;if(parse(d).getDate()===1)monthsL.push(MES[parse(d).getMonth()]);d=addDays(d,1)}
-  return header("Análisis",`<span>Tus hábitos de gasto</span>`)+`
+  return header("Análisis",`<span>Tus hábitos de gasto</span>`)+budgetBlock()+ioCard()+saldoCard()+`
   <div class="card">
     <div class="ch"><h2>Regla 50/30/20</h2><span class="pill">3 meses</span></div>
     <div class="split">${parts.map(([n,p,c])=>`<div style="flex-grow:${Math.max(p,6)};--c:${c}"><span class="k">${n}</span><span class="p num">${p}<small>%</small></span><span class="st"></span></div>`).join("")}</div>
@@ -719,6 +742,8 @@ const potBal=k=>{const it=P().items[k];if(!it)return 0;return it.base+sum(P().mv
 function potSetBal(k,v,d=today()){const it=P().items[k];it.base=v;it.baseSeq=P().seq;it.baseDate=d}
 const potList=()=>Object.keys(P().items).sort((a,b)=>potBal(b)-potBal(a));
 const potTotal=()=>sum(potList(),potBal);
+const POTC=["#4DA3FF","#FF8A65","#3DD68C","#9B7BFF","#FFB020","#FF6FA8","#22C3D6","#E879F9","#F59E0B","#2BBF8A","#EF5350","#8D99AE","#A3C93A"];
+const potColor=k=>{const it=P().items[k];if(it&&it.c)return it.c;const i=Object.keys(P().items).sort().indexOf(k);return POTC[(i<0?0:i)%POTC.length]};
 /* Último reparto: el día más reciente con depósitos a 3 o más apartados */
 function lastSplit(){const by={};P().mv.filter(m=>m.t==="dep").forEach(m=>{(by[m.d]=by[m.d]||[]).push(m)});
   const d=Object.keys(by).filter(x=>new Set(by[x].map(m=>m.k)).size>=3).sort().pop();if(!d)return null;
@@ -816,11 +841,11 @@ function potsCard(compact){
   const ls=lastSplit(),ms=monthStart(),tot=potTotal();
   const flow=k=>{const l=P().mv.filter(m=>m.k===k&&m.d>=ms);return {in:sum(l.filter(m=>m.a>0),m=>m.a),out:-sum(l.filter(m=>m.a<0),m=>m.a)}};
   if(compact)return `<button class="card potmini press" data-gocard="mp"><div class="ch" style="margin-bottom:10px"><div><div class="ey">Mercado Pago · ${ks.length} apartados</div><h2 class="num">${money(tot)}</h2></div>${chev}</div>
-    <div class="potrow">${ks.slice(0,6).map(k=>`<span><b class="num ${potBal(k)<0?"down":""}">${money(potBal(k))}</b><small>${esc(P().items[k].n)}</small></span>`).join("")}</div></button>`;
+    <div class="potrow">${ks.slice(0,6).map(k=>`<span style="--pc:${potColor(k)}"><b class="num ${potBal(k)<0?"down":""}">${money(potBal(k))}</b><small>${esc(P().items[k].n)}</small></span>`).join("")}</div></button>`;
   return `<div class="card"><div class="ch"><div><div class="ey">Mercado Pago · ${ks.length} apartados</div><h2>Apartados</h2></div><button class="pill press" data-split>${svg('<path d="M12 3v18M5 8l7-5 7 5M5 16l7 5 7-5"/>')}Repartir</button></div>
     <div class="cardinfo" style="margin-top:0"><div><div class="lbl">En apartados</div><div class="v num">${money(tot)}</div></div><div><div class="lbl">${ls?"Último reparto · "+fdate(ls.d):"Reparto"}</div><div class="v num">${ls?money(ls.total):"—"}</div></div></div>
     <div class="pots">${ks.map((k,i)=>{const it=P().items[k],b=potBal(k),f=flow(k),typ=it.plan||potTypical(k),w=f.in?Math.min(100,f.out/f.in*100):f.out?100:0;
-      return `<button class="pot press" data-pot="${esc(k)}" style="--i:${i}"><span class="pn">${esc(it.n)}</span><b class="num ${b<0?"down":""}">${money(b)}</b>
+      return `<button class="pot press" data-pot="${esc(k)}" style="--i:${i};--pc:${potColor(k)}"><span class="pn">${esc(it.n)}</span><b class="num ${b<0?"down":""}">${money(b)}</b>
         <small>${typ?`+${money(typ)} por reparto`:"sin reparto fijo"}</small>${f.in||f.out?`<span class="pb" title="Usado este mes"><i style="width:${w}%"></i></span><small>mes: +${short(f.in)} / −${short(f.out)}</small>`:`<small>${(l=>l?"último mov. "+fdate(l.d):"sin movimientos")(P().mv.filter(m=>m.k===k).sort((x,y)=>y.d.localeCompare(x.d))[0])}</small>`}</button>`}).join("")}</div>
     ${potNeeds().length?`<p class="lbl" style="margin-top:10px">Los apartados en rojo necesitan su saldo real: tócalos y escríbelo.</p>`:""}
     <div class="btns" style="margin-top:12px"><label class="btn" for="mpFile">Importar otro estado de cuenta</label></div></div>`;
@@ -916,7 +941,7 @@ function renderPots(){
     ${short2.length?`<div class="warnl">${short2.slice(0,3).map(p=>`<span>⚠︎ <b>${esc(p.n)}</b> ${p.wk?`se acaba en ~${p.wk} semana${p.wk>1?"s":""}`:"no alcanza"}: sacas ~${money(p.out)}/sem y apartas ${money(p.add)}. Súbelo a ${money(Math.ceil(p.out/10)*10)}.</span>`).join("")}</div>`:""}
   </div>
   <div class="card flat"><div class="ch" style="padding:18px 18px 0;margin-bottom:4px"><h2>Por apartado</h2><span class="lbl">hoy → semana ${projW}</span></div>
-    ${F.per.map(p=>{const v=p.bal+p.delta*projW;return `<button class="tx press" data-pot="${esc(p.k)}"><span class="t"><b>${esc(p.n)}</b><small>${p.delta>=0?"+":"−"}${money(Math.abs(p.delta))}/sem${p.out?` · sacas ~${money(p.out)}`:""}</small></span><span class="a num"><span class="muted" style="font-weight:500">${money(p.bal)} →</span> <span class="${v<0?"down":""}">${money(v)}</span></span></button>`}).join("")}
+    ${F.per.map(p=>{const v=p.bal+p.delta*projW;return `<button class="tx press" data-pot="${esc(p.k)}"><i class="pdot" style="background:${potColor(p.k)}"></i><span class="t"><b>${esc(p.n)}</b><small>${p.delta>=0?"+":"−"}${money(Math.abs(p.delta))}/sem${p.out?` · sacas ~${money(p.out)}`:""}</small></span><span class="a num"><span class="muted" style="font-weight:500">${money(p.bal)} →</span> <span class="${v<0?"down":""}">${money(v)}</span></span></button>`}).join("")}
   </div>
   <div class="btns" style="margin-top:14px"><label class="btn" for="mpFile">Importar Excel</label><button class="btn" data-setup>Pegar código</button></div><p class="ver">Mis Finanzas ${APP_VERSION}</p>`;
 }
@@ -1008,7 +1033,7 @@ function txSheet(t,keep){
    <div class="amount"><span>$</span><input id="amt" class="num" inputmode="decimal" placeholder="0" value="${draft.a||""}" autocomplete="off"></div>
    <div class="lbl">Categoría</div><div class="chips">${cats.map(k=>`<button data-pc="${k}" aria-pressed="${k===draft.cat}">${svg(CATS[k].ic)}${CATS[k].n}</button>`).join("")}</div>
    <div class="field"><div class="lbl">Pagado con</div><div class="pick">${Object.keys(ACCS).map(k=>`<button data-pa="${k}" aria-pressed="${k===draft.acc}">${cardFace(k)}<span>${acc(k).n}</span></button>`).join("")}</div></div>
-   ${draft.type==="out"&&draft.acc==="mp"&&potList().length?`<div class="lbl" style="margin-top:14px">Sale del apartado</div><div class="chips">${[""].concat(potList()).map(k=>`<button data-ppot="${esc(k)}" aria-pressed="${(draft.pot||"")===k}">${k?esc(P().items[k].n)+` <span class="num" style="opacity:.6">${money(potBal(k)+(draft.id&&draft.pot===k?draft.a:0))}</span>`:"Disponible"}</button>`).join("")}</div>`:""}
+   ${draft.type==="out"&&draft.acc==="mp"&&potList().length?`<div class="lbl" style="margin-top:14px">Sale del apartado</div><div class="chips">${[""].concat(potList()).map(k=>`<button data-ppot="${esc(k)}" aria-pressed="${(draft.pot||"")===k}">${k?`<i class="pdot" style="background:${potColor(k)}"></i>`+esc(P().items[k].n)+` <span class="num" style="opacity:.6">${money(potBal(k)+(draft.id&&draft.pot===k?draft.a:0))}</span>`:"Disponible"}</button>`).join("")}</div>`:""}
    <div class="row2"><div class="field"><div class="lbl" style="margin-bottom:6px">Nota</div><input id="note" placeholder="Ej. Tacos" value="${(draft.note||"").replace(/"/g,"&quot;")}"></div><div class="field"><div class="lbl" style="margin-bottom:6px">Fecha</div><input id="date" type="date" value="${draft.d}"></div></div>
    <div class="btns">${draft.id?`<button class="btn red" data-del>Eliminar</button>`:`<button class="btn" data-close>Cancelar</button>`}<button class="btn dark" data-savetx>Guardar</button></div>`);
   if(!draft.id&&!keep)setTimeout(()=>$("#amt")&&$("#amt").focus(),350);
@@ -1048,11 +1073,12 @@ document.addEventListener("click",e=>{
   const g=s=>e.target.closest(s);let t;
   if(t=g("[data-go]")){closeSheet();go(t.dataset.go);return}
   if(g("[data-add]")){txSheet();return}
+  if(g("[data-addin]")){txSheet();draft.type="in";draft.cat="sueldo";if(S.lastAcc)draft.acc=S.lastAcc;txSheet(null,true);return}
   if(t=g("[data-range]")){range=t.dataset.range;render();return}
   if(t=g("[data-mode]")){mode=t.dataset.mode;render();return}
   if(t=g("[data-tx]")){const x=S.tx.find(y=>y.id===+t.dataset.tx);if(x.type==="move"){draft={...x};openSheet(`<h3>${x.note}</h3><div class="list"><button>${svg(CATS.move.ic)}${acc(x.acc).n} → ${acc(x.to).n}</button><button>${svg('<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16"/>')}${fdate(x.d)} · ${money(x.a)}</button></div><p class="lbl" style="margin-top:10px">Las transferencias entre tus cuentas no cuentan como gasto ni ingreso.</p><div class="btns"><button class="btn red" data-del>Eliminar</button><button class="btn dark" data-close>Cerrar</button></div>`)}else txSheet(x);return}
   if(t=g("[data-cat]")){q=CATS[t.dataset.cat].n;screen="home";render();scrollTo(0,0);return}
-  if(t=g("[data-acc]")){closeSheet();q=acc(t.dataset.acc).n;screen="home";render();scrollTo(0,0);return}
+  if(t=g("[data-acc]")){closeSheet();if(t.dataset.acc==="all"){showAll=!showAll;render();return}q=acc(t.dataset.acc).n;screen="home";render();scrollTo(0,0);return}
   if(t=g("[data-gocard]")){selCard=t.dataset.gocard;go("budget");return}
   if(t=g("[data-card]")){if(t.dataset.card!==selCard){selCard=t.dataset.card;render()}return}
   if(t=g("[data-editcard]")){editCard(t.dataset.editcard);return}

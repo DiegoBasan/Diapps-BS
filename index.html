@@ -161,6 +161,18 @@ h1 b{font-weight:700}
 code{font-family:ui-monospace,Menlo,monospace;font-size:13px;background:var(--bg);padding:2px 6px;border-radius:6px}
 .toast{position:fixed;left:50%;bottom:calc(100px + env(safe-area-inset-bottom,0px));transform:translate(-50%,16px);background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:99px;font-size:14px;font-weight:600;opacity:0;transition:.25s;z-index:20;pointer-events:none;white-space:nowrap}
 .toast.on{opacity:1;transform:translate(-50%,0)}
+/* ---------- resumen del día (celular) ---------- */
+.today{margin-top:14px}
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tcard{display:flex;flex-direction:column;gap:2px;padding:14px;border-radius:22px;background:var(--chip);text-decoration:none;color:inherit;box-shadow:inset 0 4px 0 var(--tc);min-width:0;animation:wIn2 .45s cubic-bezier(.2,.9,.25,1) both;animation-delay:calc(var(--i) * 50ms)}
+@keyframes wIn2{from{opacity:0;transform:translateY(8px)}}
+.tcard:first-child{grid-column:span 2}
+.tcard .th{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;color:var(--ink2);margin-bottom:4px}
+.tcard .th img{width:22px;height:22px;border-radius:7px}
+.tcard b{font-size:22px;font-weight:700;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tcard small{font-size:12.5px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tcard em{font-style:normal;font-size:12px;font-weight:700;margin-top:6px;color:color-mix(in srgb,var(--tc) 70%,var(--ink))}
+.sech{display:flex;align-items:center;justify-content:space-between;margin:22px 0 10px}.sech h2{margin:0;font-size:20px;letter-spacing:-.02em}
 /* ---------- mega dashboard de escritorio ---------- */
 .deskwrap{display:none}
 @media (min-width:1100px){
@@ -244,19 +256,10 @@ code{font-family:ui-monospace,Menlo,monospace;font-size:13px;background:var(--bg
   </div>
 
   <h1><span id="hi">Hola</span>, <b>Diego!</b></h1>
-  <p class="lead">Mira tus proyectos.</p>
+  <p class="lead">Así va tu día.</p>
 
-  <div class="filters">
-    <button class="chip press" data-f="live" aria-pressed="false"><span>Activos y futuros (<b id="nLive">0</b>)</span></button>
-    <button class="chip press" data-f="prio" aria-pressed="false"><b>Prioridad alta</b><svg viewBox="0 0 24 24" fill="none" stroke="#E5484D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/></svg></button>
-    <button class="chip press" data-f="mine" aria-pressed="false"><span>Creado por: <b>Diego</b></span><span class="avs"><i>D</i></span></button>
-  </div>
-
-  <div class="actions">
-    <button class="newp press" id="newp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17v3z"/></svg>Nuevo proyecto</button>
-    <button class="rb fill press" id="sort" aria-label="Ordenar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M7 12h10M10 17h4"/></svg></button>
-  </div>
-
+  <div class="today" id="today"></div>
+  <div class="sech"><h2>Tus apps</h2><button class="rb fill press" id="sort" aria-label="Ordenar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M7 12h10M10 17h4"/></svg></button></div>
   <div class="list" id="list"></div>
 </main>
 
@@ -284,6 +287,9 @@ const PROJECTS=[
 ];
 /* Bitácora de cambios: alimenta la vista "Recientes" */
 const LOG=[
+ {p:"hub",d:"2026-10-05",t:"Resumen de tu día con un dato clave de cada app"},
+ {p:"finanzas",d:"2026-10-05",t:"Inicio con botones rápidos, tu semana y colores por categoría y apartado"},
+ {p:"habitos",d:"2026-10-05",t:"Hoy más compacto y respaldo en tu cuenta"},
  {p:"hub",d:"2026-10-05",t:"Modo escritorio: mega dashboard con todas tus apps"},
  {p:"finanzas",d:"2026-10-05",t:"Apartados con predicción semanal, cuenta en la nube y Face ID"},
  {p:"musica",d:"2026-10-05",t:"Búsqueda de canciones con IA y audio en segundo plano"},
@@ -316,7 +322,7 @@ function visible(){
   return l;
 }
 function render(){
-  $("#nLive").textContent=PROJECTS.filter(p=>p.status!=="done").length;
+  renderToday();
   const l=visible();
   if(view==="stats"){renderStats(l);return}
   if(view==="recent"){renderRecent();return}
@@ -458,6 +464,24 @@ function renderDesk(){
     <button class="dtab" data-theme-toggle aria-label="Cambiar tema">${svg(isDark()?'<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2.5 12h2M19.5 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>':'<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>')}</button></div>
     <div class="mega${renderDesk.done?"":" anim"}">${wFinanzas()}${wRutinas()}${wJetta()}${wRiff()}${wCajas()}${wProyectos()}${wRecientes()}</div>`;
   renderDesk.done=true;
+}
+/* Resumen del día en el celular: un dato clave de cada app, con su color, y toca para abrirla */
+function renderToday(){
+  const el=$("#today");if(!el)return;const cards=[];
+  const F=LSj("finz2");if(F&&Array.isArray(F.tx)){const P=F.pots||{items:{},mv:[]};
+    const pbal=k=>{const it=P.items[k];return it.base+(P.mv||[]).filter(m=>m.k===k&&m.s>it.baseSeq&&!(it.baseDate&&m.ref&&m.d<=it.baseDate)).reduce((s,m)=>s+m.a,0)};
+    const ptot=Object.keys(P.items||{}).reduce((s,k)=>s+pbal(k),0),t=dToday(),wk=dAdd(t,-((new Date(t+"T12:00").getDay()+6)%7));
+    const wkO=F.tx.filter(x=>x.type==="out"&&x.d>=wk&&x.d<=t).reduce((s,x)=>s+x.a,0);
+    cards.push(["finanzas/","finanzas","#1F9D55",ptot?mxn(ptot):mxn(wkO),ptot?"en apartados":"gastado esta semana",ptot?`${mxn(wkO)} gastado esta semana`:""])}
+  const R=LSj("ritmo1");if(R&&Array.isArray(R.habits)){const t=dToday(),dh=R.habits.filter(h=>h.kind==="day"),c=h=>((R.log||{})[t]||{})[h.id]?.length||0;
+    const p=dh.length?Math.round(dh.reduce((s,h)=>s+Math.min(1,c(h)/h.target),0)/dh.length*100):0,left=R.habits.filter(h=>h.kind==="day"&&c(h)<h.target).length;
+    cards.push(["habitos/","habitos","#C6EE3A",p+"%","de tus hábitos hoy",left?`${left} por hacer`:"día completo"])}
+  const J=LSj("jetta6v3");if(J&&J.odo){const left=J.done&&J.done.oil!=null?J.done.oil+10000-J.odo:null;
+    cards.push(["jetta/","jetta","#4DA3FF",Math.round(J.odo).toLocaleString("es-MX")+" km",`gasolina ${J.fuel}%`,left!=null?(left<0?"aceite vencido":`aceite en ${left.toLocaleString("es-MX")} km`):""])}
+  const M=LSj("riff1");if(M&&Array.isArray(M.songs)){const c=M.songs.find(s=>s.id===M.cur)||M.songs[0];cards.push(["musica/","musica","#9B7BFF",escH(c.title),escH(c.artist||""),`${M.songs.length} canciones`])}
+  const C=LSj("cajas1");if(C&&Array.isArray(C.boxes))cards.push(["cajas/","cajas","#FF8A65",C.boxes.length+" cajas",C.boxes.reduce((n,b)=>n+(b.items||[]).length,0)+" cosas anotadas",""]);
+  el.innerHTML=cards.length?`<div class="tgrid">${cards.map(([h,id,c,big,sub,foot],i)=>{const p=PROJECTS.find(x=>x.id===id);return `<a class="tcard press" href="${h}" style="--tc:${c};--i:${i}"><span class="th"><img src="${p.icon}" alt="">${p.name.replace("Mi Jetta MK6","Jetta").replace("Mis Finanzas","Finanzas")}</span><b>${big}</b><small>${sub}</small>${foot?`<em>${foot}</em>`:""}</a>`}).join("")}</div>`
+    :`<p class="lead">Abre tus apps y aquí verás un resumen de cada una.</p>`;
 }
 function applyDesk(){document.body.classList.toggle("desk",DESK.matches);if(DESK.matches)renderDesk()}
 DESK.addEventListener("change",applyDesk);

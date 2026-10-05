@@ -24,6 +24,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="../shared/desk.css">
 <script src="../shared/desk.js"></script>
+<script src="../shared/nube.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800&display=swap">
 <style>
 /* Rutinas: reloj de 24 h como pieza central + hábitos como cápsulas de segmentos.
@@ -250,6 +251,13 @@ h1{font-size:40px;font-weight:600;letter-spacing:-.035em;line-height:1.05;margin
 .toast:not(.act){padding-right:18px}
 #fx{position:fixed;inset:0;pointer-events:none;z-index:30;width:100vw;height:100vh}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.todayc{display:flex;align-items:center;gap:16px;background:var(--card);border-radius:24px;padding:14px 16px;margin-top:14px}
+.tcr{position:relative;width:68px;height:68px;flex:none}.tcr svg{width:68px;height:68px}
+.tcr>b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:1px;font-size:18px;font-weight:700}.tcr small{font-size:11px;margin-top:4px}
+.tci{flex:1;min-width:0}.tci>b{display:block;font-size:16px}.tci small{display:block;font-size:13px;color:var(--ink2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tci small b{color:var(--ink)}
+.tcb{display:flex;gap:4px;margin-top:9px}.tcb i{flex:1;height:7px;border-radius:9px}
+.dial.sm{max-width:300px;margin:0 auto}
 </style>
 </head>
 <body>
@@ -316,6 +324,7 @@ const IC={
 const COLORS=["#C6EE3A","#57E39A","#6CB8FF","#A78BFA","#FF8A65","#FFC24B","#FF7EB6","#9FA4AE"];
 const SLOTS={any:"Cualquier hora",morning:"Mañana",afternoon:"Tarde",night:"Noche"};
 const KEY="ritmo1";
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 const today=()=>iso(new Date());
 const parse=s=>{const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
@@ -348,7 +357,7 @@ function sample(){
 }
 let S;try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 if(!S||!Array.isArray(S.habits))S=sample();
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const save=()=>{if(window.SYNC)SYNC.touch();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 
 /* ======================= Lógica de hábitos ======================= */
 const $=s=>document.querySelector(s);
@@ -417,8 +426,9 @@ function renderToday(){
   const dp=dayScore(t);
   return header("Hoy",`<span>${DOWL[(d.getDay()+6)%7]} ${d.getDate()} de ${MES[d.getMonth()]}</span>${dp>=1?`<span class="chip ok">Día completo</span>`:`<span class="chip">${todo.length} por hacer</span>`}`)+`
   <div class="days">${days}</div>
-  <div class="dial">${dialSVG()}<div class="ctr"><div><b class="num"><span id="pct" data-v="0">0</span><small>%</small></b><span>${done.length} de ${items.length} hábitos</span></div></div></div>
-  <div class="legendH">${[...new Set(Object.keys(S.log[t]||{}))].map(id=>H(id)).filter(Boolean).slice(0,5).map(h=>`<span><i style="background:${h.c}"></i>${h.n.split(" ")[0]}</span>`).join("")}</div>
+  <div class="todayc rise"><div class="tcr">${ring(dp,68,8,"var(--lime)")}<b class="num"><span id="pct" data-v="0">0</span><small>%</small></b></div>
+    <div class="tci"><b>${done.length} de ${items.length} hábitos</b><small>${todo.length?`Sigue: <b>${esc(todo[0].h.n)}</b>`:"¡Completaste tu día!"}</small>
+    <div class="tcb">${items.map(x=>`<i title="${esc(x.h.n)}" style="background:${x.h.c};opacity:${x.st.done?1:Math.max(.22,x.st.p)}"></i>`).join("")}</div></div></div>
   ${todo.length?`<div class="sec"><h2>Por hacer</h2><span>${todo.length}</span></div><div class="group rise" style="--i:1">${todo.map((x,i)=>habCard(x.h,i)).join("")}</div>`:""}
   ${done.length?`<div class="sec"><h2>Hechos</h2><span>${done.length}</span></div><div class="group rise" style="--i:2">${done.map((x,i)=>habCard(x.h,i+todo.length)).join("")}</div>`:""}
   ${S.habits.length?`<p class="hint">Mantén presionado un hábito para ver su detalle</p>`:`<div class="empty">Aún no tienes hábitos. Toca + para crear el primero.</div>`}`;
@@ -460,6 +470,7 @@ function renderStats(){
   const total=Object.values(S.log).reduce((a,L)=>a+Object.values(L).reduce((b,l)=>b+l.length,0),0);
   const bestAll=S.habits.reduce((a,x)=>{const s=streak(x);return s.n>a.n?{...s,h:x}:a},{n:0,u:"días"});
   return header("Progreso",`<span>Últimos 30 días</span><span class="chip">${Math.round(avg*100)}% promedio</span>`)+`
+  <div class="card"><div class="ch"><div><div class="ey">A qué hora marcaste hoy</div><h2>Tu día</h2></div></div><div class="dial sm">${dialSVG()}<div class="ctr"><div><b class="num">${Math.round(dayScore(today())*100)}<small>%</small></b><span>hoy</span></div></div></div></div>
   <div class="kpis"><div class="rise" style="--i:0"><span class="lbl">Racha top</span><b class="num">${bestAll.n}</b><span class="lbl">${bestAll.u}${bestAll.h?" · "+bestAll.h.n.split(" ")[0]:""}</span></div><div class="rise" style="--i:1"><span class="lbl">Marcas</span><b class="num">${total}</b><span class="lbl">en total</span></div><div class="rise" style="--i:2"><span class="lbl">Tu hora</span><b class="num">${peak}h</b><span class="lbl">más activa</span></div></div>
   <div class="card rise" style="--i:3"><div class="ch"><div><div class="ey">${S.coach?`Actualizado ${S.coach.d===today()?"hoy":S.coach.d}`:"Lee tus últimos 30 días"}</div><h2>Coach IA</h2></div><button class="pill press" data-coach>${svg('<path d="M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z"/>',2)}${S.coach?"Actualizar":"Pedir consejo"}</button></div>
     <div class="coach" id="coach">${S.coach?S.coach.h:`<span style="color:var(--ink2)">Toca “Pedir consejo” y la IA revisa tu constancia, rachas y horarios para decirte qué ajustar esta semana.</span>`}</div></div>
@@ -569,7 +580,7 @@ function toggleTheme(){const t=isDark()?"light":"dark";const f=()=>{document.doc
 addEventListener("storage",e=>{if(e.key==="diapps-theme"&&e.newValue){document.documentElement.dataset.theme=e.newValue;syncThemeColor()}});
 function menu(){const chev='<svg class="chev" viewBox="0 0 10 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 2l6 6-6 6"/></svg>',it=(a,ic,n)=>`<button ${a}>${svg(ic)}<span>${n}</span>${chev}</button>`;
   openSheet(`<h3>Menú</h3><div class="mlist">${it('data-go="today"','<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',"Hoy")}${it('data-go="week"','<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16"/>',"Semana")}${it('data-go="stats"','<path d="M4 19h16M7 16v-4M12 16V7M17 16v-6"/>',"Progreso")}${it('data-go="habits"','<rect x="4" y="4" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="2"/>',"Hábitos")}</div>
-  <div class="mlist">${it("data-theme-toggle",isDark()?IC.sun:IC.moon,isDark()?"Tema claro":"Tema oscuro")}${S.sample?it("data-wipe",'<path d="M4 7h16M6 7l1 13h10l1-13M9 7V4h6v3"/>',"Borrar historial de ejemplo"):it("data-reset",'<path d="M4 12a8 8 0 1 0 3-6.2M4 4v4h4"/>',"Cargar historial de ejemplo")}
+  <div class="mlist">${it("data-account",'<circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-4 5-6 8-6s6.5 2 8 6"/>',window.Nube&&Nube.user()?"Cuenta · "+Nube.user().email:"Iniciar sesión y respaldar")}${it("data-theme-toggle",isDark()?IC.sun:IC.moon,isDark()?"Tema claro":"Tema oscuro")}${S.sample?it("data-wipe",'<path d="M4 7h16M6 7l1 13h10l1-13M9 7V4h6v3"/>',"Borrar historial de ejemplo"):it("data-reset",'<path d="M4 12a8 8 0 1 0 3-6.2M4 4v4h4"/>',"Cargar historial de ejemplo")}
   <a href="../">${svg('<path d="M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/>')}<span>Todos mis proyectos</span>${chev}</a></div>
   <p class="lbl" style="margin-top:14px">${S.sample?"Estás viendo un historial de ejemplo. ":""}Todo se guarda solo en este iPhone.</p>`)}
 let tt;function toast(msg,act,fn){const e=$("#toast");e.innerHTML=`<span>${msg}</span>${act?`<button>${act}</button>`:""}`;e.classList.toggle("act",!!act);if(act)e.querySelector("button").onclick=()=>{fn();e.classList.remove("on")};e.classList.add("on");clearTimeout(tt);tt=setTimeout(()=>e.classList.remove("on"),act?4000:1800)}
@@ -598,6 +609,7 @@ document.addEventListener("click",e=>{
     if(draft.id){S.habits[S.habits.findIndex(x=>x.id===draft.id)]=draft}else{draft.id="h"+(S.nid++);S.habits.push(draft)}save();closeSheet();render(true);toast(isNew?"Hábito creado":"Hábito guardado");return}
   if(g("[data-del]")){S.habits=S.habits.filter(x=>x.id!==draft.id);for(const d in S.log)delete S.log[d][draft.id];save();closeSheet();render(true);toast("Hábito eliminado");return}
   if(g("[data-close]")){closeSheet();return}
+  if(g("[data-account]")){closeSheet();setTimeout(()=>Nube.accountSheet({open:openSheet,close:closeSheet,toast:m=>toast(m),sync:window.SYNC}),480);return}
   if(g("[data-theme-toggle]")){closeSheet();setTimeout(toggleTheme,200);return}
   if(g("[data-wipe]")){S={habits:S.habits,log:{},sample:false,nid:S.nid};save();closeSheet();render(true);toast("Historial borrado: empieza hoy");return}
   if(g("[data-reset]")){S=sample();save();closeSheet();render(true);toast("Historial de ejemplo cargado");return}
@@ -619,6 +631,7 @@ setInterval(()=>{if(screen==="today"&&$("#sheet").hidden&&!document.querySelecto
 
 save();syncThemeColor();render();
 if(window.Desk)Desk.watch(()=>render());
+window.SYNC=window.Nube?Nube.sync("rutinas",{get:()=>S,set:d=>{S=d;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}render();toast("Datos actualizados desde tu cuenta")}}):null;
 if("serviceWorker" in navigator&&location.protocol!=="file:")addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 </script>
 </body>
