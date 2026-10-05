@@ -40,3 +40,9 @@ Función de Netlify que busca de verdad lo que la app no puede pedir directo des
 La IA solo interpreta qué canción se escribió; si no está en Cifra Club, genera los acordes como respaldo.
 Para desplegar: en Netlify → Add new project → Import from GitHub → este repo, con **Base directory** `riff-api`.
 La app usa `https://diapps-riff.netlify.app` por defecto; otra dirección se cambia en Riff → menú → Búsqueda con IA.
+
+## Cuenta y respaldo (`shared/nube.js`)
+
+Firebase Authentication (correo y contraseña) + Firestore por REST, sin SDK. Cada app guarda su documento en
+`users/{uid}/apps/{app}`; las reglas de Firestore solo dejan a cada cuenta leer y escribir lo suyo.
+La configuración web de Firebase no es secreta. Incluye bloqueo con Face ID (passkey del dispositivo).

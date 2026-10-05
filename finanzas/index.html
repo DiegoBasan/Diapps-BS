@@ -18,6 +18,7 @@
 </script>
 <link rel="manifest" href="manifest.webmanifest">
 <script src="../shared/ia.js"></script>
+<script src="../shared/nube.js"></script>
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -183,6 +184,10 @@ h2{font-size:19px;font-weight:600;margin:0;letter-spacing:-.01em}
 .ver{text-align:center;font-size:11.5px;font-weight:600;color:var(--ink3,var(--ink2));margin:16px 0 4px;letter-spacing:.02em}
 .setupban{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:color-mix(in srgb,var(--lime,#C6EE3A) 35%,var(--card))}
 .setupban b{display:block;font-size:15px}.setupban small{display:block;font-size:12.5px;color:var(--ink2);margin-top:2px}
+.lockv{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:24px;text-align:center}
+.lockv img{width:72px;height:72px;border-radius:18px;margin-bottom:8px}.lockv h2{margin:0;font-size:24px}.lockv p{margin:0 0 18px;color:var(--ink2)}.lockv .btn{flex:none;width:min(280px,100%)}
+body.locked{overflow:hidden}
+.lnk{font-weight:700;text-decoration:underline;text-underline-offset:3px;font-size:14px;color:var(--ink2)}
 .wsel{margin-bottom:12px;justify-content:space-between}.wsel button{flex:1;min-width:0;padding:0}
 .projbig{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px}.projbig b{font-size:30px;font-weight:700;letter-spacing:-.03em}.projbig .lbl{width:100%}
 .warnl{display:flex;flex-direction:column;gap:6px;margin-top:10px;font-size:13px;background:color-mix(in srgb,var(--down) 10%,var(--card2));border-radius:16px;padding:10px 12px}
@@ -313,6 +318,7 @@ label.btn{display:inline-flex;align-items:center;justify-content:center;cursor:p
 </head>
 <body>
 <main class="app" id="app"></main>
+<div class="lockv" id="lockv" hidden><img src="icons/icon.svg" alt=""><h2>Mis Finanzas</h2><p>Bloqueado</p><button class="btn dark" id="unlockBtn">Desbloquear con Face ID</button></div>
 <nav class="nav glass" id="nav" aria-label="Secciones">
   <button data-go="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5h-4V15h-5v5.5h-4A1.5 1.5 0 0 1 4 19z"/></svg>Inicio</button>
   <button data-go="budget"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h3"/></svg>Tarjetas</button>
@@ -360,7 +366,7 @@ const ACCS={
 const CARDS=["bbva","bbvaa","nu","mp"];
 const acc=k=>({...ACCS[k],...((S&&S.meta&&S.meta[k])||{})});
 const KEY="finz2";
-const APP_VERSION="v7 · 5 oct 2026";
+const APP_VERSION="v8 · 5 oct 2026";
 const today=()=>{const d=new Date();return iso(d)};
 const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 const parse=s=>{const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
@@ -407,7 +413,9 @@ if(!S){try{const o=JSON.parse(localStorage.getItem("finz1"));if(o&&!o.sample&&Ar
 if(!S||!Array.isArray(S.tx))S=sample();
 S.meta=S.meta||{};
 S.pots=S.pots||{items:{},mv:[],refs:[],alias:{},seq:0};
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast("No se pudo guardar")}};
+/* touch=false cuando solo se re-guarda sin cambios del usuario (no debe ganarle a la nube) */
+const save=(touch=true)=>{if(touch)S.updated=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast("No se pudo guardar")}if(touch)cloudPush()};
+function normS(){S.meta=S.meta||{};S.pots=S.pots||{items:{},mv:[],refs:[],alias:{},seq:0};S.chat=S.chat||[]}
 
 /* ======================= Utilidades ======================= */
 const $=s=>document.querySelector(s);
@@ -896,6 +904,42 @@ function incomeSheet(){const I=INC();openSheet(`<h3>Tu pago semanal</h3><p class
   <div class="lbl" style="margin-top:14px">Día de pago</div><div class="chips">${DIAS.map((d,i)=>`<button data-payday="${i}" aria-pressed="${i===I.day}">${d}</button>`).join("")}</div>
   <div class="btns"><button class="btn" data-close>Cancelar</button><button class="btn dark" data-incsave>Guardar</button></div>`)}
 
+/* ======================= Cuenta y respaldo en la nube (shared/nube.js) =======================
+   Gana la versión más reciente (campo updated). Los datos de ejemplo nunca se suben. */
+let pushT=null,syncMsg="",syncAt=0;
+function cloudPush(){if(!window.Nube||!Nube.user()||S.sample)return;clearTimeout(pushT);
+  pushT=setTimeout(async()=>{pushT=null;try{await Nube.save("finanzas",S,S.updated);syncMsg="";syncAt=Date.now()}catch(e){syncMsg=e.message}},1500)}
+async function cloudPull(){if(!window.Nube||!Nube.user()||pushT)return;
+  try{const r=await Nube.load("finanzas");
+    if(r&&r.data&&r.updated>(S.updated||0)){S=r.data;normS();save(false);render();toast("Datos actualizados desde tu cuenta")}
+    else if(!S.sample&&(!r||(S.updated||0)>r.updated)){await Nube.save("finanzas",S,S.updated||Date.now())}
+    syncMsg="";syncAt=Date.now()}catch(e){syncMsg=e.message}}
+function accountSheet(){const u=window.Nube&&Nube.user();
+  if(!u){openSheet(`<h3>Cuenta y respaldo</h3><p class="lbl">Con tu cuenta, tus finanzas se respaldan y quedan iguales en Safari, en la app de inicio y en otros dispositivos. Solo tu cuenta puede leerlas.</p>
+    <form id="authF" autocomplete="on"><div class="field"><input id="auE" type="email" autocomplete="username" placeholder="Correo" inputmode="email" autocapitalize="off"></div>
+    <div class="field"><input id="auP" type="password" autocomplete="current-password" placeholder="Contraseña (mínimo 6)"></div>
+    <div class="btns"><button type="button" class="btn" data-signup>Crear cuenta</button><button class="btn dark" data-signin>Entrar</button></div></form>
+    <button class="lnk" data-resetpw style="margin-top:14px">Olvidé mi contraseña</button>`);
+    $("#authF").onsubmit=e=>{e.preventDefault();doAuth("in")};return}
+  Nube.lock.available().then(av=>{
+    openSheet(`<h3>Cuenta y respaldo</h3><div class="list"><button>${svg('<circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-4 5-6 8-6s6.5 2 8 6"/>')}<span>${esc(u.email)}<br><small class="muted">${syncMsg?"⚠︎ "+esc(syncMsg):syncAt?"Sincronizado "+new Date(syncAt).toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"}):"Conectado"}</small></span></button>
+      <button data-syncnow>${svg('<path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4"/>')}<span>Sincronizar ahora</span>${chev}</button>
+      ${av?`<button data-lock>${svg('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>')}<span>${Nube.lock.on()?"Quitar desbloqueo con Face ID":"Desbloquear con Face ID"}</span>${chev}</button>`:""}
+      <button data-signout>${svg('<path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/>')}<span>Cerrar sesión</span>${chev}</button></div>
+      <p class="lbl" style="margin-top:12px">${Nube.lock.on()?"Al abrir Finanzas (o volver después de 1 minuto) se pide Face ID.":"Face ID pide tu cara antes de mostrar tus montos, aunque el iPhone esté desbloqueado."}</p>`)})}
+async function doAuth(kind){const e=$("#auE").value.trim(),p=$("#auP").value;if(!e||!p){toast("Escribe correo y contraseña");return}
+  try{toast(kind==="up"?"Creando cuenta…":"Entrando…",6000);await(kind==="up"?Nube.signUp(e,p):Nube.signIn(e,p));await cloudPull();closeSheet();render();
+    toast(kind==="up"?"Cuenta creada · tus datos ya están respaldados":"Listo, sesión iniciada",2800);setTimeout(accountSheet,400)}
+  catch(err){toast("No se pudo: "+err.message,3800)}}
+/* Bloqueo con Face ID */
+let hiddenAt=0;
+function showLock(){if(!window.Nube||!Nube.lock.on())return false;$("#lockv").hidden=false;document.body.classList.add("locked");return true}
+async function tryUnlock(){try{await Nube.lock.unlock();$("#lockv").hidden=true;document.body.classList.remove("locked")}catch(e){}}
+function lockStart(){if(showLock())setTimeout(tryUnlock,300)}
+$("#unlockBtn").onclick=tryUnlock;
+document.addEventListener("visibilitychange",()=>{if(document.hidden){hiddenAt=Date.now();return}
+  if(hiddenAt&&Date.now()-hiddenAt>60000&&showLock())setTimeout(tryUnlock,300);cloudPull()});
+
 /* ======================= Render y navegación ======================= */
 const ORDER=["home","budget","pots","stats","chat"];
 function render(){
@@ -935,6 +979,7 @@ function menu(){const it=(attr,ic,n)=>`<button ${attr}>${svg(ic)}<span>${n}</spa
   openSheet(`<h3>Menú</h3>
   <div class="list">${it('data-go="home"','<path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5h-4V15h-5v5.5h-4A1.5 1.5 0 0 1 4 19z"/>',"Inicio")}${it('data-go="budget"','<rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18"/>',"Tarjetas y presupuesto")}${it('data-go="pots"','<path d="M4 8.5h16v10a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18.5z"/><path d="M3 5.5h18v3H3z"/>',"Apartados y predicción")}${it('data-go="stats"','<path d="M4 19h16M7 16v-4M12 16V7M17 16v-6"/>',"Análisis")}${it('data-go="chat"','<path d="M5 5h14a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-8l-5 4v-4H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/>',"Asistente")}</div>
   <div class="list">${it("data-theme-toggle",isDark()?'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>':'<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',isDark()?"Tema claro":"Tema oscuro")}
+  ${it("data-account",'<circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-4 5-6 8-6s6.5 2 8 6"/>',window.Nube&&Nube.user()?"Cuenta y respaldo · "+esc(Nube.user().email):"Iniciar sesión y respaldar")}
   ${it("data-setup",'<path d="M9 7H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-3M14 4h6v6M10 14L20 4"/>',"Pegar código de configuración")}
   <label for="mpFile">${svg('<path d="M12 20V9M7 14l5-5 5 5M5 4h14"/>')}<span>Importar estado de cuenta de Mercado Pago</span>${chev}</label>
   ${it("data-export",'<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',"Exportar movimientos (CSV)")}
@@ -992,6 +1037,13 @@ document.addEventListener("click",e=>{
   if(t=g("[data-potdel]")){const k=t.dataset.potdel;if(!confirm(`¿Eliminar el apartado ${P().items[k].n} y sus movimientos?`))return;P().mv=P().mv.filter(m=>m.k!==k);S.tx.forEach(x=>{if(x.pot===k)delete x.pot});delete P().items[k];save();closeSheet();render();return}
   if(g("[data-split]")){splitSheet();return}
   if(g("[data-setup]")){setupSheet();return}
+  if(g("[data-account]")){accountSheet();return}
+  if(g("[data-signup]")){doAuth("up");return}
+  if(g("[data-signin]")){e.preventDefault();doAuth("in");return}
+  if(g("[data-resetpw]")){const em=$("#auE").value.trim();if(!em){toast("Escribe tu correo arriba");return}Nube.resetPassword(em).then(()=>toast("Te mandé un correo para cambiarla",3000)).catch(er=>toast(er.message));return}
+  if(g("[data-syncnow]")){toast("Sincronizando…");clearTimeout(pushT);pushT=null;(S.sample?cloudPull():Nube.save("finanzas",S,S.updated||Date.now()).then(()=>{syncMsg="";syncAt=Date.now()})).then(()=>{toast(syncMsg?"⚠︎ "+syncMsg:"Sincronizado");accountSheet()}).catch(er=>{syncMsg=er.message;toast("⚠︎ "+er.message,3500)});return}
+  if(g("[data-lock]")){if(Nube.lock.on()){Nube.lock.disable();toast("Face ID desactivado");accountSheet()}else Nube.lock.enable("Mis Finanzas").then(()=>{toast("Listo: se pedirá Face ID al abrir");accountSheet()}).catch(er=>toast("No se activó: "+(er.name==="NotAllowedError"?"cancelado":er.message),3000));return}
+  if(g("[data-signout]")){if(!confirm("¿Cerrar sesión? Tus datos se quedan en este iPhone y en tu cuenta."))return;Nube.signOut();Nube.lock.disable();closeSheet();render();toast("Sesión cerrada");return}
   if(g("[data-setupgo]")){try{const c=decodeSetup($("#setupIn").value);applySetup(c);closeSheet();go("pots");render();toast(`Listo: ${(c.pots||[]).length} apartados con saldo real`,2800)}catch(err){toast("Ese código no es válido")}return}
   if(t=g("[data-projw]")){projW=+t.dataset.projw;render();return}
   if(g("[data-income]")){incomeSheet();return}
@@ -1029,7 +1081,7 @@ $("#chatForm").onsubmit=e=>{e.preventDefault();const i=$("#chatIn");ask(i.value)
 
 if(/#setup=/.test(location.hash)){try{const c=decodeSetup(location.hash);if(confirm(`¿Cargar ${(c.pots||[]).length} apartados con tus saldos reales en este dispositivo?`)){applySetup(c);screen="pots"}}catch(e){}history.replaceState(null,"",location.pathname)}
 $("#mpFile").onchange=e=>{const f=[...e.target.files];e.target.value="";importFiles(f)};
-save();syncThemeColor();render();
+save(false);syncThemeColor();render();lockStart();cloudPull();
 if("serviceWorker" in navigator&&location.protocol!=="file:")addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 </script>
 </body>
