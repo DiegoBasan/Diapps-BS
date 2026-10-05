@@ -377,7 +377,7 @@ label.btn{display:inline-flex;align-items:center;justify-content:center;cursor:p
 <div class="scrim" id="scrim" hidden></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" hidden><div class="grab"></div><div id="sheetBody"></div></div>
 <div class="toast" id="toast"></div>
-<input type="file" id="mpFile" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" multiple hidden>
+<input type="file" id="mpFile" accept=".xlsx,.csv,.pdf,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" multiple hidden>
 
 <script>
 /* ======================= Datos ======================= */
@@ -410,7 +410,7 @@ const ACCS={
 const CARDS=["bbva","bbvaa","nu","mp"];
 const acc=k=>({...ACCS[k],...((S&&S.meta&&S.meta[k])||{})});
 const KEY="finz2";
-const APP_VERSION="v10 · 5 oct 2026";
+const APP_VERSION="v11 · 5 oct 2026";
 const today=()=>{const d=new Date();return iso(d)};
 const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 const parse=s=>{const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
@@ -457,9 +457,14 @@ if(!S){try{const o=JSON.parse(localStorage.getItem("finz1"));if(o&&!o.sample&&Ar
 if(!S||!Array.isArray(S.tx))S=sample();
 S.meta=S.meta||{};
 S.pots=S.pots||{items:{},mv:[],refs:[],alias:{},seq:0};
+if(!S.sample)migrate();else S.v=3;
 /* touch=false cuando solo se re-guarda sin cambios del usuario (no debe ganarle a la nube) */
 const save=(touch=true)=>{if(touch)S.updated=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast("No se pudo guardar")}if(touch)cloudPush()};
-function normS(){S.meta=S.meta||{};S.pots=S.pots||{items:{},mv:[],refs:[],alias:{},seq:0};S.chat=S.chat||[]}
+function normS(){S.meta=S.meta||{};S.pots=S.pots||{items:{},mv:[],refs:[],alias:{},seq:0};S.chat=S.chat||[];migrate()}
+/* v3: lo que te mandas desde BBVA a Mercado Pago es una transferencia desde tu débito (BBVA Aqua), no un ingreso */
+function migrate(){if((S.v||0)>=3)return;S.tx.forEach(t=>{if(t.src!=="mp")return;
+  if(t.type==="move"){if(t.to==="bbva")t.to="bbvaa";if(t.acc==="bbva")t.acc="bbvaa"}
+  else if(t.type==="in"&&t.note==="Depósito a Mercado Pago"){t.type="move";t.cat="move";t.acc="bbvaa";t.to="mp";t.note="De BBVA"}});S.v=3}
 
 /* ======================= Utilidades ======================= */
 const $=s=>document.querySelector(s);
@@ -799,11 +804,12 @@ function importMP(list){
     if(m=T.match(/^Monto retirado\s+(.+)$/i)){const k=potEnsure(m[1],x.d);potMv(k,-a,x.d,"wd",{ref:x.ref});stack.push({k,a});r.mv++;continue}
     const add=o=>{S.tx.push({id:S.nid++,d:x.d,ref:x.ref,src:"mp",...o});r.tx++};
     if(m=T.match(/^Transferencia enviada\s+(.+)$/i)){const who=m[1].trim(),first=norm(who).split(" ")[0];
-      if(own.has(first)){add({type:"move",cat:"move",a,acc:"mp",to:/\bnu\b/i.test(who)?"nu":"bbva",note:"A mi cuenta "+who});continue}
+      if(own.has(first)){addMove({d:x.d,a,acc:"mp",to:/\bnu\b/i.test(who)?"nu":"bbvaa",note:/\bnu\b/i.test(who)?"A Nu":"A BBVA",src:"mp",ref:x.ref},r);continue}
       add({type:"out",cat:"otros",a,acc:"mp",note:"Transferencia a "+nice(who),pot:take(a)});continue}
     if(m=T.match(/^Devoluci[oó]n de transferencia enviada\s+(.+)$/i)){const first=norm(m[1]).split(" ")[0];
-      add(own.has(first)?{type:"move",cat:"move",a,acc:/\bnu\b/i.test(m[1])?"nu":"bbva",to:"mp",note:"Devolución de transferencia"}:{type:"in",cat:"extra",a,acc:"mp",note:"Devolución de transferencia"});continue}
-    if(m=T.match(/^Transferencia recibida\s+(.+)$/i)){add({type:"in",cat:a>=1000?"sueldo":"extra",a,acc:"mp",note:"Depósito a Mercado Pago"});continue}
+      add(own.has(first)?{type:"move",cat:"move",a,acc:/\bnu\b/i.test(m[1])?"nu":"bbvaa",to:"mp",note:"Devolución de transferencia"}:{type:"in",cat:"extra",a,acc:"mp",note:"Devolución de transferencia"});continue}
+    // lo que te mandas desde BBVA es una transferencia entre tus cuentas; el ingreso real es la nómina en BBVA
+    if(m=T.match(/^Transferencia recibida\s+(.+)$/i)){addMove({d:x.d,a,acc:"bbvaa",to:"mp",note:"De BBVA",src:"mp",ref:x.ref},r);continue}
     if(x.a>0){add({type:"in",cat:"extra",a,acc:"mp",note:/cashback/i.test(T)?"Cashback":/devoluci/i.test(T)?T.replace(/^Devoluci[oó]n de pago\s*/i,"Devolución "):T});continue}
     const note=T.replace(/^Pago\s*/i,"").replace(/^Mercadopago \*/i,"").replace(/^Dlo\*/i,"").replace(/^Bzi\*/i,"").replace(/^Paypal \*/i,"PayPal ").trim()||"Pago";
     add({type:"out",cat:mpCat(T),a,acc:"mp",note:nice(note),pot:take(a)});
@@ -812,18 +818,55 @@ function importMP(list){
   function take(a){let left=a,k=null;while(left>.009&&stack.length){const top=stack[stack.length-1];k=k||top.k;const u=Math.min(top.a,left);top.a-=u;left-=u;if(top.a<.009)stack.pop()}return k||undefined}
   return r;
 }
+/* Transferencia entre tus cuentas; si el otro estado de cuenta ya la trajo (mismo monto, mismas cuentas, ±3 días) no se repite */
+function addMove(o,r){const d0=parse(o.d);
+  const dup=S.tx.find(t=>t.type==="move"&&t.acc===o.acc&&t.to===o.to&&Math.abs(t.a-o.a)<.01&&(t.src||"")!==o.src&&!t.pair&&Math.abs(parse(t.d)-d0)<=3*864e5);
+  if(dup){dup.pair=o.src;r.dup++;return}S.tx.push({id:S.nid++,type:"move",cat:"move",...o});r.tx++}
+/* Estado de cuenta de BBVA (débito) ya leído del PDF → movimientos */
+const BANK_CAT=[[/nayax|snack|comedor|wendy|subway|macaron|bakery|fritanga|ganbare|cafe|tortas?\b|taco|pizza|burger|kfc|carls|domino|chili|starbucks|restaur|sushi/,"comida"],[/cinemex|cinepolis|bowl|boliche|bar\b|antro|concierto|boletos/,"ocio"],[/lime|uber|didi|metro|taxi/,"transporte"]];
+const bankCat=t=>{const n=norm(t);for(const [re,c] of BANK_CAT)if(re.test(n))return c;return mpCat(t)};
+function importBBVA(res){
+  const r={tx:0,mv:0,skip:0,dup:0,from:res.periodo.de,to:res.periodo.a},refs=new Set(P().refs),seen=new Map();
+  const L=res.list.map(x=>({...x}));
+  // envío y devolución del mismo monto se cancelan
+  L.forEach((x,i)=>{if(/DEVUELTO/i.test(x.desc)){const j=L.findIndex((y,k)=>k<i&&!y.skip&&/ENVIADO/i.test(y.desc)&&Math.abs(y.cargo-x.abono)<.01);if(j>=0){L[j].skip=true;x.skip=true}}});
+  for(const x of L){
+    const key0=`bbva|${x.d}|${x.desc}|${x.cargo}|${x.abono}|${(x.extra[0]||"").slice(0,30)}`;seen.set(key0,(seen.get(key0)||0)+1);const key=key0+"#"+seen.get(key0);
+    if(refs.has(key)){r.dup++;continue}refs.add(key);P().refs.push(key);
+    if(x.skip){r.skip++;continue}
+    const a=x.cargo||x.abono,T=x.desc,E=x.extra.join(" "),add=o=>{S.tx.push({id:S.nid++,d:x.d,src:"bbva",ref:key,...o});r.tx++};
+    if(/SPEI RECIBIDO/i.test(T)&&/MERCADO ?\*?PAGO/i.test(T+" "+E)){addMove({d:x.d,a,acc:"mp",to:"bbvaa",note:"De Mercado Pago",src:"bbva",ref:key},r);continue}
+    if(/SPEI ENVIADO/i.test(T)&&/MERCADO ?PAGO/i.test(T)){addMove({d:x.d,a,acc:"bbvaa",to:"mp",note:"A Mercado Pago",src:"bbva",ref:key},r);continue}
+    if(x.abono){add({type:"in",cat:/NOMINA/i.test(E)||/NOMINA/i.test(T)?"sueldo":"extra",a,acc:"bbvaa",note:/NOMINA/i.test(E+T)?"Nómina":nice(T.replace(/^SPEI RECIBIDO/i,"Depósito "))});continue}
+    if(/RETIRO/i.test(T)){addMove({d:x.d,a,acc:"bbvaa",to:"cash",note:"Retiro sin tarjeta",src:"bbva",ref:key},r);continue}
+    if(/SPEI ENVIADO|PAGO CUENTA DE TERCERO|TRASPASO/i.test(T)){
+      const concept=(x.extra[0]||"").replace(/Referencia.*$/i,"").replace(/^BNET\s+\d+\s*/i,"").replace(/^\d+/,"").trim();
+      const who=x.extra.find(l=>/^[A-Za-zÁÉÍÓÚÑáéíóúñ ]{5,}$/.test(l)&&!/mercado pago|libret/i.test(l))||"";
+      add({type:"out",cat:catFrom(concept)||bankCat(concept)||"otros",a,acc:"bbvaa",note:[concept,who].filter(Boolean).map(nice).join(" · ")||"Transferencia"});continue}
+    const note=T.replace(/^(MERPAGO|STR|NAYAXX1|DLO|BZI|PAYPAL)\*/i,"").replace(/^NAYAX\b.*/i,"Snack Nayax").trim();
+    add({type:"out",cat:bankCat(T),a,acc:"bbvaa",note:nice(note)});
+  }
+  // el saldo de la cuenta cuadra con el saldo final del PDF
+  S.meta.bbvaa={...(S.meta.bbvaa||{}),t:"deb",start:0};if(res.saldoFinal!=null){const b=balances(res.periodo.a).bbvaa;S.meta.bbvaa.start=Math.round((res.saldoFinal-b)*100)/100}
+  return r;
+}
 /* Estimación inicial: lo neto que entró a cada apartado en el periodo importado (si salió de más, empezó con dinero antes) */
 function potNeeds(){return potList().filter(k=>potBal(k)<0)}
 
 async function importFiles(files){
   if(!files.length)return;let all=[],final=null,lastDate="";
-  try{for(const f of files){const rows=/\.csv$/i.test(f.name)?readCsv(await f.text()):await readXlsx(await f.arrayBuffer());const r=parseMP(rows);
+  const banks=[];
+  try{for(const f of files){
+      if(/\.pdf$/i.test(f.name)||f.type==="application/pdf"){const {readBankPdf}=await import("../shared/bancos.mjs");const res=await readBankPdf(await f.arrayBuffer(),new URL("../shared/",location.href).href);
+        if(!res.ok)toast("Ojo: los totales del PDF no cuadraron del todo; revisa los movimientos",3500);banks.push(res);continue}
+      const rows=/\.csv$/i.test(f.name)?readCsv(await f.text()):await readXlsx(await f.arrayBuffer());const r=parseMP(rows);
       all=all.concat(r.list);const ld=r.list.map(x=>x.d).sort().pop()||"";if(ld>=lastDate){lastDate=ld;if(r.final!=null)final=r.final}}}
   catch(e){toast("No pude leer el archivo: "+e.message,3500);return}
   // orden cronológico estable (dentro del mismo día se respeta el orden del archivo)
   all=all.map((x,i)=>({...x,i})).sort((a,b)=>a.d.localeCompare(b.d)||a.i-b.i);
   if(S.sample){S.tx=[];S.sample=false;S.nid=1}
   const r=importMP(all);
+  for(const b of banks){const rb=importBBVA(b);r.tx+=rb.tx;r.dup+=rb.dup;r.skip+=rb.skip;r.from=r.from&&r.from<rb.from?r.from:rb.from;r.to=r.to&&r.to>rb.to?r.to:rb.to;r.banks=(r.banks||0)+1}
   if(final!=null&&lastDate){S.meta.mp={...(S.meta.mp||{}),start:0};const b=balances(lastDate).mp;S.meta.mp.start=Math.round((final-b)*100)/100}
   save();closeSheet();selCard="mp";go("budget");render();
   const neg=potNeeds();
@@ -1049,7 +1092,7 @@ function menu(){const it=(attr,ic,n)=>`<button ${attr}>${svg(ic)}<span>${n}</spa
   <div class="list">${it("data-theme-toggle",isDark()?'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>':'<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',isDark()?"Tema claro":"Tema oscuro")}
   ${it("data-account",'<circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-4 5-6 8-6s6.5 2 8 6"/>',window.Nube&&Nube.user()?"Cuenta y respaldo · "+esc(Nube.user().email):"Iniciar sesión y respaldar")}
   ${it("data-setup",'<path d="M9 7H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-3M14 4h6v6M10 14L20 4"/>',"Pegar código de configuración")}
-  <label for="mpFile">${svg('<path d="M12 20V9M7 14l5-5 5 5M5 4h14"/>')}<span>Importar estado de cuenta de Mercado Pago</span>${chev}</label>
+  <label for="mpFile">${svg('<path d="M12 20V9M7 14l5-5 5 5M5 4h14"/>')}<span>Importar estado de cuenta (Mercado Pago Excel o BBVA PDF)</span>${chev}</label>
   ${it("data-export",'<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',"Exportar movimientos (CSV)")}
   ${S.sample?it("data-wipe",'<path d="M4 7h16M6 7l1 13h10l1-13M9 7V4h6v3"/>',"Borrar datos de ejemplo y empezar"):it("data-reset",'<path d="M4 12a8 8 0 1 0 3-6.2M4 4v4h4"/>',"Cargar datos de ejemplo")}
   <a href="../">${svg('<path d="M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/>')}<span>Todos mis proyectos</span>${chev}</a></div>
