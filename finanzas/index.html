@@ -180,6 +180,9 @@ h2{font-size:19px;font-weight:600;margin:0;letter-spacing:-.01em}
 .cc .bal b{display:block;font-size:9cqw;font-weight:700;opacity:1;letter-spacing:-.02em}
 .mini{display:inline-block;width:22px;height:14px;border-radius:3.5px;flex:none;position:relative;overflow:hidden}
 .mini::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.15)}
+.ver{text-align:center;font-size:11.5px;font-weight:600;color:var(--ink3,var(--ink2));margin:16px 0 4px;letter-spacing:.02em}
+.setupban{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:color-mix(in srgb,var(--lime,#C6EE3A) 35%,var(--card))}
+.setupban b{display:block;font-size:15px}.setupban small{display:block;font-size:12.5px;color:var(--ink2);margin-top:2px}
 .wsel{margin-bottom:12px;justify-content:space-between}.wsel button{flex:1;min-width:0;padding:0}
 .projbig{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px}.projbig b{font-size:30px;font-weight:700;letter-spacing:-.03em}.projbig .lbl{width:100%}
 .warnl{display:flex;flex-direction:column;gap:6px;margin-top:10px;font-size:13px;background:color-mix(in srgb,var(--down) 10%,var(--card2));border-radius:16px;padding:10px 12px}
@@ -357,6 +360,7 @@ const ACCS={
 const CARDS=["bbva","bbvaa","nu","mp"];
 const acc=k=>({...ACCS[k],...((S&&S.meta&&S.meta[k])||{})});
 const KEY="finz2";
+const APP_VERSION="v7 · 5 oct 2026";
 const today=()=>{const d=new Date();return iso(d)};
 const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 const parse=s=>{const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
@@ -494,6 +498,7 @@ function renderHome(){
   const liq=liquid(balances()),sr=cm.i?Math.round(net/cm.i*100):null;
   return header("Finanzas",`<span>${MESL[new Date().getMonth()]} ${new Date().getFullYear()}</span><button class="chip num" data-go="budget">${money(liq)} disponible</button>`)+`
   <div class="minis" aria-label="Mis tarjetas">${CARDS.map((k,i)=>{const b=balances()[k],a=acc(k);return `<button class="press" data-gocard="${k}" style="--i:${i}" aria-label="${a.n}">${cardFace(k)}<span class="cap"><span>${a.t==="cred"?"Debes":"Saldo"}</span><span class="num ${a.t==="cred"&&b<0?"down":""}">${money(a.t==="cred"?-b:b)}</span></span></button>`}).join("")}</div>
+  ${S.sample?`<button class="card setupban press" data-setup><span class="ci">${svg('<path d="M9 7H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-3M14 4h6v6M10 14L20 4"/>')}</span><span><b>Estás viendo datos de ejemplo</b><small>Toca aquí para pegar tu código de configuración y cargar tus saldos reales</small></span></button>`:""}
   ${potList().length?potsCard(true):""}
   <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" placeholder="Buscar movimiento" value="${q.replace(/"/g,"&quot;")}" autocomplete="off" enterkeyhint="search"><span class="kbd">/</span></div>
   ${ql?`<div class="card flat">${list.length?list.map(txRow).join(""):`<div class="empty">Sin resultados para “${q}”.</div>`}</div>`:`
@@ -884,7 +889,7 @@ function renderPots(){
   <div class="card flat"><div class="ch" style="padding:18px 18px 0;margin-bottom:4px"><h2>Por apartado</h2><span class="lbl">hoy → semana ${projW}</span></div>
     ${F.per.map(p=>{const v=p.bal+p.delta*projW;return `<button class="tx press" data-pot="${esc(p.k)}"><span class="t"><b>${esc(p.n)}</b><small>${p.delta>=0?"+":"−"}${money(Math.abs(p.delta))}/sem${p.out?` · sacas ~${money(p.out)}`:""}</small></span><span class="a num"><span class="muted" style="font-weight:500">${money(p.bal)} →</span> <span class="${v<0?"down":""}">${money(v)}</span></span></button>`}).join("")}
   </div>
-  <div class="btns" style="margin-top:14px"><label class="btn" for="mpFile">Importar Excel</label><button class="btn" data-setup>Pegar código</button></div>`;
+  <div class="btns" style="margin-top:14px"><label class="btn" for="mpFile">Importar Excel</label><button class="btn" data-setup>Pegar código</button></div><p class="ver">Mis Finanzas ${APP_VERSION}</p>`;
 }
 function incomeSheet(){const I=INC();openSheet(`<h3>Tu pago semanal</h3><p class="lbl">Se usa para predecir cuánto tendrás en cada apartado semana a semana.</p>
   <div class="field"><div class="lbl" style="margin-bottom:6px">Te pagan libres por semana</div><input id="incW" inputmode="decimal" value="${I.weekly}"></div>
@@ -936,7 +941,8 @@ function menu(){const it=(attr,ic,n)=>`<button ${attr}>${svg(ic)}<span>${n}</spa
   ${S.sample?it("data-wipe",'<path d="M4 7h16M6 7l1 13h10l1-13M9 7V4h6v3"/>',"Borrar datos de ejemplo y empezar"):it("data-reset",'<path d="M4 12a8 8 0 1 0 3-6.2M4 4v4h4"/>',"Cargar datos de ejemplo")}
   <a href="../">${svg('<path d="M3 7.5A1.5 1.5 0 0 1 4.5 6H9l2 2h8.5A1.5 1.5 0 0 1 21 9.5v8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"/>')}<span>Todos mis proyectos</span>${chev}</a></div>
   <div class="field"><div class="lbl" style="margin-bottom:8px">Meta de ahorro: <b id="gv" style="color:var(--ink)">${S.goal}%</b> del ingreso</div><input id="goal" type="range" min="0" max="50" step="5" value="${S.goal}" style="width:100%;accent-color:var(--ink);height:auto;padding:0;background:none"></div>
-  <p class="lbl" style="margin-top:14px">${S.sample?"Estás viendo datos de ejemplo. ":""}Todo se guarda solo en este iPhone, no se envía a ningún lado.</p>`);
+  <p class="lbl" style="margin-top:14px">${S.sample?"Estás viendo datos de ejemplo. ":""}Todo se guarda solo en este iPhone, no se envía a ningún lado.</p>
+  <p class="ver">Mis Finanzas ${APP_VERSION}</p>`);
   $("#goal").oninput=e=>{S.goal=+e.target.value;$("#gv").textContent=S.goal+"%";save()};}
 function editCard(k){const a=acc(k);
   if(!CARDS.includes(k)){openSheet(`<h3>${a.n}</h3><div class="field"><div class="lbl" style="margin-bottom:6px">Saldo actual</div><input id="cBal" inputmode="decimal" placeholder="${Math.round(balances()[k])}"></div>
