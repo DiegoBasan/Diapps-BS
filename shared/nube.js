@@ -57,7 +57,8 @@
      o.get() da el estado, o.set(d) lo reemplaza (y redibuja). La app llama sync.touch() al guardar un cambio del usuario.
      Gana la versión más reciente (campo _u). Los guardados del primer segundo (al abrir) no cuentan como cambio. */
   function sync(app,o){let t=null,ready=false;setTimeout(()=>ready=true,1500);
-    const st={msg:"",at:0,
+    const st={msg:"",at:0,app,get:o.get,
+      apply(d){d._u=Date.now();o.set(d);try{st.push()}catch(e){}},
       touch(){if(!ready)return;o.get()._u=Date.now();if(user())st.push()},
       push(){clearTimeout(t);t=setTimeout(async()=>{t=null;try{const d=o.get();await save(app,d,d._u||Date.now());st.msg="";st.at=Date.now()}catch(e){st.msg=e.message}},1500)},
       async pull(){if(!user()||t)return false;try{const r=await load(app),d=o.get();
@@ -65,20 +66,28 @@
         if(d._u&&(!r||d._u>r.updated))await save(app,d,d._u);st.msg="";st.at=Date.now()}catch(e){st.msg=e.message}return false}};
     document.addEventListener("visibilitychange",()=>{if(!document.hidden)st.pull()});setTimeout(()=>st.pull(),400);
     return st}
+  /* Respaldo en archivo: descarga todo como JSON / restaura desde un JSON (y se sube a tu cuenta) */
+  function exportJSON(app,data){const b=new Blob([JSON.stringify({app,fecha:new Date().toISOString(),data},null,1)],{type:"application/json"}),u=URL.createObjectURL(b),a=document.createElement("a");
+    a.href=u;a.download=`${app}-respaldo-${new Date().toISOString().slice(0,10)}.json`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),3000)}
+  function pickJSON(app,cb){const i=document.createElement("input");i.type="file";i.accept=".json,application/json";i.onchange=async()=>{const f=i.files[0];if(!f)return;
+    try{const j=JSON.parse(await f.text()),d=j&&j.data?j.data:j;if(j.app&&j.app!==app&&!confirm(`Este respaldo es de "${j.app}", no de "${app}". ¿Usarlo de todos modos?`))return;cb(d)}catch(e){alert("Ese archivo no es un respaldo válido")}};i.click()}
   /* Hoja de cuenta reutilizable. u: {open(html),close(),toast(msg),sync} */
   const escA=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   function accountSheet(u){const me=user(),st=u.sync;
+    const bk=st?`<div class="btns" style="margin-top:10px"><button type="button" class="btn" id="nbExp">Exportar respaldo</button><button type="button" class="btn" id="nbImp">Importar respaldo</button></div>`:"";
+    const bindBk=()=>{if(!st)return;document.getElementById("nbExp").onclick=()=>exportJSON(st.app,st.get());
+      document.getElementById("nbImp").onclick=()=>pickJSON(st.app,d=>{if(!confirm("Esto reemplaza los datos de esta app con los del respaldo. ¿Continuar?"))return;st.apply(d);u.close();u.toast("Respaldo restaurado"+(user()?" y subido a tu cuenta":""))})};
     if(!me){u.open(`<h3>Cuenta y respaldo</h3><p class="lbl" style="margin:0 0 6px">Con tu cuenta de Diapps tus datos se respaldan y quedan iguales en todos tus dispositivos. Es la misma cuenta que en Finanzas.</p>
       <form id="nbF" autocomplete="on"><div class="field"><input id="nbE" type="email" autocomplete="username" placeholder="Correo" autocapitalize="off" style="width:100%;height:48px;border:0;border-radius:16px;background:var(--card2,#f2f2f3);padding:0 14px;font:inherit;font-size:16px"></div>
       <div class="field"><input id="nbP" type="password" autocomplete="current-password" placeholder="Contraseña" style="width:100%;height:48px;border:0;border-radius:16px;background:var(--card2,#f2f2f3);padding:0 14px;font:inherit;font-size:16px"></div>
-      <div class="btns"><button type="button" class="btn" id="nbUp">Crear cuenta</button><button class="btn dark" id="nbIn">Entrar</button></div></form>`);
+      <div class="btns"><button type="button" class="btn" id="nbUp">Crear cuenta</button><button class="btn dark" id="nbIn">Entrar</button></div></form>${bk}`);bindBk();
       const go=async up=>{const e=document.getElementById("nbE").value.trim(),p=document.getElementById("nbP").value;if(!e||!p){u.toast("Escribe correo y contraseña");return}
         try{u.toast(up?"Creando cuenta…":"Entrando…");await(up?signUp(e,p):signIn(e,p));const got=st?await st.pull():false;if(st&&!got)st.push();u.close();u.toast(got?"Datos actualizados desde tu cuenta":"Listo, respaldado en tu cuenta")}catch(err){u.toast("No se pudo: "+err.message)}};
       document.getElementById("nbF").onsubmit=ev=>{ev.preventDefault();go(false)};document.getElementById("nbUp").onclick=()=>go(true);return}
     u.open(`<h3>Cuenta y respaldo</h3><p style="margin:4px 0 2px;font-weight:600">${escA(me.email)}</p><p class="lbl" style="margin:0">${st&&st.msg?"⚠︎ "+escA(st.msg):st&&st.at?"Sincronizado "+new Date(st.at).toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"}):"Conectado"}</p>
-      <div class="btns"><button class="btn" id="nbOut">Cerrar sesión</button><button class="btn dark" id="nbSync">Sincronizar ahora</button></div>`);
+      <div class="btns"><button class="btn" id="nbOut">Cerrar sesión</button><button class="btn dark" id="nbSync">Sincronizar ahora</button></div>${bk}`);bindBk();
     document.getElementById("nbSync").onclick=async()=>{if(!st)return;u.toast("Sincronizando…");const got=await st.pull();if(!got&&!st.msg){st.push()}setTimeout(()=>{u.toast(st.msg?"⚠︎ "+st.msg:"Sincronizado");u.close()},got?0:1800)};
     document.getElementById("nbOut").onclick=()=>{signOut();u.close();u.toast("Sesión cerrada")}}
 
-  window.Nube={signIn,signUp,signOut,resetPassword,user,load,save,sync,accountSheet,lock:{available:lockAvailable,enable:lockEnable,disable:lockDisable,on:lockOn,unlock}};
+  window.Nube={signIn,signUp,signOut,resetPassword,user,load,save,sync,accountSheet,exportJSON,pickJSON,lock:{available:lockAvailable,enable:lockEnable,disable:lockDisable,on:lockOn,unlock}};
 })();

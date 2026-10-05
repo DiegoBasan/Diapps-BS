@@ -251,6 +251,7 @@ h1{font-size:40px;font-weight:600;letter-spacing:-.035em;line-height:1.05;margin
 .toast:not(.act){padding-right:18px}
 #fx{position:fixed;inset:0;pointer-events:none;z-index:30;width:100vw;height:100vh}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.ntest{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-top:14px;height:46px;border-radius:14px;background:var(--card);font-weight:700;font-size:14px}.ntest svg{width:18px;height:18px}
 .todayc{display:flex;align-items:center;gap:16px;background:var(--card);border-radius:24px;padding:14px 16px;margin-top:14px}
 .tcr{position:relative;width:68px;height:68px;flex:none}.tcr svg{width:68px;height:68px}
 .tcr>b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:1px;font-size:18px;font-weight:700}.tcr small{font-size:11px;margin-top:4px}
@@ -304,6 +305,9 @@ function countUp(el,to,ms=700){if(reduced){el.textContent=to;return}const from=+
 
 /* ======================= Datos ======================= */
 const IC={
+ trash:'<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
+ lang:'<path d="M5 5h14a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-8l-5 4v-4H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/><path d="M8 9h8M8 12.5h5"/>',
+ cream:'<path d="M9 3h6l-1 5h-4zM8.5 8h7l1 13h-9z"/>',
  tooth:'<path d="M7.2 3.5c-2.1 0-3.7 1.7-3.7 4 0 3 1.6 4.3 2.1 8 .4 3 1 5.5 2.4 5.5 1.5 0 1.6-2.7 2-4.7.3-1.6.8-2.8 2-2.8s1.7 1.2 2 2.8c.4 2 .5 4.7 2 4.7 1.4 0 2-2.5 2.4-5.5.5-3.7 2.1-5 2.1-8 0-2.3-1.6-4-3.7-4-1.9 0-3 1-4.8 1s-2.9-1-4.8-1z"/>',
  water:'<path d="M12 3.5s6 6.4 6 10.8a6 6 0 0 1-12 0C6 9.9 12 3.5 12 3.5z"/><path d="M9.5 14.5a2.6 2.6 0 0 0 2.5 2.5"/>',
  gym:'<path d="M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11"/>',
@@ -323,6 +327,21 @@ const IC={
 };
 const COLORS=["#C6EE3A","#57E39A","#6CB8FF","#A78BFA","#FF8A65","#FFC24B","#FF7EB6","#9FA4AE"];
 const SLOTS={any:"Cualquier hora",morning:"Mañana",afternoon:"Tarde",night:"Noche"};
+/* Tus rutinas (days: días de la semana en que toca, 0=domingo; time: hora del recordatorio) */
+const MY_HABITS=[
+ {id:"r1",n:"Creatina",ic:"pill",c:"#FF8A65",kind:"day",target:1,slot:"morning",time:"07:00"},
+ {id:"r2",n:"Lavar dientes",ic:"tooth",c:"#57E39A",kind:"day",target:3,slot:"any"},
+ {id:"r3",n:"Minoxidil",ic:"leaf",c:"#A78BFA",kind:"day",target:1,slot:"night",time:"23:00"},
+ {id:"r4",n:"Sacar la basura",ic:"trash",c:"#9FA4AE",kind:"day",target:1,slot:"night",time:"22:00",days:[2,4,0]},
+ {id:"r5",n:"Duolingo",ic:"lang",c:"#58CC02",kind:"day",target:1,slot:"any"},
+ {id:"r6",n:"Curso PLC",ic:"code",c:"#6CB8FF",kind:"week",target:4,slot:"any"},
+ {id:"r7",n:"Crema",ic:"cream",c:"#FF7EB6",kind:"day",target:1,slot:"night",time:"23:00"}
+];
+const DIAS1=["D","L","M","M","J","V","S"];
+/* ¿Le toca hoy? (los hábitos con días específicos solo cuentan esos días) */
+const due=(h,d)=>!h.days||!h.days.length||h.days.includes(parse(d).getDay());
+const hhmm=t=>{if(!t)return "";const [H,M]=t.split(":").map(Number);return `${H%12||12}:${String(M).padStart(2,"0")} ${H<12?"a. m.":"p. m."}`};
+function migrateH(){if((S.hv||0)>=2)return;S.habits=JSON.parse(JSON.stringify(MY_HABITS));S.log={};S.sample=false;S.nid=8;S.hv=2}
 const KEY="ritmo1";
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
@@ -357,6 +376,7 @@ function sample(){
 }
 let S;try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 if(!S||!Array.isArray(S.habits))S=sample();
+migrateH();
 const save=()=>{if(window.SYNC)SYNC.touch();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 
 /* ======================= Lógica de hábitos ======================= */
@@ -368,16 +388,17 @@ const cnt=(h,d)=>((S.log[d]||{})[h.id]||[]).length;
 const weekDays=(h,d)=>{const m=monday(d);let n=0;for(let i=0;i<7;i++){const x=addDays(m,i);if(x>d)break;if(cnt(h,x))n++}return n};
 const rule=h=>h.kind==="day"?(h.target===1?"1 vez al día":`${h.target} veces al día`):`${h.target} días por semana`;
 function status(h,d=today()){
-  if(h.kind==="day"){const c=cnt(h,d);return {p:Math.min(1,c/h.target),done:c>=h.target,c,txt:h.target===1?(c?"Hecho hoy":SLOTS[h.slot]):`${c} de ${h.target} hoy`}}
+  if(h.kind==="day"){const c=cnt(h,d);if(!due(h,d))return {p:c?1:0,done:true,off:!c,c,txt:`Toca ${h.days.slice().sort((a,b)=>((a+6)%7)-((b+6)%7)).map(x=>DIAS1[x]).join(" ")}`};
+    return {p:Math.min(1,c/h.target),done:c>=h.target,c,txt:h.target===1?(c?"Hecho hoy":h.time?`A las ${hhmm(h.time)}`:SLOTS[h.slot]):`${c} de ${h.target} hoy`}}
   const wd=weekDays(h,d),todayDone=cnt(h,d)>0;
   return {p:Math.min(1,wd/h.target),done:todayDone||wd>=h.target,c:wd,todayDone,met:wd>=h.target,txt:wd>=h.target?`Meta semanal lista · ${wd} de ${h.target}`:`${wd} de ${h.target} esta semana`};
 }
 /* Progreso del día: los semanales cuentan solo si aún falta cumplir la meta de la semana o ya se hicieron hoy */
-function dayScore(d){let s=0,n=0;for(const h of S.habits){if(h.kind==="day"){s+=Math.min(1,cnt(h,d)/h.target);n++}else{const wdBefore=weekDays(h,addDays(d,-1))*(monday(d)===monday(addDays(d,-1))?1:0),done=cnt(h,d)>0;if(done){s++;n++}else if(wdBefore<h.target){n++}}}return n?s/n:0}
+function dayScore(d){let s=0,n=0;for(const h of S.habits){if(h.kind==="day"&&!due(h,d))continue;if(h.kind==="day"){s+=Math.min(1,cnt(h,d)/h.target);n++}else{const wdBefore=weekDays(h,addDays(d,-1))*(monday(d)===monday(addDays(d,-1))?1:0),done=cnt(h,d)>0;if(done){s++;n++}else if(wdBefore<h.target){n++}}}return n?s/n:0}
 /* Fuerza del hábito (fórmula de Loop Habit Tracker): sube con constancia y baja lento si fallas un día */
 function strength(h,days=120){const freq=h.kind==="day"?1:h.target/7,m=Math.pow(.5,Math.sqrt(freq)/13);let sc=0;const t=today();
-  for(let k=days;k>=0;k--){const d=addDays(t,-k);let v;if(h.kind==="day")v=Math.min(1,cnt(h,d)/h.target);else{let n=0;for(let j=0;j<7;j++)if(cnt(h,addDays(d,-j)))n++;v=Math.min(1,n/h.target)}sc=sc*m+v*(1-m)}return sc}
-function streak(h){const t=today();if(h.kind==="day"){let k=status(h).done?0:1,n=0;while(cnt(h,addDays(t,-k))>=h.target){n++;k++}return {n,u:n===1?"día":"días"}}
+  for(let k=days;k>=0;k--){const d=addDays(t,-k);if(h.kind==="day"&&!due(h,d))continue;let v;if(h.kind==="day")v=Math.min(1,cnt(h,d)/h.target);else{let n=0;for(let j=0;j<7;j++)if(cnt(h,addDays(d,-j)))n++;v=Math.min(1,n/h.target)}sc=sc*m+v*(1-m)}return sc}
+function streak(h){const t=today();if(h.kind==="day"){let k=status(h).done?0:1,n=0;while(k<400){const d=addDays(t,-k);if(!due(h,d)){k++;continue}if(cnt(h,d)<h.target)break;n++;k++}return {n,u:n===1?"día":"días"}}
   let w=monday(t),n=0;if(weekDays(h,t)>=h.target)n++;w=addDays(w,-1);while(weekDays(h,w)>=h.target){n++;w=addDays(monday(w),-1)}return {n,u:n===1?"semana":"semanas"}}
 function best(h){let b=0,run=0;const t=today();if(h.kind==="day"){for(let k=120;k>=0;k--){if(cnt(h,addDays(t,-k))>=h.target){run++;b=Math.max(b,run)}else run=0}return b}
   for(let k=17;k>=0;k--){const d=addDays(monday(t),-7*k+6);if(weekDays(h,d>t?t:d)>=h.target){run++;b=Math.max(b,run)}else run=0}return b}
@@ -419,7 +440,7 @@ function habCard(h,i){const st=status(h),t=today();
     <span class="chk"><svg class="r" viewBox="0 0 30 30"><circle class="bg" cx="15" cy="15" r="13"/><circle class="fg" cx="15" cy="15" r="13" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-p)}"/></svg>${target>1&&!st.done?`<span class="cnt num">${val}</span>`:""}<span class="ok">${svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>',2.8)}</span></span></button>`}
 function renderToday(){
   const t=today(),nm=nowMin(),slot=nm<720?"morning":nm<1140?"afternoon":"night";
-  const items=S.habits.map(h=>({h,st:status(h)}));
+  const all=S.habits.map(h=>({h,st:status(h)})),off=all.filter(x=>x.st.off),items=all.filter(x=>!x.st.off);
   const todo=items.filter(x=>!x.st.done).sort((a,b)=>(b.h.slot===slot)-(a.h.slot===slot)||(a.h.slot==="any")-(b.h.slot==="any")),done=items.filter(x=>x.st.done);
   const m=monday(t),d=parse(t);
   const days=Array.from({length:7},(_,k)=>{const x=addDays(m,k),fut=x>t,p=fut?0:dayScore(x);return `<div class="day" ${x===t?'aria-current="date"':""}>${DOW[k]}${ring(p,30,4,x===t?"var(--ink)":"var(--ink2)")}<b>${parse(x).getDate()}</b></div>`}).join("");
@@ -431,6 +452,8 @@ function renderToday(){
     <div class="tcb">${items.map(x=>`<i title="${esc(x.h.n)}" style="background:${x.h.c};opacity:${x.st.done?1:Math.max(.22,x.st.p)}"></i>`).join("")}</div></div></div>
   ${todo.length?`<div class="sec"><h2>Por hacer</h2><span>${todo.length}</span></div><div class="group rise" style="--i:1">${todo.map((x,i)=>habCard(x.h,i)).join("")}</div>`:""}
   ${done.length?`<div class="sec"><h2>Hechos</h2><span>${done.length}</span></div><div class="group rise" style="--i:2">${done.map((x,i)=>habCard(x.h,i+todo.length)).join("")}</div>`:""}
+  ${off.length?`<p class="hint">Hoy no toca: ${off.map(x=>esc(x.h.n)).join(", ")}</p>`:""}
+  <button class="ntest press" data-notif>${svg('<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0"/>')}Probar notificación</button>
   ${S.habits.length?`<p class="hint">Mantén presionado un hábito para ver su detalle</p>`:`<div class="empty">Aún no tienes hábitos. Toca + para crear el primero.</div>`}`;
 }
 /* --- Semana: cuadrícula para marcar días pasados --- */
@@ -524,6 +547,15 @@ function after(){
 }
 function go(s){if(window.Desk&&Desk.on&&Desk.go(s))return;if(s===screen){scrollTo({top:0,behavior:"smooth"});return}screen=s;render(true);scrollTo(0,0)}
 
+/* --- Notificación de prueba: en iPhone solo funciona con Rutinas agregada a la pantalla de inicio (iOS 16.4+) --- */
+async function testNotif(){
+  if(!("Notification" in window)||!("serviceWorker" in navigator)){toast(navigator.standalone===false||!matchMedia("(display-mode: standalone)").matches?"Agrega Rutinas a tu pantalla de inicio para recibir notificaciones":"Este dispositivo no permite notificaciones aquí");return}
+  let p=Notification.permission;if(p==="default")p=await Notification.requestPermission();
+  if(p!=="granted"){toast("Permite las notificaciones de Rutinas en Ajustes → Notificaciones");return}
+  const reg=await navigator.serviceWorker.ready,next=S.habits.map(h=>({h,st:status(h)})).find(x=>!x.st.done);
+  await reg.showNotification("Rutinas",{body:next?`Te falta: ${next.h.n}${next.h.time?" ("+hhmm(next.h.time)+")":""}`:"¡Completaste todo por hoy!",icon:"icons/icon-192.png",badge:"icons/icon-192.png",tag:"prueba",data:{url:location.href}});
+  toast("Notificación enviada")}
+
 /* --- Marcar: tocar suma; mantener presionado abre el detalle --- */
 let lastUndo=null;
 function log(h,d=today(),m=nowMin()){((S.log[d]=S.log[d]||{})[h.id]=S.log[d][h.id]||[]).push(m)}
@@ -569,6 +601,8 @@ function editor(h){draft=h?{...h}:{id:null,n:"",ic:"leaf",c:COLORS[S.habits.leng
   <div class="field"><input type="text" id="hn" placeholder="Ej. Lavar dientes, caminar, leer…" value="${(draft.n||"").replace(/"/g,"&quot;")}" maxlength="32" autocomplete="off"></div>
   <div class="field"><span class="lbl">¿Con qué frecuencia?</span><div class="seg" id="kind"><button data-k="day" aria-pressed="${draft.kind==="day"}">Varias veces al día</button><button data-k="week" aria-pressed="${draft.kind==="week"}">Días por semana</button></div></div>
   <div class="field"><div class="stepper"><button data-st="-1" aria-label="Menos">−</button><b id="tg">${draft.target}<small>${draft.kind==="day"?"al día":"por semana"}</small></b><button data-st="1" aria-label="Más">+</button></div></div>
+  <div class="field"><span class="lbl">Recordatorio (opcional)</span><input type="time" id="htime" value="${draft.time||""}" style="width:100%;height:46px;border:0;border-radius:14px;background:var(--card2);padding:0 14px;font:inherit;font-size:16px;color:var(--ink)"></div>
+  <div class="field" id="hdaysF" ${draft.kind==="day"?"":"hidden"}><span class="lbl">¿Qué días? (ninguno = todos)</span><div class="seg" style="grid-template-columns:repeat(7,1fr)">${[1,2,3,4,5,6,0].map(d=>`<button data-hd="${d}" aria-pressed="${!!(draft.days||[]).includes(d)}">${DIAS1[d]}</button>`).join("")}</div></div>
   <div class="field"><span class="lbl">Momento</span><div class="seg s4">${Object.entries(SLOTS).map(([k,v])=>`<button data-sl="${k}" aria-pressed="${draft.slot===k}">${k==="any"?"Libre":v}</button>`).join("")}</div></div>
   <div class="field"><span class="lbl">Ícono</span><div class="icons">${Object.keys(IC).map(k=>`<button data-ic="${k}" aria-pressed="${draft.ic===k}" aria-label="${k}">${svg(IC[k])}</button>`).join("")}</div></div>
   <div class="field"><span class="lbl">Color</span><div class="colors">${COLORS.map(c=>`<button data-col="${c}" aria-pressed="${draft.c===c}" style="background:${c}" aria-label="Color"></button>`).join("")}</div></div>
@@ -600,12 +634,15 @@ document.addEventListener("click",e=>{
     if(p>=1){const r=t.getBoundingClientRect();burst(r.left+r.width/2,r.top+r.height/2,h.c,10)}clearTimeout(render.t);render.t=setTimeout(()=>render(),900);return}
   if(t=g("[data-sh]")){statH=t.dataset.sh;render();return}
   if(g("[data-coach]")){coach();return}
-  if(t=g("[data-k]")){draft.kind=t.dataset.k;draft.target=Math.min(draft.target,draft.kind==="week"?7:12);t.parentNode.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b===t));$("#tg").innerHTML=`${draft.target}<small>${draft.kind==="day"?"al día":"por semana"}</small>`;return}
+  if(t=g("[data-k]")){draft.kind=t.dataset.k;const hf=$("#hdaysF");if(hf)hf.hidden=draft.kind!=="day";draft.target=Math.min(draft.target,draft.kind==="week"?7:12);t.parentNode.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b===t));$("#tg").innerHTML=`${draft.target}<small>${draft.kind==="day"?"al día":"por semana"}</small>`;return}
   if(t=g("[data-st]")){draft.target=Math.max(1,Math.min(draft.kind==="week"?7:12,draft.target+ +t.dataset.st));$("#tg").innerHTML=`${draft.target}<small>${draft.kind==="day"?"al día":"por semana"}</small>`;$("#tg").animate([{transform:"scale(1.18)"},{transform:"none"}],{duration:450,easing:getComputedStyle(document.documentElement).getPropertyValue("--spring")||"ease-out"});return}
+  if(t=g("[data-hd]")){const d=+t.dataset.hd,a=draft.days=(draft.days||[]).slice(),i=a.indexOf(d);if(i>=0)a.splice(i,1);else a.push(d);t.setAttribute("aria-pressed",i<0);return}
+  if(g("[data-notif]")){testNotif();return}
   if(t=g("[data-sl]")){draft.slot=t.dataset.sl;t.parentNode.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b===t));return}
   if(t=g("[data-ic]")){draft.ic=t.dataset.ic;t.parentNode.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b===t));return}
   if(t=g("[data-col]")){draft.c=t.dataset.col;t.parentNode.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",b===t));return}
   if(g("[data-savehab]")){const n=$("#hn").value.trim(),isNew=!draft.id;if(!n){$("#hn").focus();toast("Ponle un nombre");return}draft.n=n;
+    const tm=$("#htime")&&$("#htime").value;if(tm)draft.time=tm;else delete draft.time;if(draft.kind!=="day"||!(draft.days||[]).length)delete draft.days;
     if(draft.id){S.habits[S.habits.findIndex(x=>x.id===draft.id)]=draft}else{draft.id="h"+(S.nid++);S.habits.push(draft)}save();closeSheet();render(true);toast(isNew?"Hábito creado":"Hábito guardado");return}
   if(g("[data-del]")){S.habits=S.habits.filter(x=>x.id!==draft.id);for(const d in S.log)delete S.log[d][draft.id];save();closeSheet();render(true);toast("Hábito eliminado");return}
   if(g("[data-close]")){closeSheet();return}
@@ -631,7 +668,7 @@ setInterval(()=>{if(screen==="today"&&$("#sheet").hidden&&!document.querySelecto
 
 save();syncThemeColor();render();
 if(window.Desk)Desk.watch(()=>render());
-window.SYNC=window.Nube?Nube.sync("rutinas",{get:()=>S,set:d=>{S=d;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}render();toast("Datos actualizados desde tu cuenta")}}):null;
+window.SYNC=window.Nube?Nube.sync("rutinas",{get:()=>S,set:d=>{S=d;migrateH();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}render();toast("Datos actualizados desde tu cuenta")}}):null;
 if("serviceWorker" in navigator&&location.protocol!=="file:")addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 </script>
 </body>

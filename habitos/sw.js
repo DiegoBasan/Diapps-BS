@@ -1,5 +1,5 @@
 /* Service worker de Rutinas: abre sin conexión. Solo borra cachés con prefijo "ritmo-". */
-const VERSION="ritmo-v4";
+const VERSION="ritmo-v5";
 const CORE=["./","index.html","manifest.webmanifest","icons/apple-touch-icon.png","icons/icon.svg","icons/icon-192.png"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(VERSION).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k.startsWith("ritmo-")&&k!==VERSION).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
@@ -11,3 +11,6 @@ self.addEventListener("fetch",e=>{
     e.respondWith(caches.match(r).then(hit=>hit||fetch(r).then(res=>{if(res.ok||res.type==="opaque"){const c=res.clone();caches.open(VERSION).then(k=>k.put(r,c))}return res})));
   }
 });
+
+/* Al tocar una notificación se abre (o enfoca) Rutinas */
+self.addEventListener("notificationclick",e=>{e.notification.close();e.waitUntil(clients.matchAll({type:"window",includeUncontrolled:true}).then(l=>{for(const c of l)if("focus" in c)return c.focus();return clients.openWindow((e.notification.data&&e.notification.data.url)||"./")}))});
