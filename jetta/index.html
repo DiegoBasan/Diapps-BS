@@ -153,7 +153,11 @@ button.tag{border:1px solid var(--line)}
 .dash .top{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .dash .chips{display:flex;gap:6px}
 .dash .chip{font-size:12.5px;font-weight:600;padding:6px 10px;border-radius:99px;background:var(--card)}
-.dash .body{display:grid;grid-template-columns:150px 1fr;gap:16px;align-items:center;margin-top:10px}
+.dash .body{display:block;margin-top:10px}
+.dash .body .odo{flex-direction:row;align-items:stretch;gap:0}.dash .body .odo>button{flex:1;min-width:0}.dash .body .odo hr{width:1px;height:auto;margin:0 12px;border:0;background:var(--line)}
+.fuelg{display:block;width:100%;margin-top:14px;text-align:left}
+.fuelg .fh{display:flex;align-items:baseline;gap:8px}.fuelg .fh b{font-size:26px;font-weight:500;letter-spacing:-.03em;margin-left:auto}.fuelg .fh .num:last-child{font-size:13px;color:var(--ink2)}
+.fuelg svg{display:block;width:100%;height:auto;margin-top:2px}
 .gauge{position:relative;width:150px;height:150px}
 .gauge svg{position:absolute;inset:0;width:100%;height:100%}
 .gauge .c{position:absolute;inset:0;display:grid;place-items:center;text-align:center;pointer-events:none}
@@ -580,16 +584,22 @@ function renderSpotCard(){
 
 /* ---------------- Tablero (moderno, inspirado en el cluster del MK6) ---------------- */
 let gaugeShown=0,gaugeRaf;
+/* Medidor de gasolina como el del tablero VW: arco con 4 secciones (0–¼, ¼–½, ½–¾, ¾–1) y la primera dividida en 3 */
 function gaugeSVG(p){
-  // 270° de segmentos, como la barra segmentada de gasolina del tablero VW
-  const N=34,cx=75,cy=75,r1=66,r2=56,start=-135,span=270,on=Math.round(p*N);
+  const W=320,cx=160,cy=430,R=392,T=16,A=21.5,deg=t=>(-A+2*A*t)*Math.PI/180;
+  const pt=(t,r)=>[cx+r*Math.sin(deg(t)),cy-r*Math.cos(deg(t))],f=n=>n.toFixed(1);
   const col=S.fuel<15?"var(--crit)":S.fuel<25?"var(--warn)":"var(--ink)";
+  const SEG=[[0,1/12],[1/12,2/12],[2/12,.25],[.25,.5],[.5,.75],[.75,1]],gap=.006;
   let o="";
-  for(let i=0;i<N;i++){const a=(start+span*(i/(N-1)))*Math.PI/180,x1=cx+r1*Math.sin(a),y1=cy-r1*Math.cos(a),x2=cx+r2*Math.sin(a),y2=cy-r2*Math.cos(a);
-    o+=`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${i<on?col:"var(--line)"}" stroke-width="3.2" stroke-linecap="round"/>`}
-  const lab=(t,txt)=>{const a=(start+span*t)*Math.PI/180,r=46;return `<text x="${(cx+r*Math.sin(a)).toFixed(1)}" y="${(cy-r*Math.cos(a)+3).toFixed(1)}" text-anchor="middle" font-size="8.5" font-weight="600" fill="var(--ink2)" font-family="Urbanist,sans-serif">${txt}</text>`};
-  return `<svg viewBox="0 0 150 150" aria-hidden="true">${o}${lab(0,"0")}${lab(.5,"½")}${lab(1,"1")}
-    <g transform="translate(62,112) scale(.72)" fill="none" stroke="var(--ink2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${IC.fuel}</g><path d="M82,124.5 l5,3.2 l-5,3.2z" fill="var(--ink2)"/></svg>`;
+  SEG.forEach(([a,b],i)=>{const a1=a+(i?gap:0),b1=b-(i<SEG.length-1?gap:0),lit=p>a+(b-a)*.35;
+    const [x1,y1]=pt(a1,R),[x2,y2]=pt(b1,R),[x3,y3]=pt(b1,R-T),[x4,y4]=pt(a1,R-T);
+    o+=`<path d="M${f(x1)},${f(y1)} A${R},${R} 0 0 1 ${f(x2)},${f(y2)} L${f(x3)},${f(y3)} A${R-T},${R-T} 0 0 0 ${f(x4)},${f(y4)}Z" fill="${lit?col:"var(--line)"}" style="transition:fill .3s"/>`});
+  // contorno superior y marcas de cada cuarto
+  const [sx,sy]=pt(0,R+5),[ex,ey]=pt(1,R+5);o+=`<path d="M${f(sx)},${f(sy)} A${R+5},${R+5} 0 0 1 ${f(ex)},${f(ey)}" fill="none" stroke="var(--ink2)" stroke-width="1.6"/>`;
+  [0,.25,.5,.75,1].forEach(t=>{const [x1,y1]=pt(t,R+5),[x2,y2]=pt(t,R+14);o+=`<line x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}" stroke="var(--ink2)" stroke-width="1.6" stroke-linecap="round"/>`});
+  const lab=(t,txt)=>{const [x,y]=pt(t,R-T-14);return `<text x="${f(x)}" y="${f(y+4)}" text-anchor="middle" font-size="13" font-weight="600" fill="var(--ink2)" font-family="Urbanist,sans-serif">${txt}</text>`};
+  return `<svg viewBox="0 24 ${W} 98" aria-hidden="true">${o}${lab(0,"0")}${lab(.25,"1/4")}${lab(.5,"1/2")}${lab(.75,"3/4")}${lab(1,"1")}
+    <g transform="translate(147,92) scale(.82)" fill="none" stroke="var(--ink2)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${IC.fuel}</g><path d="M171,100.5 l6,4 l-6,4z" fill="var(--ink2)"/></svg>`;
 }
 function renderCluster(){
   const now=new Date(),clock=now.toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"});
@@ -601,7 +611,6 @@ function renderCluster(){
     <div class="top"><div><div class="ey sub">Tablero</div><h3 style="margin:2px 0 0;font-size:19px;font-weight:500">Estado actual</h3></div>
       <div class="chips"><span class="chip num">${clock}</span><button class="chip num" data-sheet="odo" aria-label="Temperatura exterior">${(+S.temp).toFixed(1)}°</button></div></div>
     <div class="body">
-      <button class="gauge" data-sheet="fuel" aria-label="Gasolina ${S.fuel}%, actualizar"><span id="gSvg">${gaugeSVG(gaugeShown)}</span><span class="c"><span><b class="num" id="gPct">${Math.round(gaugeShown*100)}%</b><span class="num">${fmt(L*KM_PER_L)} km</span></span></span></button>
       <div class="odo">
         <button data-sheet="odo"><span class="lbl">Odómetro</span><span class="v num">${fmt(S.odo)}<small>km</small></span></button>
         <hr>
@@ -610,6 +619,7 @@ function renderCluster(){
         <button data-open="maint"><span class="lbl">Próximo servicio</span><span class="s num" style="${nx&&nx.s.kmLeft<0?"color:var(--crit)":""}">${nx?(nx.s.kmLeft<0?"Vencido · ":"")+fmt(Math.abs(nx.s.kmLeft))+" km":"—"}</span></button>
       </div>
     </div>
+    <button class="fuelg" data-sheet="fuel" aria-label="Gasolina ${S.fuel}%, actualizar"><span class="fh"><span class="lbl">Gasolina</span><b class="num" id="gPct">${Math.round(gaugeShown*100)}%</b><span class="num">≈ ${fmt(L*KM_PER_L)} km</span></span><span id="gSvg">${gaugeSVG(gaugeShown)}</span></button>
     <div class="warns">${act.length?act.map(l=>`<button class="warn" data-l="${l.k}"><span class="light">${icon(l.k,LCOL[l.c])}</span><span class="t"><b>${l.n}</b><span class="sub">Encendido en el tablero · ${l.u.toLowerCase()}</span></span><svg width="9" height="14" viewBox="0 0 10 16" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--ink2)"><path d="M2 2l6 6-6 6"/></svg></button>`).join(""):`<div class="warn"><span class="light" style="background:color-mix(in srgb,var(--lime) 55%,transparent);color:#26300a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12l5 5 9-10"/></svg></span><span class="t"><b>Sin testigos encendidos</b><span class="sub">Si se prende uno, márcalo en Testigos</span></span></div>`}</div>`;
 }
 function sweep(){
