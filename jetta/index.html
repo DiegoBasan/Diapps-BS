@@ -73,7 +73,7 @@ button:focus-visible,input:focus-visible,label:focus-visible{outline:2px solid v
   body.desk .dpanel{background:transparent;margin:0;padding:0;min-height:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;align-items:start}
   body.desk .dpanel>div,body.desk .dpanel>[hidden]{display:block!important;background:var(--white);border-radius:28px;padding:18px 20px 22px;scroll-margin-top:80px;min-width:0}
   body.desk .dpanel>div::before{display:block;font-size:24px;font-weight:600;letter-spacing:-.02em;margin:0 0 12px}
-  body.desk #p-maint::before{content:"Mantenimiento"}body.desk #p-lights::before{content:"Testigos del tablero"}body.desk #p-faults::before{content:"Fallas típicas"}body.desk #p-specs::before{content:"Ficha técnica"}
+  body.desk #p-maint::before{content:"Mantenimiento"}body.desk #p-lights::before{content:"Testigos del tablero"}body.desk #p-faults::before{content:"Fallas típicas"}body.desk #p-specs::before{content:"Ficha técnica"}body.desk #p-fuel::before{content:"Gasolina"}
   body.desk #p-maint{grid-row:span 2}
   body.desk .lightGrid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}
 }
@@ -155,6 +155,13 @@ button.tag{border:1px solid var(--line)}
 .dash .chip{font-size:12.5px;font-weight:600;padding:6px 10px;border-radius:99px;background:var(--card)}
 .dash .body{display:block;margin-top:10px}
 .dash .body .odo{flex-direction:row;align-items:stretch;gap:0}.dash .body .odo>button{flex:1;min-width:0}.dash .body .odo hr{width:1px;height:auto;margin:0 12px;border:0;background:var(--line)}
+.fk{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}.fk>div{background:var(--card);border-radius:18px;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.fk b{font-size:22px;font-weight:500;letter-spacing:-.02em}.fk small{font-size:12px;color:var(--ink2);font-weight:500}
+.fcharts{display:grid;gap:10px;margin-top:12px}.fcharts>div{background:var(--card);border-radius:18px;padding:12px 14px}.spark{display:block;width:100%;height:auto;margin-top:4px}
+.flist{display:flex;flex-direction:column;gap:8px;margin-top:12px}.flist .mi{text-align:left;width:100%}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}.fgrid .field{margin:10px 0}.fgrid input{font-size:19px!important}
+.field input[type=text]{font:inherit;font-size:17px;padding:12px 16px;border-radius:18px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);width:100%}
+.tog{display:flex;align-items:center;gap:10px;font-weight:600;margin:6px 0}.tog input{width:20px;height:20px;accent-color:var(--ink)}
 .fuelg{display:block;width:100%;margin-top:14px;text-align:left}
 .fuelg .fh{display:flex;align-items:baseline;gap:8px}.fuelg .fh b{font-size:26px;font-weight:500;letter-spacing:-.03em;margin-left:auto}.fuelg .fh .num:last-child{font-size:13px;color:var(--ink2)}
 .fuelg svg{display:block;width:100%;height:auto;margin-top:2px}
@@ -332,6 +339,7 @@ input[type=range]{width:100%;accent-color:var(--ink)}
   <div class="quick" id="quick"></div>
 
   <div class="rv dash" id="dash" aria-label="Tablero del Jetta"></div>
+  <div class="rv card" id="fuelCard"></div>
 
   <div class="rv card">
     <div class="ch"><div><div class="ey">5W-40 sintético · VW 502 00</div><h3>Aceite de motor</h3></div>
@@ -398,6 +406,7 @@ input[type=range]{width:100%;accent-color:var(--ink)}
       <div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input id="q" placeholder="Síntoma o código (P0300, vibración…)" autocomplete="off"></div>
       <div id="codeHit"></div><div id="aiBox"></div><div id="faultList"></div>
     </div>
+    <div id="p-fuel" hidden></div>
     <div id="p-specs" hidden>
       <div id="specs"></div>
       <h4>Imagen del auto</h4>
@@ -419,6 +428,20 @@ input[type=range]{width:100%;accent-color:var(--ink)}
 <script>
 /* ---------------- Datos ---------------- */
 const TANK=55, KM_PER_L=11.5;
+/* ---------------- Cargas de gasolina ----------------
+   Cada carga: {id,d,price ($/L),pesos,litros,odo,full,station}. El rendimiento de una carga se calcula con los km
+   desde la carga anterior entre los litros que pusiste (exacto si llenas el tanque cada vez; aproximado si no). */
+function fuelStats(){
+  const F=(S.fills||[]).slice().sort((a,b)=>a.odo-b.odo||a.d.localeCompare(b.d));
+  const rows=F.map((f,i)=>{const prev=F[i-1],next=F[i+1],km=prev?f.odo-prev.odo:null;
+    return {...f,km,kmpl:km>0?km/f.litros:null,cpk:km>0?f.pesos/km:null,dur:(next?next.odo:S.odo)-f.odo,ongoing:!next}});
+  const u=rows.filter(r=>r.km>0),km=u.reduce((a,r)=>a+r.km,0),L=u.reduce((a,r)=>a+r.litros,0),P=u.reduce((a,r)=>a+r.pesos,0);
+  const tP=rows.reduce((a,r)=>a+r.pesos,0),tL=rows.reduce((a,r)=>a+r.litros,0),ms=new Date().toISOString().slice(0,7);
+  const month=rows.filter(r=>r.d.slice(0,7)===ms).reduce((a,r)=>a+r.pesos,0);
+  return {rows,kmpl:L&&km>0?km/L:null,cpk:km>0?P/km:null,avgPrice:tL?tP/tL:null,lastPrice:rows.length?rows.at(-1).price:null,month,tP,tL,last:F.at(-1)};
+}
+function KMPL(){const f=fuelStats();return f.kmpl&&f.kmpl>3&&f.kmpl<30?f.kmpl:KM_PER_L}
+const mxn=n=>"$"+(+n).toLocaleString("es-MX",{minimumFractionDigits:n%1?2:0,maximumFractionDigits:2});
 const DEFAULTS={odo:214072,trip:14.8,temp:20.0,fuel:22,oil:62,active:["airbag"],
   done:{oil:205100,airf:190600,cabin:205100,plugs:176100,atf:181600,belt:147600,rot:205100,align:200600,pads:197600},
   doneDate:{oil:"2026-03-20",cabin:"2026-03-20",brakef:"2025-02-15",coolant:"2023-11-02",battery:"2024-08-20"}};
@@ -532,7 +555,7 @@ const SPOTS=[
  {k:"tires",ic:"tire",n:"Llantas",pref:"side",at:{side:[18,74],iso:[44,87]}},
  {k:"lights",ic:"bulb",n:"Luces",pref:"side",at:{side:[95,36],iso:[27,78]}}
 ];
-const DIMG={maint:"hood",lights:"iso",faults:"hood",specs:"side"};
+const DIMG={maint:"hood",fuel:"side",lights:"iso",faults:"hood",specs:"side"};
 let userImg=null;try{const a=JSON.parse(localStorage.getItem("jetta6imgs")||"[]");userImg=a[a.length-1]||null}catch(e){}
 Object.values(VIEWS).forEach(v=>{const i=new Image();i.src=v.src});
 const srcOf=id=>id==="iso"&&userImg?userImg:VIEWS[id].src;
@@ -573,7 +596,7 @@ function renderSpotCard(){
     coolant:["Refrigerante G13",M("coolant").left,"Depósito blanco · motor frío","temp"],
     battery:["Batería",M("battery").left.replace("Sin registro","Sin prueba registrada"),"Junto a la caja del filtro de aire","batt"],
     brakef:["Líquido de frenos DOT 4",M("brakef").left,"Depósito junto a la pared de fuego","brake"],
-    fuel:["Gasolina",`${S.fuel}%`,`${L.toFixed(0)} L · ≈ ${fmt(L*KM_PER_L)} km · tapa a la derecha`,"fuel"],
+    fuel:["Gasolina",`${S.fuel}%`,`${L.toFixed(0)} L · ≈ ${fmt(L*KMPL())} km · tapa a la derecha`,"fuel"],
     tires:["Llantas",M("rot").left,"205/55 R16 · rotación cada 10,000 km","tpms"],
     lights:["Faros y calaveras","Revisión","Si una direccional parpadea rápido, hay un foco fundido","bulb"]
   }[spot];
@@ -584,12 +607,12 @@ function renderSpotCard(){
 
 /* ---------------- Tablero (moderno, inspirado en el cluster del MK6) ---------------- */
 let gaugeShown=0,gaugeRaf;
-/* Medidor de gasolina como el del tablero VW: arco con 4 secciones (0–¼, ¼–½, ½–¾, ¾–1) y la primera dividida en 3 */
+/* Medidor de gasolina como el del tablero VW: arco con 4 secciones (0–¼, ¼–½, ½–¾, ¾–1) y la primera dividida en 4 */
 function gaugeSVG(p){
   const W=320,cx=160,cy=430,R=392,T=16,A=21.5,deg=t=>(-A+2*A*t)*Math.PI/180;
   const pt=(t,r)=>[cx+r*Math.sin(deg(t)),cy-r*Math.cos(deg(t))],f=n=>n.toFixed(1);
   const col=S.fuel<15?"var(--crit)":S.fuel<25?"var(--warn)":"var(--ink)";
-  const SEG=[[0,1/12],[1/12,2/12],[2/12,.25],[.25,.5],[.5,.75],[.75,1]],gap=.006;
+  const SEG=[[0,1/16],[1/16,2/16],[2/16,3/16],[3/16,.25],[.25,.5],[.5,.75],[.75,1]],gap=.006;
   let o="";
   SEG.forEach(([a,b],i)=>{const a1=a+(i?gap:0),b1=b-(i<SEG.length-1?gap:0),lit=p>a+(b-a)*.35;
     const [x1,y1]=pt(a1,R),[x2,y2]=pt(b1,R),[x3,y3]=pt(b1,R-T),[x4,y4]=pt(a1,R-T);
@@ -619,7 +642,7 @@ function renderCluster(){
         <button data-open="maint"><span class="lbl">Próximo servicio</span><span class="s num" style="${nx&&nx.s.kmLeft<0?"color:var(--crit)":""}">${nx?(nx.s.kmLeft<0?"Vencido · ":"")+fmt(Math.abs(nx.s.kmLeft))+" km":"—"}</span></button>
       </div>
     </div>
-    <button class="fuelg" data-sheet="fuel" aria-label="Gasolina ${S.fuel}%, actualizar"><span class="fh"><span class="lbl">Gasolina</span><b class="num" id="gPct">${Math.round(gaugeShown*100)}%</b><span class="num">≈ ${fmt(L*KM_PER_L)} km</span></span><span id="gSvg">${gaugeSVG(gaugeShown)}</span></button>
+    <button class="fuelg" data-sheet="fuel" aria-label="Gasolina ${S.fuel}%, actualizar"><span class="fh"><span class="lbl">Gasolina</span><b class="num" id="gPct">${Math.round(gaugeShown*100)}%</b><span class="num">≈ ${fmt(L*KMPL())} km</span></span><span id="gSvg">${gaugeSVG(gaugeShown)}</span></button>
     <div class="warns">${act.length?act.map(l=>`<button class="warn" data-l="${l.k}"><span class="light">${icon(l.k,LCOL[l.c])}</span><span class="t"><b>${l.n}</b><span class="sub">Encendido en el tablero · ${l.u.toLowerCase()}</span></span><svg width="9" height="14" viewBox="0 0 10 16" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--ink2)"><path d="M2 2l6 6-6 6"/></svg></button>`).join(""):`<div class="warn"><span class="light" style="background:color-mix(in srgb,var(--lime) 55%,transparent);color:#26300a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12l5 5 9-10"/></svg></span><span class="t"><b>Sin testigos encendidos</b><span class="sub">Si se prende uno, márcalo en Testigos</span></span></div>`}</div>`;
 }
 function sweep(){
@@ -640,7 +663,7 @@ function renderHome(){
   {const st=MAINT.map(m=>mstate(m).st),nc=st.filter(x=>x==="crit").length,nw=st.filter(x=>x==="warn").length,na=(S.active||[]).length,p=$("#stPill");
    const [cls,txt]=nc||na?["crit",`${nc+na} por atender`]:nw?["warn",`${nw} pronto`]:["ok","Todo en orden"];p.className="stpill "+cls;p.innerHTML=`<i></i>${txt}`}
   const qi=p=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
-  $("#quick").innerHTML=`<button class="qa" data-sheet="fuel"><span class="ic">${qi(IC.fuel)}</span><span>Gasolina<small class="num">${S.fuel}% · ${fmt(TANK*S.fuel/100*KM_PER_L)} km</small></span></button>
+  $("#quick").innerHTML=`<button class="qa" data-sheet="fuel"><span class="ic">${qi(IC.fuel)}</span><span>Gasolina<small class="num">${S.fuel}% · ${fmt(TANK*S.fuel/100*KMPL())} km</small></span></button>
     <button class="qa" data-sheet="odo"><span class="ic">${qi(IC.cruise)}</span><span>Kilómetros<small>Actualizar</small></span></button>
     <button class="qa" data-open="lights"><span class="ic">${qi(IC.engine)}</span><span>Testigos<small>${(S.active||[]).length?(S.active.length+" encendido"+(S.active.length>1?"s":"")):"Ninguno"}</small></span></button>`;
   const L=TANK*S.fuel/100;
@@ -666,8 +689,8 @@ function renderHome(){
 }
 
 let dtab="maint",maintF="all",lightF="all";
-const DT=[["maint","Mantenimiento"],["lights","Testigos"],["faults","Fallas típicas"],["specs","Ficha técnica"]];
-const NAV=[["home","Inicio",'<path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5h-4V15h-5v5.5h-4A1.5 1.5 0 0 1 4 19z"/>'],["maint","Servicio",IC.service],["lights","Testigos",IC.engine],["faults","Fallas",'<path d="M12 3.5l9.5 16.5h-19zM12 10v4.2M12 17.2h.01"/>'],["specs","Ficha",'<rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="M8.5 8.5h7M8.5 12h7M8.5 15.5h4"/>']];
+const DT=[["maint","Mantenimiento"],["fuel","Gasolina"],["lights","Testigos"],["faults","Fallas típicas"],["specs","Ficha técnica"]];
+const NAV=[["home","Inicio",'<path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5h-4V15h-5v5.5h-4A1.5 1.5 0 0 1 4 19z"/>'],["maint","Servicio",IC.service],["fuel","Gasolina",IC.fuel],["lights","Testigos",IC.engine],["faults","Fallas",'<path d="M12 3.5l9.5 16.5h-19zM12 10v4.2M12 17.2h.01"/>'],["specs","Ficha",'<rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="M8.5 8.5h7M8.5 12h7M8.5 15.5h4"/>']];
 function renderNav(){
   const cur=$("#home").hidden?dtab:"home",pend=MAINT.filter(m=>mstate(m).st==="crit").length,act=(S.active||[]).length;
   const bd={maint:pend,lights:act};
@@ -676,7 +699,7 @@ function renderNav(){
 function renderDetail(){
   const pend=MAINT.filter(m=>mstate(m).st!=="ok").length;
   const counts={maint:pend,lights:LIGHTS.length,faults:FAULTS.length,specs:null};
-  const eys={maint:`${pend} pendiente${pend===1?"":"s"}`,lights:`${(S.active||[]).length} encendido${(S.active||[]).length===1?"":"s"} · ${LIGHTS.length} en total`,faults:`${FAULTS.length} del 2.5 L`,specs:"Jetta MK6 · 2015"};
+  const eys={maint:`${pend} pendiente${pend===1?"":"s"}`,lights:`${(S.active||[]).length} encendido${(S.active||[]).length===1?"":"s"} · ${LIGHTS.length} en total`,faults:`${FAULTS.length} del 2.5 L`,specs:"Jetta MK6 · 2015",fuel:`${(S.fills||[]).length} carga${(S.fills||[]).length===1?"":"s"} registradas`};
   $("#dTitle").textContent=DT.find(d=>d[0]===dtab)[1];$("#dEy").textContent=eys[dtab];renderNav();
   DT.forEach(([k])=>$("#p-"+k).hidden=k!==dtab);
   {const di=$("#dImg"),src=srcOf(DIMG[dtab]);if(di.getAttribute("src")!==src){di.src=src;di.classList.remove("pop");void di.offsetWidth;di.classList.add("pop")}}
@@ -688,7 +711,7 @@ function renderDetail(){
     <div class="meta"><span>${m.d}</span><span class="num">${[m.km?fmt(m.km)+" km":"",m.mo?m.mo+" meses":""].filter(Boolean).join(" · ")}</span></div>
     <div class="hd"><span class="sub num" style="flex:1">${s.left}</span><button class="pbtn" style="padding:8px 14px" data-done="${m.id}">Marcar hecho</button></div></div>`).join(""):`<p class="note">Nada en este filtro.</p>`;
   $("#lightGrid").innerHTML=LIGHTS.filter(l=>lightF==="all"||l.c===lightF||(lightF==="g"&&l.c==="b")).map((l,i)=>`<button class="lg" style="--i:${i}" data-l="${l.k}"${(S.active||[]).includes(l.k)?' style="box-shadow:inset 0 0 0 2px var(--ink)"':""}><span class="light">${icon(l.k,LCOL[l.c])}</span>${l.n}${(S.active||[]).includes(l.k)?'<span class="st s-warn">Encendido</span>':""}</button>`).join("");
-  renderFaults();
+  renderFaults();renderFuel();
   $("#specs").innerHTML=SPECS.map(([h,r],i)=>`<h4${i?"":' style="margin-top:4px"'}>${h}</h4><div class="rows">${r.map(([a,b])=>`<div class="r"><span>${a}</span><span class="num">${b}</span></div>`).join("")}</div>`).join("");
 }
 function renderFaults(){
@@ -700,7 +723,24 @@ function renderFaults(){
     <dl><dt>Síntoma</dt><dd>${f.sym}</dd><dt>Causa</dt><dd>${f.c}</dd><dt>Solución</dt><dd>${f.fix}</dd><dt>Cuándo</dt><dd class="num">${f.km}</dd></dl>
     ${f.codes.length?`<div class="codes">${f.codes.map(c=>`<span class="code">${c}</span>`).join("")}</div>`:""}</article>`).join(""):`<p class="note">Sin coincidencias. Prueba "vibración" o "P0171".</p>`;
 }
-function renderAll(){renderHome();renderDetail();renderNav();deskBar()}
+function renderAll(){renderHome();renderDetail();renderNav();deskBar();renderFuelCard()}
+function sparkSVG(vals,fmtv){if(vals.length<2)return "";const W=300,H=70,mn=Math.min(...vals),mx=Math.max(...vals),r=mx-mn||1,X=i=>8+i*(W-16)/(vals.length-1),Y=v=>H-12-(v-mn)/r*(H-26);
+  const d=vals.map((v,i)=>(i?"L":"M")+X(i).toFixed(1)+" "+Y(v).toFixed(1)).join(" ");
+  return `<svg viewBox="0 0 ${W} ${H}" class="spark" aria-hidden="true"><path d="${d}" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>${vals.map((v,i)=>`<circle cx="${X(i).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="${i===vals.length-1?3.5:2.2}" fill="var(--ink)"/>`).join("")}<text x="${W-6}" y="11" text-anchor="end" font-size="10" fill="var(--ink2)" font-family="Urbanist">${fmtv(mx)}</text><text x="${W-6}" y="${H-1}" text-anchor="end" font-size="10" fill="var(--ink2)" font-family="Urbanist">${fmtv(mn)}</text></svg>`}
+function fuelKpis(F){return `<div class="fk"><div><span class="lbl">Rendimiento</span><b class="num">${F.kmpl?F.kmpl.toFixed(1):"—"}<small> km/L</small></b></div><div><span class="lbl">Costo por km</span><b class="num">${F.cpk?mxn(F.cpk.toFixed(2)):"—"}</b></div><div><span class="lbl">Este mes</span><b class="num">${mxn(Math.round(F.month))}</b></div><div><span class="lbl">Precio promedio</span><b class="num">${F.avgPrice?mxn(F.avgPrice.toFixed(2)):"—"}<small>/L</small></b></div></div>`}
+function renderFuelCard(){const el=$("#fuelCard");if(!el)return;const F=fuelStats();
+  el.innerHTML=`<div class="ch"><div><div class="ey">${F.rows.length?`${F.rows.length} cargas · última ${F.last?new Date(F.last.d+"T12:00").toLocaleDateString("es-MX",{day:"numeric",month:"short"}):""}`:"Rendimiento real"}</div><h3>Gasolina y rendimiento</h3></div><button class="go" data-nav="fuel" aria-label="Ver cargas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M7 17L17 7M9 7h8v8"/></svg></button></div>
+    ${F.rows.length>1?fuelKpis(F):`<p class="sub" style="margin:4px 0 0">Registra cada carga (precio por litro, pesos y kilometraje) y aquí verás cuántos km te rinde el litro, cuánto te cuesta cada km y cuánto gastas al mes.${F.rows.length===1?" Ya tienes 1 carga: con la siguiente se calcula el rendimiento.":""}</p>`}
+    <button class="pbtn dark" style="width:100%;margin-top:14px" data-sheet="fill">Registrar carga</button>`}
+function renderFuel(){const el=$("#p-fuel");if(!el)return;const F=fuelStats(),R=F.rows.slice().reverse(),fd=d=>new Date(d+"T12:00").toLocaleDateString("es-MX",{day:"numeric",month:"short",year:"2-digit"});
+  const km=F.rows.filter(r=>r.kmpl).slice(-12);
+  el.innerHTML=`<div class="ch" style="margin-bottom:12px"><div><div class="sub">Tanque de ${TANK} L · autonomía con tu rendimiento: ≈ ${fmt(TANK*S.fuel/100*KMPL())} km</div></div><button class="pbtn dark" data-sheet="fill">Registrar carga</button></div>
+    ${F.rows.length?fuelKpis(F):""}
+    ${F.rows.length>1?`<div class="fcharts"><div><span class="lbl">Precio por litro</span>${sparkSVG(F.rows.slice(-12).map(r=>r.price),v=>"$"+v.toFixed(2))}</div>${km.length>1?`<div><span class="lbl">Km por litro</span>${sparkSVG(km.map(r=>r.kmpl),v=>v.toFixed(1))}</div>`:""}</div>`:""}
+    <div class="flist">${R.map((r,i)=>`<button class="mi fi" style="--i:${i}" data-fill="${r.id}"><div class="hd"><b>${mxn(r.pesos)} <span class="sub" style="font-weight:500">· ${r.litros.toFixed(2)} L</span></b><span class="sub num">${fd(r.d)}</span></div>
+      <div class="meta"><span class="num">${mxn(r.price.toFixed(2))}/L${r.station?" · "+r.station:""}${r.full?" · lleno":""}</span><span class="num">${fmt(r.odo)} km</span></div>
+      <div class="meta"><span class="num">${r.ongoing?`En curso: ${fmt(Math.max(0,r.dur))} km recorridos`:`Te duró ${fmt(r.dur)} km`}</span><span class="num">${r.kmpl?`${r.full?"":"≈ "}${r.kmpl.toFixed(1)} km/L · ${mxn(r.cpk.toFixed(2))}/km`:"primera carga"}</span></div></button>`).join("")||`<p class="note">Aún no hay cargas. Cada vez que cargues, registra el precio por litro, cuánto pagaste y el kilometraje del tablero.</p>`}</div>
+    <p class="note">El rendimiento usa los km entre cargas y los litros que pusiste. Es exacto si llenas el tanque; si cargas por pesos, es aproximado y se afina con más cargas.</p>`}
 function deskBar(){const on=window.Desk&&Desk.on;document.body.classList.toggle("desk",!!on);let b=document.querySelector(".dkbar");
   if(!on){if(b)b.remove();$("#nav").hidden=false;return}$("#nav").hidden=true;
   const pend=MAINT.filter(m=>mstate(m).st!=="ok").length,ic=p=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
@@ -709,7 +749,7 @@ function deskBar(){const on=window.Desk&&Desk.on;document.body.classList.toggle(
   if(!b){b=document.createElement("div");b.className="dkbar";document.body.insertBefore(b,document.querySelector(".phone"))}b.innerHTML=html}
 
 /* ---------------- Navegación ---------------- */
-const ORDER=["home","maint","lights","faults","specs"];
+const ORDER=["home","maint","fuel","lights","faults","specs"];
 const curTab=()=>$("#home").hidden?dtab:"home";
 function animate(el,dir){el.classList.remove("slide-r","slide-l");if(!dir)return;void el.offsetWidth;el.classList.add(dir>0?"slide-r":"slide-l")}
 function go(k){
@@ -727,6 +767,17 @@ function openDetail(k){go(k)}
 function openSheet(kind,arg){
   const B=$("#sheetBody");let h=kind==="html"?arg:"";
   const btns=id=>`<div class="actions"><button class="pbtn" data-close>Cancelar</button><button class="pbtn dark" id="${id}">Guardar</button></div>`;
+  if(kind==="fill"){const f=arg?(S.fills||[]).find(x=>x.id===arg):null,F=fuelStats(),last=F.last;
+    h=`<h3>${f?"Editar carga":"Registrar carga"}</h3><p class="muted">Escribe lo del ticket: si pones pesos se calculan los litros y al revés.</p>
+    <div class="fgrid"><div class="field"><label for="flP">Precio por litro</label><input id="flP" class="num" type="number" inputmode="decimal" step="0.01" value="${f?f.price:last?last.price:""}" placeholder="24.50"></div>
+    <div class="field"><label for="flM">Pesos</label><input id="flM" class="num" type="number" inputmode="decimal" step="0.01" value="${f?f.pesos:""}" placeholder="500"></div>
+    <div class="field"><label for="flL">Litros</label><input id="flL" class="num" type="number" inputmode="decimal" step="0.01" value="${f?f.litros:""}" placeholder="20.4"></div>
+    <div class="field"><label for="flO">Kilometraje</label><input id="flO" class="num" type="number" inputmode="numeric" value="${f?f.odo:S.odo}"></div></div>
+    <div class="field"><label for="flD">Fecha</label><input id="flD" type="date" value="${f?f.d:new Date().toISOString().slice(0,10)}"></div>
+    <label class="tog"><input type="checkbox" id="flF" ${f&&f.full?"checked":""}> Llené el tanque</label>
+    <div class="field"><label for="flS">Gasolinera (opcional)</label><input id="flS" type="text" value="${f&&f.station?String(f.station).replace(/"/g,"&quot;"):""}" placeholder="Petro7 Cantera"></div>
+    <p class="muted num" id="flCalc"></p>
+    <div class="actions">${f?`<button class="pbtn" id="flDel" style="color:var(--crit)">Eliminar</button>`:`<button class="pbtn" data-close>Cancelar</button>`}<button class="pbtn dark" id="flSave">Guardar</button></div>`}
   if(kind==="fuel")h=`<h3>Gasolina</h3><p class="muted">Mueve el control según la aguja del tablero.</p><div class="field"><label for="fIn">Nivel: <span id="fOut" class="num"></span></label><input id="fIn" type="range" min="0" max="100" value="${S.fuel}"></div><p class="muted num" id="fCalc"></p>${btns("fSave")}`;
   if(kind==="oil")h=`<h3>Nivel de aceite</h3><p class="muted">Mide con el motor tibio, apagado 5 minutos y en piso plano.</p><div class="field"><label for="oIn">Marca en la varilla</label><input id="oIn" type="range" min="0" max="100" value="${S.oil}"><div class="sub" style="display:flex;justify-content:space-between"><span>Vacío</span><span>MIN</span><span>MAX</span><span>Exceso</span></div></div><p class="muted">5W-40 sintético VW 502 00. De MIN a MAX es aproximadamente 1 L.</p>${btns("oSave")}`;
   if(kind==="odo")h=`<h3>Kilometraje</h3><p class="muted">Escribe lo que marca el odómetro; los servicios se recalculan.</p><div class="field"><label for="kIn">Kilómetros</label><input id="kIn" class="num" type="number" inputmode="numeric" min="0" value="${S.odo}"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div class="field" style="margin:0"><label for="tIn">Trip (km)</label><input id="tIn" class="num" type="number" step="0.1" min="0" value="${S.trip}"></div><div class="field" style="margin:0"><label for="cIn">Temp. exterior (°C)</label><input id="cIn" class="num" type="number" step="0.5" value="${S.temp}"></div></div>${btns("kSave")}`;
@@ -742,7 +793,18 @@ function openSheet(kind,arg){
   B.innerHTML=h;const sh=$("#sheet"),sc=$("#scrim");sh.hidden=sc.hidden=false;sh.scrollTop=0;sh.style.transform="";document.body.classList.add("lock");requestAnimationFrame(()=>{sh.classList.add("on");sc.classList.add("on")});
   B.querySelectorAll("[data-close]").forEach(b=>b.onclick=closeSheet);
   const done=msg=>{save();closeSheet();renderAll();sweep();toast(msg)};
-  if(kind==="fuel"){const u=()=>{const v=+$("#fIn").value,L=TANK*v/100;$("#fOut").textContent=v+"%";$("#fCalc").textContent=`${L.toFixed(1)} L de 55 L · autonomía ≈ ${fmt(L*KM_PER_L)} km`};$("#fIn").oninput=u;u();$("#fSave").onclick=()=>{S.fuel=+$("#fIn").value;done("Gasolina guardada")}}
+  if(kind==="fuel"){const u=()=>{const v=+$("#fIn").value,L=TANK*v/100;$("#fOut").textContent=v+"%";$("#fCalc").textContent=`${L.toFixed(1)} L de 55 L · autonomía ≈ ${fmt(L*KMPL())} km`};$("#fIn").oninput=u;u();$("#fSave").onclick=()=>{S.fuel=+$("#fIn").value;done("Gasolina guardada")}}
+  if(kind==="fill"){const f=arg?(S.fills||[]).find(x=>x.id===arg):null,P=$("#flP"),M=$("#flM"),Lt=$("#flL"),O=$("#flO");let lastEd="M";
+    const calc=()=>{const p=+P.value,m=+M.value,l=+Lt.value;if(p>0){if(lastEd==="M"&&m>0)Lt.value=(m/p).toFixed(2);else if(lastEd==="L"&&l>0)M.value=(l*p).toFixed(2)}
+      const L2=+Lt.value,prev=(S.fills||[]).filter(x=>x!==f&&x.odo<+O.value).sort((a,b)=>b.odo-a.odo)[0],km=prev?+O.value-prev.odo:0;
+      $("#flCalc").textContent=L2>0?`${L2.toFixed(2)} L = ${(L2/TANK*100).toFixed(0)}% del tanque${km>0?` · ${fmt(km)} km desde la carga anterior → ≈ ${(km/L2).toFixed(1)} km/L`:""}`:""};
+    P.oninput=calc;M.oninput=()=>{lastEd="M";calc()};Lt.oninput=()=>{lastEd="L";calc()};O.oninput=calc;calc();
+    $("#flSave").onclick=()=>{const price=+P.value,litros=+Lt.value||(+M.value&&price?+M.value/price:0),pesos=+M.value||litros*price,odo=Math.round(+O.value);
+      if(!(price>0)||!(litros>0)||!(odo>0)){toast("Pon precio, pesos o litros y kilometraje");return}
+      const rec={id:f?f.id:"f"+Date.now(),d:$("#flD").value||new Date().toISOString().slice(0,10),price,pesos:Math.round(pesos*100)/100,litros:Math.round(litros*100)/100,odo,full:$("#flF").checked,station:$("#flS").value.trim()};
+      S.fills=S.fills||[];if(f)S.fills[S.fills.indexOf(f)]=rec;else{S.fills.push(rec);if(odo>S.odo)S.odo=odo;S.fuel=rec.full?100:Math.min(100,Math.round(S.fuel+litros/TANK*100))}
+      done(f?"Carga actualizada":`Carga guardada · ${rec.litros.toFixed(1)} L`)};
+    if(f)$("#flDel").onclick=()=>{if(!confirm("¿Eliminar esta carga?"))return;S.fills=S.fills.filter(x=>x!==f);done("Carga eliminada")}}
   if(kind==="light")$("#lTog").onclick=()=>{const a=S.active||(S.active=[]),i=a.indexOf(arg);if(i>=0)a.splice(i,1);else a.push(arg);done(i>=0?"Testigo marcado como apagado":"Testigo agregado al tablero")};
   if(kind==="oil")$("#oSave").onclick=()=>{S.oil=+$("#oIn").value;done("Nivel de aceite guardado")};
   if(kind==="odo")$("#kSave").onclick=()=>{const v=parseInt($("#kIn").value,10);if(!(v>=0)){toast("Escribe un número válido");return}S.odo=v;const tr=parseFloat($("#tIn").value),tc=parseFloat($("#cIn").value);if(tr>=0)S.trip=tr;if(!isNaN(tc))S.temp=tc;done("Tablero actualizado")};
@@ -761,6 +823,7 @@ document.addEventListener("click",e=>{
   if(t=g("[data-theme-toggle]")){toggleTheme();openSheet("menu");return}
   if(t=g("#spotCard")){const k=t.dataset.target;if(k==="oil"||k==="fuel")openSheet(k);else openSheet("light",k);return}
   if(t=g("[data-sheet]")){openSheet(t.dataset.sheet);return}
+  if(t=g("[data-fill]")){openSheet("fill",t.dataset.fill);return}
   if(t=g("[data-open]")){openDetail(t.dataset.open);return}
   if(t=g("[data-dt]")){dtab=t.dataset.dt;renderDetail();return}
   if(t=g("[data-l]")){openSheet("light",t.dataset.l);return}
