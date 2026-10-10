@@ -1,8 +1,8 @@
-/* Service worker de Control: abre sin conexión. Solo borra cachés con prefijo "control-". */
-const VERSION="control-v2";
+/* Service worker de Papeles: abre sin conexión. Solo borra cachés con prefijo "papeles-". */
+const VERSION="papeles-v1";
 const CORE=["./","index.html","manifest.webmanifest","icons/apple-touch-icon.png","icons/icon.svg","icons/icon-192.png"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(VERSION).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
-self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k.startsWith("control-")&&k!==VERSION).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
+self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k.startsWith("papeles-")&&k!==VERSION).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener("fetch",e=>{
   const r=e.request;if(r.method!=="GET")return;
   const url=new URL(r.url);

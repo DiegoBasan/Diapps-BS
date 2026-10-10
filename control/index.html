@@ -177,7 +177,7 @@ let hideAmt=false;try{hideAmt=localStorage.getItem("diapps-fin-hide")==="1"}catc
 const money=v=>hideAmt?"$•••":"$"+Math.round(v).toLocaleString("es-MX");
 const fdate=d=>new Date(d+"T12:00").toLocaleDateString("es-MX",{day:"numeric",month:"short"}).replace(".","");
 const APPS={fin:{n:"Finanzas",ic:"../finanzas/icons/icon.svg",href:"../finanzas/"},rut:{n:"Rutinas",ic:"../habitos/icons/icon.svg",href:"../habitos/"},
-  jet:{n:"Jetta",ic:"../jetta/icons/icon.svg",href:"../jetta/"},riff:{n:"Riff",ic:"../musica/icons/icon.svg",href:"../musica/"},caj:{n:"Cajas",ic:"../cajas/icons/icon.svg",href:"../cajas/"},nube:{n:"Cuenta",ic:"../icons/icon.svg",href:"../"}};
+  jet:{n:"Jetta",ic:"../jetta/icons/icon.svg",href:"../jetta/"},riff:{n:"Riff",ic:"../musica/icons/icon.svg",href:"../musica/"},caj:{n:"Cajas",ic:"../cajas/icons/icon.svg",href:"../cajas/"},pap:{n:"Papeles",ic:"../papeles/icons/icon.svg",href:"../papeles/"},nube:{n:"Cuenta",ic:"../icons/icon.svg",href:"../"}};
 const BANDS=[["fin","gasto"],["rut","hab"],["jet","gas"],["riff","riff"]];
 const BV={fin:.2,rut:.45,jet:.68,riff:.88};
 const LV={ok:{n:"Protegido",c:"var(--ok)"},danger:{n:"Peligro",c:"var(--dg)"},alert:{n:"Alertas",c:"var(--al)"},unk:{n:"Sin datos",c:"var(--unk)"}};
@@ -274,7 +274,7 @@ function sparks(){const n=S.days.length,act=S.days.map((_,i)=>S.hab[i]+S.mov[i]+
   $("#cPeaks").innerHTML=`<h4>Gasto por semana<em>12 semanas</em></h4><svg class="peaks" viewBox="0 0 ${W} ${Hh}" preserveAspectRatio="none"><path d="${d}" fill="rgba(233,237,235,.75)"/><line x1="0" y1="${Hh-8}" x2="${W}" y2="${Hh-8}" stroke="rgba(255,255,255,.15)" stroke-dasharray="2 3"/>
     <line x1="${pts[im][0]}" y1="${pts[im][1]-4}" x2="${pts[im][0]}" y2="2" stroke="rgba(255,255,255,.35)" stroke-dasharray="2 2"/></svg>
     <div class="axis"><span>mín ${money(wmn)}</span><span>máx ${money(wmx)}</span><span>esta ${money(wk[11])}</span></div>`}
-function apps(){const keys=["fin","rut","jet","riff","caj","nube"];
+function apps(){const keys=["fin","rut","jet","riff","caj","pap","nube"];
   $("#cApps").innerHTML=`<h4>Por app</h4>`+keys.map(k=>{const L=A.filter(a=>a.app===k),c=l=>L.filter(a=>a.lvl===l).length,open=ST.app===k;
     return `<button class="app${open?" on":""}" data-app="${k}"><img src="${APPS[k].ic}" alt=""><span>${APPS[k].n}</span><span class="cn">${["danger","alert","ok"].filter(l=>c(l)).map(l=>`<i style="color:${LV[l].c}">${c(l)}</i>`).join("")||`<i style="color:var(--unk)">—</i>`}</span><svg class="ch" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 4.5l3 3 3-3"/></svg></button>
       ${open?`<div class="al">${L.map(a=>`<div>${ICO[a.lvl]()}<span>${esc(a.t)}<small>${esc(a.s||"")}</small></span></div>`).join("")}<div style="border:0"><a href="${APPS[k].href}" style="color:var(--teal);text-decoration:none">Abrir ${APPS[k].n} ›</a></div></div>`:""}`}).join("")}

@@ -6,7 +6,7 @@ const pad=n=>String(n).padStart(2,"0");
 const dIso=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const dToday=()=>dIso(new Date());
 const dAdd=(s,n)=>{const d=new Date(s+"T12:00");d.setDate(d.getDate()+n);return dIso(d)};
-const SRC={fin:["finz2","finanzas"],rut:["ritmo1","rutinas"],jet:["jetta6v3","jetta"],riff:["riff1","riff"],caj:["cajas1","cajas"]};
+const SRC={fin:["finz2","finanzas"],rut:["ritmo1","rutinas"],jet:["jetta6v3","jetta"],riff:["riff1","riff"],caj:["cajas1","cajas"],pap:["papeles1","papeles"]};
 const D={};for(const k in SRC)D[k]=LSj(SRC[k][0]);
 const stamp=d=>d?(d._u||d.updated||0):-1;
 /* Trae de tu cuenta lo que esté más nuevo; devuelve true si algo cambió */
@@ -82,6 +82,10 @@ function alerts(M){const A=[],t=dToday(),WN={airbag:"Bolsa de aire",engine:"Chec
     else A.push({lvl:"alert",app:"rut",t:h.n+" pendiente",s:h.kind==="day"?h.now+" de "+h.target+" hoy":h.now+" de "+h.target+" esta semana"})});
   if(!M.riff.ok)A.push({lvl:"unk",app:"riff",t:"Riff sin datos",s:"Abre la app una vez"});
   if(!M.caj.ok)A.push({lvl:"unk",app:"caj",t:"Cajas sin datos",s:"Abre la app una vez"});
+  const PA=D.pap;if(PA&&Array.isArray(PA.docs))PA.docs.filter(d=>d.date&&d.type!=="otro").forEach(d=>{const n=Math.round((new Date(d.date+"T12:00")-new Date(t+"T12:00"))/864e5);
+    if(d.type==="vence"&&n<0)A.push({lvl:"danger",app:"pap",t:d.n+" vencido",s:"Venció hace "+(-n)+" día"+(n===-1?"":"s")});
+    else if(n>=0&&n<=30)A.push({lvl:"alert",app:"pap",t:d.n,s:(n===0?"Hoy":"En "+n+" día"+(n===1?"":"s"))});
+    else if(n>30&&d.file)A.push({lvl:"ok",app:"pap",t:d.n,s:"Vigente"})});
   A.push(window.Nube&&Nube.user()?{lvl:"ok",app:"nube",t:"Cuenta conectada",s:Nube.user().email}:{lvl:"unk",app:"nube",t:"Sin cuenta conectada",s:"Tus datos solo están en este dispositivo"});
   return A}
 window.Vida={SRC,D,stamp,loadCloud,refresh,model,series,alerts,dToday,dAdd,dIso};
