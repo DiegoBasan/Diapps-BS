@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Mi Ciudad</title>
+<meta name="description" content="Tu vida como una ciudad isométrica que crece con tus apps">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Ciudad">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="format-detection" content="telephone=no">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#EFE9DC">
+<script>
+/* Tema compartido entre las apps de Diapps; en Ciudad el modo oscuro es la ciudad de noche */
+(function(){var t="light";try{t=localStorage.getItem("diapps-theme")||"light"}catch(e){}document.documentElement.dataset.theme=t})();
+</script>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<script src="../shared/nube.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800&family=Saira+Condensed:wght@600;700;800&display=swap">
+<style>
+/* Mi Ciudad: un mapa isométrico (estilo ilustración de plano urbano) donde cada barrio es una app de Diapps.
+   Todo se dibuja con SVG desde código: los edificios salen de tus datos (apartados, hábitos, Jetta, canciones, cajas). */
+:root{
+  --bg:#EFE9DC;--gnd:#F4EFE4;--lot:#E8E2D2;--edge:#D3CBB7;--hatch:#D9D1BD;--road:#2B2B2D;--mark:#F4EFE4;
+  --top:#FFFFFF;--left:#F3EFE7;--right:#D9D4C8;--ink:#2A2A2C;--dtop:#5B5B5E;--dleft:#3A3A3D;--dright:#2B2B2E;
+  --red:#C8102E;--red2:#99091F;--red3:#E2405A;--win:#2E2E31;--lit:#2E2E31;--tree:#FFFFFF;--kr:#E9DCBC;--kr2:#D6C59E;--gray:#CFCAC0;
+  --card:#FFFFFF;--card2:#F2F0EA;--tx:#1B1B1D;--tx2:#77756F;--glass:rgba(255,253,248,.78);
+}
+:root[data-night="1"]{
+  --bg:#111214;--gnd:#16171A;--lot:#1E1F23;--edge:#2A2B30;--hatch:#24252A;--road:#0A0A0B;--mark:#4E4F55;
+  --top:#3A3B41;--left:#2B2C31;--right:#212226;--ink:#08080A;--dtop:#2E2F33;--dleft:#1D1E21;--dright:#17181A;
+  --red:#D0213C;--red2:#8E0E22;--red3:#E85A70;--win:#1A1B1E;--lit:#FFC56B;--tree:#2B3430;--kr:#5C5444;--kr2:#4A4337;--gray:#4A4A4F;
+  --card:#1E1F23;--card2:#2A2B30;--tx:#F2F1EE;--tx2:#9C9BA2;--glass:rgba(30,31,35,.78);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--tx);font-family:Urbanist,system-ui,sans-serif;transition:background-color .6s}
+a{color:inherit}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0}
+#map{position:fixed;inset:0;width:100%;height:100%;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
+#map.drag{cursor:grabbing}
+#map polygon,#map path.st{stroke:var(--ink);stroke-width:.7;stroke-linejoin:round;transition:fill .6s}
+.gnd{fill:var(--gnd)}.lot{fill:var(--lot)!important;stroke:var(--edge)!important}.fld{fill:url(#hatch)!important;stroke:none!important}
+.road{fill:var(--road)!important;stroke:none!important}.gravel{fill:url(#gravel)!important;stroke:none!important}
+.dash{stroke:var(--mark);stroke-width:1.3;stroke-dasharray:9 9;fill:none}.mk{stroke:var(--mark);stroke-width:1.2;fill:none}
+.zb{fill:var(--mark)!important;stroke:none!important}
+.t{fill:var(--top)}.l{fill:var(--left)}.r{fill:var(--right)}
+.dk.t{fill:var(--dtop)}.dk.l{fill:var(--dleft)}.dk.r{fill:var(--dright)}
+.rd.t{fill:var(--red3)}.rd.l{fill:var(--red)}.rd.r{fill:var(--red2)}
+.gy.t,.gy.l{fill:var(--gray)}.gy.r{fill:color-mix(in srgb,var(--gray) 80%,#000)}
+.kr.t{fill:var(--kr)}.kr.l{fill:var(--kr)}.kr.r{fill:var(--kr2)}
+#map polygon.w{fill:var(--win);stroke:none}#map polygon.w.on{fill:var(--lit)}
+#map polygon.dr{fill:var(--win);stroke:none}#map polygon.dr.red{fill:var(--red)}
+#map polygon.flag{fill:var(--red);stroke:none}
+.tr{fill:var(--tree);stroke:var(--ink);stroke-width:.7;transition:fill .6s}.sh{fill:#000;opacity:.10}
+.trunk{stroke:var(--ink);stroke-width:1.2}
+.sp{stroke:var(--red);stroke-width:1.7;fill:none;stroke-linecap:round}
+#map text{text-rendering:geometricPrecision}
+.bbt{font-family:"Saira Condensed",sans-serif;font-weight:800;fill:#fff;letter-spacing:.4px}
+.bbt.dkt{fill:#2A2A2C}
+.gl{font-family:"Saira Condensed",sans-serif;font-weight:700;fill:var(--mark);letter-spacing:1.5px}
+.pl{font-family:"Saira Condensed",sans-serif;font-weight:700;fill:var(--ink);opacity:.75}
+:root[data-night="1"] .pl{fill:#d8d6cf}
+.rail{stroke:var(--ink);stroke-width:1.4;fill:none}.tie{stroke:var(--ink);stroke-width:1;opacity:.55}
+.cloud{fill:#fff;opacity:.92;stroke:var(--ink);stroke-width:.6}.cloudsh{fill:#000;opacity:.06}
+:root[data-night="1"] .cloud{fill:#3a3c44;opacity:.6}
+.hl{animation:hl 1.4s ease}
+@keyframes hl{0%,100%{filter:none}40%{filter:drop-shadow(0 0 10px rgba(200,16,46,.65))}}
+
+/* interfaz encima del mapa */
+.hud{position:fixed;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top) + 10px) 14px 0;display:flex;gap:10px;align-items:flex-start;pointer-events:none;z-index:3}
+.hud>*{pointer-events:auto}
+.glass{background:var(--glass);backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%);box-shadow:0 6px 24px rgba(0,0,0,.08),0 0 0 .5px rgba(0,0,0,.06)}
+.ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;flex:none}
+.ib svg{width:20px;height:20px}
+.ttl{flex:1;min-width:0;border-radius:22px;padding:8px 14px 9px;display:flex;align-items:center;gap:10px}
+.ttl b{display:block;font-size:19px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.ttl small{display:block;font-size:12.5px;color:var(--tx2);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ring{width:38px;height:38px;flex:none;position:relative}
+.ring svg{width:38px;height:38px;transform:rotate(-90deg)}
+.ring em{position:absolute;inset:0;display:grid;place-items:center;font-style:normal;font-size:11.5px;font-weight:800}
+.chips{position:fixed;left:0;right:0;bottom:0;padding:0 14px calc(env(safe-area-inset-bottom) + 12px);display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;z-index:3}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;height:42px;padding:0 16px;border-radius:21px;font-weight:700;font-size:14.5px;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.chip i{width:9px;height:9px;border-radius:50%;background:var(--tx)}
+.chip i.red{background:var(--red)}
+.scrim{position:fixed;inset:0;z-index:8;background:rgba(0,0,0,.18);opacity:0;pointer-events:none;transition:opacity .25s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:8px;right:8px;bottom:8px;z-index:9;max-width:520px;margin:0 auto;max-height:78vh;overflow:auto;background:var(--card);border-radius:30px;
+  padding:10px 20px calc(env(safe-area-inset-bottom) + 18px);transform:translateY(110%);transition:transform .38s cubic-bezier(.2,.9,.25,1);box-shadow:0 -10px 40px rgba(0,0,0,.18)}
+.sheet.on{transform:none}
+.grab{width:38px;height:5px;border-radius:3px;background:var(--card2);margin:0 auto 10px}
+.sheet h3{margin:4px 0 2px;font-size:24px;font-weight:800;letter-spacing:-.02em}
+.sheet .sub{color:var(--tx2);font-size:14px;font-weight:600;margin:0 0 12px}
+.kp{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 12px}
+.kp div{background:var(--card2);border-radius:18px;padding:11px 13px}
+.kp small{display:block;color:var(--tx2);font-size:12.5px;font-weight:600}
+.kp b{font-size:21px;font-weight:800;letter-spacing:-.02em}
+.kp b.red{color:var(--red)}
+.rows{background:var(--card2);border-radius:18px;padding:2px 14px;margin:0 0 12px}
+.rows div{display:flex;align-items:center;gap:10px;padding:10px 0;font-weight:600;font-size:15px}
+.rows div+div{border-top:.5px solid color-mix(in srgb,var(--tx) 12%,transparent)}
+.rows span{flex:1;min-width:0}
+.rows small{display:block;color:var(--tx2);font-size:12.5px;font-weight:500}
+.rows b{font-weight:700;white-space:nowrap}
+.rows .dot{width:10px;height:10px;border-radius:50%;flex:none}
+.how{font-size:13.5px;color:var(--tx2);line-height:1.45;margin:0 0 14px}
+.btn{height:50px;border-radius:25px;font-weight:700;font-size:16px;display:flex;align-items:center;justify-content:center;width:100%;text-decoration:none;color:inherit;background:var(--card2)}
+.btn.dark{background:var(--tx);color:var(--card)}
+.btns{display:flex;gap:8px;margin-top:8px}.btns .btn{flex:1}
+.field{margin:8px 0}.lbl{color:var(--tx2);font-size:14px}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:9px;background:var(--card2);color:var(--tx2);vertical-align:middle;margin-left:6px}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 70px);transform:translate(-50%,20px);opacity:0;z-index:12;background:var(--tx);color:var(--card);
+  padding:12px 18px;border-radius:22px;font-weight:700;font-size:14.5px;transition:all .3s;pointer-events:none;white-space:nowrap}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+@media (min-width:900px){.chips{justify-content:center}.sheet{left:auto;right:20px;bottom:20px;top:auto;width:420px}}
+</style>
+</head>
+<body>
+<svg id="map" xmlns="http://www.w3.org/2000/svg" aria-label="Mapa de tu ciudad">
+  <defs>
+    <pattern id="hatch" width="10" height="5" patternUnits="userSpaceOnUse" patternTransform="skewX(-63.4)"><rect width="10" height="5" fill="var(--lot)"/><line x1="0" y1="0" x2="0" y2="5" stroke="var(--hatch)" stroke-width="2"/></pattern>
+    <pattern id="gravel" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill="var(--lot)"/><circle cx="1.5" cy="1.5" r=".9" fill="var(--hatch)"/><circle cx="4.5" cy="4.5" r=".9" fill="var(--hatch)"/></pattern>
+  <clipPath id="land"><polygon id="landP"/></clipPath>
+  </defs>
+  <g id="world"><g id="ground"></g><g id="cars" clip-path="url(#land)"></g><g id="objs"></g><g id="train" clip-path="url(#land)"></g><g id="front"></g><g id="sky" clip-path="url(#land)"></g></g>
+</svg>
+<div class="hud">
+  <a class="ib glass" href="../" aria-label="Volver a Diapps"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></a>
+  <div class="ttl glass"><span style="flex:1;min-width:0"><b>Mi Ciudad</b><small id="sub">Cargando…</small></span><span class="ring" id="ring"></span></div>
+  <button class="ib glass" id="nightB" aria-label="Día o noche"></button>
+  <button class="ib glass" id="acctB" aria-label="Cuenta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4.5 4.5 0 0 1-.5-9 6 6 0 0 1 11.6 1.6A3.8 3.8 0 0 1 17.5 18z"/></svg></button>
+</div>
+<div class="chips" id="chips"></div>
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet"><div class="grab"></div><div id="sheetIn"></div></div>
+<div class="toast" id="toast"></div>
+<script>
+/* ======================= Datos de tus apps (solo lectura) =======================
+   Se leen del almacenamiento del navegador (mismo sitio que las demás apps) y, si tienes sesión,
+   de tu cuenta de Diapps (la copia más nueva gana). Ciudad nunca modifica los datos de otras apps. */
+const $=s=>document.querySelector(s);
+const LSj=k=>{try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}};
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pad=n=>String(n).padStart(2,"0");
+const dIso=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const dToday=()=>dIso(new Date());
+const dAdd=(s,n)=>{const d=new Date(s+"T12:00");d.setDate(d.getDate()+n);return dIso(d)};
+const mxn0=v=>"$"+Math.round(v).toLocaleString("es-MX");
+let hideAmt=false;try{hideAmt=localStorage.getItem("diapps-fin-hide")==="1"}catch(e){}
+const money=v=>hideAmt?"$•••":mxn0(v);
+const SRC={fin:["finz2","finanzas"],rut:["ritmo1","rutinas"],jet:["jetta6v3","jetta"],riff:["riff1","riff"],caj:["cajas1","cajas"]};
+const D={};for(const k in SRC)D[k]=LSj(SRC[k][0]);
+const stamp=d=>d?(d._u||d.updated||0):-1;
+async function loadCloud(){if(!window.Nube||!Nube.user())return;let ch=false;
+  await Promise.all(Object.keys(SRC).map(async k=>{try{const r=await Nube.load(SRC[k][1]);if(r&&r.data&&r.updated>stamp(D[k])){D[k]=r.data;ch=true}}catch(e){}}));
+  if(ch){build();toast("Ciudad actualizada desde tu cuenta")}}
+
+function model(){
+  const t=dToday(),M={};
+  /* Finanzas: apartados de Mercado Pago, disponible y gasto de la semana */
+  const F=D.fin;
+  if(F&&Array.isArray(F.tx)){
+    const START={bbva:8200,bbvaa:-900,nu:-2400,mp:900,cash:1300,save:12000},meta=F.meta||{},b={};
+    for(const k in START)b[k]=meta[k]&&meta[k].start!=null?meta[k].start:START[k];
+    F.tx.forEach(x=>{if(x.type==="move"){b[x.acc]-=x.a;b[x.to]+=x.a}else if(b[x.acc]!=null)b[x.acc]+=x.type==="in"?x.a:-x.a});
+    const P=F.pots||{items:{},mv:[]};(P.mv||[]).forEach(m=>{if(m.t!=="adj")b.mp-=m.a});
+    const pbal=k=>{const it=P.items[k];return it.base+(P.mv||[]).filter(m=>m.k===k&&m.s>it.baseSeq&&!(it.baseDate&&m.ref&&m.d<=it.baseDate)).reduce((s,m)=>s+m.a,0)};
+    const pots=Object.keys(P.items||{}).map(k=>({n:P.items[k].n,v:pbal(k)})).sort((a,c)=>c.v-a.v);
+    const liq=["bbva","mp","cash"].reduce((s,k)=>s+(b[k]||0),0);
+    const mon=dAdd(t,-((new Date(t+"T12:00").getDay()+6)%7)),spent=(a,z)=>F.tx.filter(x=>x.type==="out"&&x.d>=a&&x.d<=z).reduce((s,x)=>s+x.a,0);
+    const wk=spent(mon,t),dow=(new Date(t+"T12:00").getDay()+6)%7;let prev=0;for(let i=1;i<=4;i++)prev+=spent(dAdd(mon,-7*i),dAdd(mon,-7*i+dow));
+    M.fin={ok:true,pots,ptot:pots.reduce((s,p)=>s+p.v,0),liq,wk,avg:prev/4,sample:!!F.sample};
+  }else M.fin={ok:false,pots:[{n:"Fondo de emergencia",v:15000},{n:"Viaje",v:8200},{n:"Jetta",v:4300},{n:"Regalos",v:1800},{n:"Tarjeta Nu",v:3200}],ptot:32500,liq:9800,wk:1450,avg:1700};
+  /* Rutinas: % de hoy, racha por hábito y cumplidos de los últimos 30 días */
+  const R=D.rut;
+  if(R&&Array.isArray(R.habits)){
+    const cnt=(h,d)=>((R.log||{})[d]||{})[h.id]?.length||0,due=(h,d)=>!h.days||!h.days.length||h.days.includes(new Date(d+"T12:00").getDay());
+    const mon=dAdd(t,-((new Date(t+"T12:00").getDay()+6)%7)),wkc=h=>{let n=0;for(let x=mon;x<=t;x=dAdd(x,1))if(cnt(h,x))n++;return n};
+    const streak=h=>{if(h.kind!=="day")return wkc(h);let d=cnt(h,t)>=h.target?t:dAdd(t,-1),n=0;for(let i=0;i<400;i++,d=dAdd(d,-1)){if(!due(h,d))continue;if(cnt(h,d)>=h.target)n++;else break}return n};
+    const habits=R.habits.map(h=>({n:h.n,c:h.c,kind:h.kind,target:h.target,now:h.kind==="day"?cnt(h,t):wkc(h),due:h.kind!=="day"||due(h,t),streak:streak(h)})).map(h=>({...h,done:h.now>=h.target}));
+    const dh=habits.filter(h=>h.kind==="day"&&h.due),pct=dh.length?Math.round(dh.reduce((s,h)=>s+Math.min(1,h.now/h.target),0)/dh.length*100):0;
+    let d30=0;for(let i=0;i<30;i++){const d=dAdd(t,-i),l=(R.log||{})[d]||{};for(const k in l)d30+=(l[k]||[]).length}
+    M.rut={ok:true,habits,pct,d30,sample:!!R.sample};
+  }else M.rut={ok:false,habits:[["Creatina",1,9],["Lavar dientes",0,3],["Minoxidil",1,22],["Basura",1,4],["Duolingo",0,12],["Curso PLC",0,2],["Crema",1,7]].map(([n,d,s])=>({n,done:!!d,streak:s,kind:"day",target:1,now:d,due:true})),pct:57,d30:64};
+  /* Jetta: kilometraje, gasolina, rendimiento y servicios */
+  const J=D.jet||{odo:214072,fuel:22,oil:62,active:["airbag"],done:{oil:205100},fills:[],_def:true};
+  {const fl=(J.fills||[]).slice().sort((a,c)=>a.odo-c.odo);let km=0,L=0;for(let i=1;i<fl.length;i++){km+=fl[i].odo-fl[i-1].odo;L+=fl[i].litros}
+    const kmpl=L>0&&km/L>3&&km/L<30?km/L:11.5,oilLeft=J.done&&J.done.oil!=null?J.done.oil+10000-J.odo:null;
+    M.jet={ok:!J._def,odo:J.odo,fuel:J.fuel,oil:J.oil,active:J.active||[],kmpl,measured:L>0,price:fl.length?fl[fl.length-1].price:null,fills:fl.length,cpk:km>0?fl.slice(1).reduce((s,f)=>s+f.pesos,0)/km:null,oilLeft}}
+  /* Riff y Cajas */
+  const S=D.riff;M.riff=S&&Array.isArray(S.songs)?{ok:true,songs:S.songs,cur:S.songs.find(s=>s.id===S.cur)||S.songs[0]}:{ok:false,songs:[{title:"Let It Be",artist:"The Beatles"},{title:"Wonderwall",artist:"Oasis"},{title:"Hotel California",artist:"Eagles"}],cur:{title:"Let It Be",artist:"The Beatles"}};
+  const C=D.caj;M.caj=C&&Array.isArray(C.boxes)?{ok:true,boxes:C.boxes.length,items:C.boxes.reduce((n,b)=>n+(b.items||[]).length,0),zones:(C.zones||[]).map(z=>({n:z.n||z.name||z.id,c:C.boxes.filter(b=>b.z===z.id).length}))}
+    :{ok:false,boxes:14,items:52,zones:[{n:"Cuarto",c:6},{n:"Bodega",c:8}]};
+  /* Energía de la ciudad: promedio de cómo van hábitos, gasto y el coche */
+  const parts=[M.rut.pct];
+  parts.push(M.fin.avg>0?Math.max(0,Math.min(100,Math.round(100-(M.fin.wk/M.fin.avg-1)*100))):80);
+  let jh=100-25*M.jet.active.length-(M.jet.oilLeft!=null&&M.jet.oilLeft<0?30:0)-(M.jet.fuel<15?15:0);parts.push(Math.max(0,jh));
+  M.score=Math.round(parts.reduce((s,x)=>s+x,0)/parts.length);
+  return M;
+}
+
+/* ======================= Dibujo isométrico =======================
+   Cuadrícula (x,y) en el piso, z hacia arriba. Caras visibles: arriba (t), frente-izquierda (+y, l) y frente-derecha (+x, r). */
+const TW=64,TH=32,ZU=34;
+const P=(x,y,z=0)=>[(x-y)*TW/2,(x+y)*TH/2-z*ZU];
+const pts=a=>a.map(p=>{const q=P(p[0],p[1],p[2]||0);return q[0].toFixed(1)+","+q[1].toFixed(1)}).join(" ");
+const poly=(a,c)=>`<polygon points="${pts(a)}" class="${c}"/>`;
+let seed=7;const rnd=()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+const LIT=()=>rnd()<.5?" on":"";
+function quadL(x0,x1,Y,z0,z1,c){return poly([[x0,Y,z0],[x1,Y,z0],[x1,Y,z1],[x0,Y,z1]],c)}
+function quadR(y0,y1,X,z0,z1,c){return poly([[X,y0,z0],[X,y1,z0],[X,y1,z1],[X,y0,z1]],c)}
+/* Ventanas: filas por piso en las dos caras visibles. o={fl:altura de piso, band:franjas continuas, skipL} */
+function windows(x,y,z,w,d,h,o){let s="";const fl=o.fl||.42,n=Math.max(1,Math.floor((h-.12)/fl));
+  for(let i=0;i<n;i++){const z0=z+.1+i*fl,z1=z0+fl*.5;
+    if(o.band){if(!o.skipL)s+=quadL(x+.12,x+w-.12,y+d,z0,z1,"w"+LIT());s+=quadR(y+.12,y+d-.12,x+w,z0,z1,"w"+LIT());continue}
+    if(!o.skipL){const cl=Math.max(1,Math.floor((w-.1)/.42));for(let j=0;j<cl;j++){const u=x+(w-cl*.42)/2+j*.42+.1;s+=quadL(u,u+.22,y+d,z0,z1,"w"+LIT())}}
+    const cr=Math.max(1,Math.floor((d-.1)/.42));for(let j=0;j<cr;j++){const v=y+(d-cr*.42)/2+j*.42+.1;s+=quadR(v,v+.22,x+w,z0,z1,"w"+LIT())}}
+  return s}
+function box(x,y,z,w,d,h,o={}){const t=z+h,c=o.c?" "+o.c:"";
+  let s=poly([[x+w,y,z],[x+w,y+d,z],[x+w,y+d,t],[x+w,y,t]],"r"+c)+poly([[x,y+d,z],[x+w,y+d,z],[x+w,y+d,t],[x,y+d,t]],"l"+c)+poly([[x,y,t],[x+w,y,t],[x+w,y+d,t],[x,y+d,t]],"t"+(o.top?" "+o.top:c));
+  if(o.win)s+=windows(x,y,z,w,d,h,o.win);return s}
+/* Casa con techo de dos aguas (cumbrera a lo largo de x) */
+function house(x,y,w,d,h,r,o={}){const c=o.c?" "+o.c:"";
+  return box(x,y,0,w,d,h,o)+poly([[x,y,h],[x+w,y,h],[x+w,y+d/2,h+r],[x,y+d/2,h+r]],"t")+poly([[x+w,y,h],[x+w,y+d,h],[x+w,y+d/2,h+r]],"r"+c)+poly([[x,y+d,h],[x+w,y+d,h],[x+w,y+d/2,h+r],[x,y+d/2,h+r]],"t"+(o.roof?" "+o.roof:""))}
+function tree(x,y,s=1){const [a,b]=P(x,y);const k=s;
+  return `<g transform="translate(${a.toFixed(1)},${b.toFixed(1)})"><ellipse cx="4" cy="1" rx="${10*k}" ry="${4.6*k}" class="sh"/><line x1="0" y1="0" x2="0" y2="${-9*k}" class="trunk"/>`+
+    (rnd()<.55?`<circle cx="0" cy="${-17*k}" r="${8.5*k}" class="tr"/><circle cx="${-4*k}" cy="${-12*k}" r="${5*k}" class="tr"/>`:`<ellipse cx="0" cy="${-17*k}" rx="${6*k}" ry="${11*k}" class="tr"/>`)+`</g>`}
+function bush(x,y){const [a,b]=P(x,y);return `<g transform="translate(${a.toFixed(1)},${b.toFixed(1)})"><ellipse cx="2" cy="1" rx="10" ry="4" class="sh"/><circle cx="-5" cy="-4" r="5" class="tr"/><circle cx="4" cy="-4" r="5.5" class="tr"/><circle cx="0" cy="-8" r="5.5" class="tr"/></g>`}
+function sprout(x,y){const [a,b]=P(x,y);return `<path class="sp" transform="translate(${a.toFixed(1)},${b.toFixed(1)})" d="M0 0L-4 -6M0 0L0 -8M0 0L4 -6M0 0L-6 -2M0 0L6 -2"/>`}
+/* Texto pintado sobre una cara vertical: "x" = cara que mira a +y (corre en x); "y" = cara que mira a +x (corre en y, se lee hacia -y) */
+const K=1/120;
+function faceText(dir,x,y,z,lines,w,hz){const [ox,oy]=P(x,y,z),a=TW/2*K,b=(dir==="x"?1:-1)*TH/2*K,cx=w/K/2,aw=w/K-24;
+  // se ajusta el tamaño para que cada renglón quepa a lo ancho y todo quepa a lo alto del letrero
+  let L2=lines.map(L=>({...L,sz:Math.min(L.sz*3,aw/(.5*Math.max(1,String(L.t).length))),gap:(L.gap||3)*3}));
+  const tot=()=>L2.reduce((s2,L)=>s2+L.sz*1.02+L.gap,0)-L2[L2.length-1].gap;
+  let off=8;if(hz){const av=hz/K-24,t0=tot();if(t0>av){const f=av/t0;L2=L2.map(L=>({...L,sz:L.sz*f,gap:L.gap*f}))}off=Math.max(10,(hz/K-tot())/2)}
+  let s=`<g transform="matrix(${a},${b},0,${ZU*K},${ox.toFixed(1)},${oy.toFixed(1)})">`,yy=off;
+  for(const L of L2){yy+=L.sz*.86;s+=`<text x="${cx}" y="${yy.toFixed(1)}" text-anchor="middle" font-size="${L.sz.toFixed(1)}" class="bbt${L.dark?" dkt":""}">${esc(L.t)}</text>`;yy+=L.sz*.16+L.gap}return s+"</g>"}
+/* Espectacular sobre dos postes, como los letreros del plano */
+function billboard(dir,x,y,w,h,lines,v="dk",z0=.35){const th=.12;let s="";
+  if(dir==="x"){s+=box(x+.25,y,0,.08,.08,z0)+box(x+w-.33,y,0,.08,.08,z0)+box(x,y,z0,w,th,h,{c:v});s+=faceText("x",x,y+th,z0+h,lines,w,h)}
+  else{s+=box(x,y+.25,0,.08,.08,z0)+box(x,y+w-.33,0,.08,.08,z0)+box(x,y,z0,th,w,h,{c:v});s+=faceText("y",x+th,y+w,z0+h,lines,w,h)}
+  return s}
+function groundText(dir,x,y,t,sz=13){const [ox,oy]=P(x,y),k=1/34,a=TW/2*k,b=TH/2*k,hl=t.length*sz*.03+.25,gap=dir==="x"?rect(x-hl,y-.15,x+hl,y+.15,"road"):rect(x-.15,y-hl,x+.15,y+hl,"road");
+  const m=dir==="x"?`${a},${b},${-a},${b}`:`${a},${-b},${a},${b}`;return gap+`<text class="gl" transform="matrix(${m},${ox.toFixed(1)},${oy.toFixed(1)})" text-anchor="middle" dominant-baseline="middle" font-size="${sz}">${esc(t)}</text>`}
+const rect=(x0,y0,x1,y1,c)=>poly([[x0,y0],[x1,y0],[x1,y1],[x0,y1]],c);
+const isoEll=(x,y,r,c)=>{const [a,b]=P(x,y);return `<ellipse cx="${a}" cy="${b}" rx="${r*TW/2*Math.SQRT2}" ry="${r*TH/2*Math.SQRT2}" class="${c}"/>`};
+
+/* Barrios: rectángulos en la cuadrícula; sirven para tocar y para centrar la vista */
+const DIST={
+  rut:{n:"Barrio Rutinas",c:[7,7],r:[[.3,.3,13.7,13.7]]},
+  fin:{n:"Distrito Financiero",c:[24,7],r:[[16.3,.3,31.7,13.7]]},
+  jet:{n:"Taller Jetta",c:[7,21],r:[[.3,16.3,13.7,25.7]]},
+  riff:{n:"Auditorio Riff",c:[19.8,21],r:[[16.3,16.3,23.2,25.7]]},
+  caj:{n:"Bodegas",c:[28.3,21],r:[[25,16.3,31.7,25.7]]},
+  hub:{n:"Estación Diapps",c:[16,31.5],r:[[0,30.6,32,33.8]]},
+  soon:{n:"Próximamente",c:[16,28.8],r:[[0,28.5,32,29.2]]}
+};
+const G={x:32,y:34};
+
+function build(){
+  const M=model();window.M=M;seed=7;
+  const night=document.documentElement.dataset.night==="1";
+  let g="";const O=[],FR=[];
+  const add=(d,x,y,svg,fr)=>(fr?FR:O).push({k:x+y,d,s:svg});
+  /* ---------- piso ---------- */
+  g+=poly([[-2,-2],[G.x+2,-2],[G.x+2,G.y+1],[-2,G.y+1]],"gnd");
+  const lots=[["rut",.3,.3,13.75,6.75],["rut",.3,8.45,13.75,13.75],["fin",16.25,.3,23.75,13.75],["fin",25.45,.3,31.7,13.75],["jet",.3,16.25,13.75,25.75],
+    ["riff",16.25,16.25,23.25,25.75],["caj",24.95,16.25,31.7,25.75],["soon",.3,28.6,31.7,29.15],["hub",.3,30.6,31.7,33.6]];
+  for(const [d,a,b,c,e] of lots)g+=`<g data-d="${d}">${rect(a,b,c,e,"lot")}</g>`;
+  g+=`<g data-d="rut">${rect(.8,.8,13.2,6.3,"fld")}</g><g data-d="fin">${rect(26,.8,31.2,13.2,"fld")}</g><g data-d="caj">${rect(25.4,22.2,31.3,25.4,"fld")}</g><g data-d="hub">${rect(.8,31,31.2,33.2,"fld")}</g>`;
+  /* calles */
+  const roads=[[0,14,32,16],[14,0,16,26],[0,7,14,8.2],[24,0,25.2,14],[23.5,16,24.7,26],[0,26,32,28.4]];
+  for(const r of roads)g+=rect(...r,"road");
+  g+=rect(0,29.2,32,30.4,"gravel");
+  g+=isoEll(15,15,2.35,"road");
+  const line=(a,b,c="dash")=>`<polyline points="${pts([a,b])}" class="${c}"/>`;
+  g+=line([0,15],[12.6,15])+line([17.4,15],[32,15])+line([15,0],[15,12.6])+line([15,17.4],[15,26])+line([0,7.6],[14,7.6])+line([24.6,0],[24.6,14])+line([24.1,16],[24.1,26]);
+  g+=line([0,26.6],[32,26.6])+line([0,27.8],[32,27.8])+line([0,27.2],[32,27.2],"mk");
+  g+=`<g data-d="rut">${isoEll(15,15,.95,"lot")}</g>`+sprout(15,15.1)+sprout(14.7,14.8)+sprout(15.3,14.8);
+  for(const [x0,y0,dir] of [[12.1,14,"x"],[17.3,14,"x"],[14,12.1,"y"],[14,17.3,"y"]])
+    for(let i=0;i<6;i++)g+=dir==="x"?rect(x0,y0+.12+i*.32,x0+.6,y0+.28+i*.32,"zb"):rect(x0+.12+i*.32,y0,x0+.28+i*.32,y0+.6,"zb");
+  g+=groundText("x",6,15,"AV. DIAPPS")+groundText("x",25,15,"AV. DIAPPS")+groundText("y",15,6,"CALZ. JETTA")+groundText("y",15,22,"CALZ. JETTA")+groundText("x",8,27.2,"PERIFÉRICO",12)+groundText("x",22,27.2,"PERIFÉRICO",12);
+  /* vías del tren */
+  g+=line([0,29.5],[32,29.5],"rail")+line([0,30.1],[32,30.1],"rail");for(let x=.2;x<32;x+=.45)g+=line([x,29.35],[x,30.25],"tie");
+  /* escudo de la carretera */
+  {const [a,b]=P(30,27.1);g+=`<g transform="translate(${a},${b-6})"><path d="M-14 -12h28v14c0 6-8 10-14 12-6-2-14-6-14-12z" fill="var(--top)" stroke="var(--ink)" stroke-width="1.5"/><text y="1" text-anchor="middle" class="bbt dkt" font-size="12">D-1</text></g>`}
+  for(let i=0;i<26;i++){const x=.6+rnd()*31,y=rnd()*34;if(!lots.some(([,a,b,c,e])=>x>a+.3&&x<c-.3&&y>b+.3&&y<e-.3))continue;if(Math.abs(x-15)<4&&Math.abs(y-15)<4)continue;g+=sprout(x,y)}
+  $("#ground").innerHTML=g;$("#landP").setAttribute("points",pts([[-2,-2],[G.x+2,-2],[G.x+2,G.y+1],[-2,G.y+1]]).replace(/ /g," "));
+
+  /* ---------- Barrio Rutinas: una casa por hábito, árboles por lo cumplido ---------- */
+  const R=M.rut;
+  R.habits.slice(0,10).forEach((h,i)=>{const col=i%5,row=Math.floor(i/5),x=.75+col*2.6,y=row?11.35:8.85;
+    const fl=1+(h.streak>=7?1:0)+(h.streak>=21?1:0),hh=.32+fl*.36;let s=house(x,y,1.7,1.5,hh,.42,{win:{fl:.36,skipL:false},c:h.done?"":""});
+    s+=quadL(x+.65,x+1.0,y+1.5,0,.4,"dr"+(h.done?" red":""));
+    if(h.done){const top=hh+.42;s+=`<polyline points="${pts([[x+.2,y+.75,top-.05],[x+.2,y+.75,top+.55]])}" class="trunk"/>`+poly([[x+.2,y+.75,top+.55],[x+.68,y+.75,top+.43],[x+.2,y+.75,top+.31]],"flag")}
+    add("rut",x+.85,y+.75,s);
+    add("rut",x+2.15,y+1.25,tree(x+2.15,y+1.3,.75))});
+  // parque: fuente al centro, sendero y árboles (más cumplidos = más árboles)
+  {const n=Math.min(44,8+Math.round(R.d30/2.2));let s=isoEll(7,3.55,1.9,"lot")+isoEll(7,3.55,1.15,"fld");add("rut",0,0,s);
+    add("rut",7,3.55,box(6.55,3.1,0,.9,.9,.18)+box(6.85,3.4,.18,.3,.3,.35)+box(6.95,3.5,.53,.1,.1,.25));
+    let k=0;for(let i=0;i<300&&k<n;i++){const x=1+rnd()*12,y=1+rnd()*5;const dd=Math.hypot(x-7,y-3.55);if(dd<2.15)continue;add("rut",x,y,rnd()<.25?bush(x,y):tree(x,y,.8+rnd()*.35));k++}
+    for(const [x,y] of [[3.2,6.1],[10.4,6.1]])add("rut",x,y,box(x,y,0,.9,.25,.15)+box(x,y,.15,.9,.06,.18))}
+  add("rut",13.25,11.6,billboard("y",13.25,9.3,4.2,1.1,[{t:"RUTINAS",sz:30},{t:R.pct+"% HOY",sz:22}],R.pct>=100?"rd":"dk"));
+
+  /* ---------- Distrito Financiero: torre del ahorro y un edificio por apartado ---------- */
+  const F=M.fin;
+  {const H=Math.max(2.2,Math.min(9,1.6+F.ptot/5000)),x=18,y=4.2;
+    let s=box(x-.3,y-.3,0,3.6,3.6,.3)+box(x,y,.3,3,3,H,{win:{fl:.42,band:true}})+box(x+.3,y+.3,.3+H,2.4,2.4,.35,{c:"rd"})+box(x+1.1,y+1.1,.65+H,.8,.8,.5);
+    add("fin",x+1.5,y+1.5,s);
+    const H2=Math.max(1,Math.min(5,.8+Math.max(0,F.liq)/5000));add("fin",21.6,9,box(20.6,8.3,0,2.3,2.2,H2,{c:"dk",win:{fl:.42}}));
+    add("fin",17.6,10.2,box(16.9,9.6,0,2.4,1.6,.9,{win:{fl:.45}})+box(17.2,9.9,.9,.5,.4,.18));
+    for(const [x2,y2] of [[17,2],[17,3.2],[22.6,2.2],[22.8,6.3],[17,7.6],[23,11]])add("fin",x2,y2,tree(x2,y2,.8))}
+  F.pots.slice(0,12).forEach((p,i)=>{const col=i%2,row=Math.floor(i/2),x=25.9+col*2.95,y=.9+row*2.12,v=p.v,mx=Math.max(1,...F.pots.map(q=>q.v));
+    const h=v<0?.3:.45+4.6*Math.sqrt(v/mx);let s=box(x,y,0,2.2,1.5,h,{c:v<0?"rd":(i%3===1?"dk":""),win:{fl:.42,skipL:true}});
+    s+=`<g transform="matrix(${TW/2/120},${TH/2/120},0,${ZU/120},${P(x,y+1.5,Math.min(h,1.1))[0]},${P(x,y+1.5,Math.min(h,1.1))[1]})"><text x="132" y="${Math.min(h,1.1)*120-30}" text-anchor="middle" font-size="34" class="pl">${esc(String(p.n).slice(0,14).toUpperCase())}</text></g>`;
+    add("fin",x+1.1,y+.75,s)});
+  add("fin",19,13.3,billboard("x",16.8,13.3,4.6,1.15,[{t:"AHORRO",sz:24},{t:money(F.ptot),sz:26}]));
+  const over=F.avg>0&&F.wk>F.avg*1.15;
+  add("fin",22.5,13.3,billboard("x",21.6,13.3,2.1,.9,[{t:"SEMANA",sz:15},{t:money(F.wk),sz:17}],over?"rd":"gy").replace(/class="bbt"/g,over?'class="bbt"':'class="bbt dkt"'));
+
+  /* ---------- Taller Jetta: gasolinera, taller y tu coche ---------- */
+  const J=M.jet;
+  {let s="";for(const [px,py] of [[1.9,17.9],[5.9,17.9],[1.9,19.9],[5.9,19.9]])s+=box(px,py,0,.18,.18,1.05);
+    add("jet",4,19,s+box(1.5,17.5,1.05,4.9,3.1,.24,{c:"rd",top:"t"}));
+    for(const px of [2.9,4.6])add("jet",px+.2,19,box(px,18.6,0,.4,.75,.5,{c:"dk"}));
+    add("jet",3.1,22.5,box(1.6,21.5,0,3.4,2.2,.85,{win:{fl:.42}})+quadL(1.6,5,23.7,.62,.78,"flag")+quadR(21.5,23.7,5,.62,.78,"flag"));
+    const pr=J.price?"$"+J.price.toFixed(2):"$—";
+    add("jet",7.2,21.9,box(6.85,21.85,0,.12,.12,.35)+box(7.6,21.85,0,.12,.12,.35)+box(6.6,21.8,.35,1.4,.14,1.6,{c:"dk"})+faceText("x",6.6,21.94,1.95,[{t:"MAGNA",sz:12},{t:pr,sz:15},{t:J.kmpl.toFixed(1)+" KM/L",sz:11,gap:5},{t:"TANQUE",sz:10},{t:Math.round(J.fuel)+"%",sz:14}],1.4,1.6));
+    let t=box(8.4,17.2,0,4.6,3.4,1.25,{win:{fl:.5,skipL:true}});for(let i=0;i<3;i++){const u=8.75+i*1.45;t+=quadL(u,u+1.05,20.6,0,.82,"dr");for(let k2=1;k2<5;k2++)t+=`<polyline points="${pts([[u,20.6,k2*.17],[u+1.05,20.6,k2*.17]])}" class="tie"/>`}
+    t+=faceText("x",8.4,20.6,1.22,[{t:"TALLER JETTA",sz:13,dark:!night}],4.6);
+    add("jet",10.7,18.9,t);
+    add("jet",10.2,22.3,carSprite("x",10.2,22.3,"dk",1.35));
+    for(const [x2,y2] of [[1,24.9],[7.6,24.6],[13,21.5],[13,23.8]])add("jet",x2,y2,tree(x2,y2,.8));
+    const warn=J.active.length||(J.oilLeft!=null&&J.oilLeft<1500);
+    const WN={airbag:"BOLSA DE AIRE",engine:"CHECK ENGINE",abs:"ABS",oil:"ACEITE",battery:"BATERÍA",temp:"TEMPERATURA",epc:"EPC",esp:"ESP",tpms:"LLANTAS",brake:"FRENOS"};
+    const l2=J.active.length?"⚠ "+(WN[J.active[0]]||J.active[0]).toUpperCase():J.oilLeft<0?"ACEITE VENCIDO":"ACEITE EN "+Math.round(J.oilLeft).toLocaleString("es-MX")+" KM";
+    add("jet",10.7,25.35,billboard("x",8.6,25.35,4.4,1.1,warn?[{t:"SERVICIO",sz:24},{t:l2,sz:17}]:[{t:"JETTA MK6",sz:22},{t:Math.round(J.odo).toLocaleString("es-MX")+" KM",sz:22}],warn?"rd":"dk"))}
+
+  /* ---------- Auditorio Riff: techo curvo, letrero con tu canción y un estudio por canción ---------- */
+  const S=M.riff;
+  {const x=16.9,y=17,w=5.2,d=4.2,N=9;let s=box(x,y,0,w,d,.75,{win:{fl:.38,skipL:true}});
+    for(let i=0;i<N;i++){const yy=y+i*d/N,hh=.75+.85*Math.sin(Math.PI*(i+.5)/N);s+=box(x+.05,yy,.75,w-.1,d/N,hh-.75)}
+    s+=box(x+1.8,y+d,0,1.6,.5,.5,{c:"rd"});add("riff",x+w/2,y+d/2,s);
+    const nm=String(S.cur.title||"").toUpperCase();
+    add("riff",22.8,19.7,billboard("y",22.8,17.2,4.4,1.1,[{t:"RIFF · AHORA",sz:16},{t:nm.length>16?nm.slice(0,15)+"…":nm,sz:22}],"dk"));
+    S.songs.slice(0,8).forEach((_,i)=>{const cx=16.8+(i%4)*1.5,cy=22.6+Math.floor(i/4)*1.45;add("riff",cx+.5,cy+.45,box(cx,cy,0,1.05,.9,.48,{win:{fl:.45}})+box(cx+.35,cy+.3,.48,.3,.25,.12))});
+    for(const [x2,y2] of [[22.7,23],[22.8,25.2]])add("riff",x2,y2,tree(x2,y2,.8))}
+
+  /* ---------- Bodegas: una nave por zona y una caja apilada por cada caja tuya ---------- */
+  const C=M.caj;
+  C.zones.slice(0,3).forEach((z,i)=>{const y=16.75+i*1.85,x=25.4;let s=box(x,y,0,5.9,1.45,.85,{c:i%2?"dk":"",win:{fl:.5,skipL:true}});
+    for(let k2=0;k2<3;k2++){const u=x+.4+k2*1.9;s+=quadL(u,u+.9,y+1.45,0,.6,"dr")}
+    s+=faceText("x",x,y+1.45,.84,[{t:String(z.n).toUpperCase()+" · "+z.c,sz:10,dark:!(i%2)&&!night}],5.9);
+    add("caj",x+3,y+.7,s)});
+  {const n=Math.min(36,C.boxes);for(let i=0;i<n;i++){const slot=i%18,lv=Math.floor(i/18),cx=25.8+(slot%6)*.9,cy=22.6+Math.floor(slot/6)*.95;add("caj",cx+.2,cy+.2+lv*.01,box(cx,cy,lv*.42,.62,.62,.42,{c:"kr"}))}}
+  add("caj",28.3,25.35,billboard("x",26,25.35,4.6,1.1,[{t:"BODEGAS",sz:24},{t:C.boxes+" CAJAS · "+C.items+" COSAS",sz:17}],"dk"));
+
+  /* ---------- Próximamente y estación ---------- */
+  add("soon",4.5,28.7,billboard("x",2.2,28.7,4.4,1.05,[{t:"GYM",sz:28,dark:true},{t:"PRÓXIMAMENTE",sz:13,dark:true}],"gy"));
+  add("soon",27.5,28.7,billboard("x",25.2,28.7,4.4,1.05,[{t:"PLC LAB",sz:28,dark:true},{t:"PRÓXIMAMENTE",sz:13,dark:true}],"gy"));
+  add("hub",16,31.6,box(11.5,30.75,0,9,1,.12)+box(13,31.35,0,6,1.9,.95,{win:{fl:.45}})+box(12.7,31.15,.95,6.6,.5,.12,{c:"rd"})+box(15.2,31.7,.95,1.6,1.2,.7)+faceText("x",13,33.25,.92,[{t:"ESTACIÓN DIAPPS",sz:14,dark:!night}],6),true);
+  for(const [x2,y2] of [[3,31.6],[6.5,32.4],[9.5,31.4],[22.5,31.8],[26,32.5],[29.5,31.3]])add("hub",x2,y2,rnd()<.5?tree(x2,y2,.85):bush(x2,y2),true);
+
+  const ord=a=>a.sort((p,q)=>p.k-q.k).map(o=>`<g data-d="${o.d}">${o.s}</g>`).join("");
+  $("#objs").innerHTML=ord(O);$("#front").innerHTML=ord(FR);
+  hud(M);
+}
+
+/* ======================= Tráfico, tren y nubes ======================= */
+function carSprite(dir,x,y,c="",s=1){const L=.84*s,W=.4*s,h=.22*s;let r="";
+  if(dir==="x")r=box(x-L/2,y-W/2,0,L,W,h,{c})+box(x-L*.22,y-W*.42,h,L*.5,W*.84,h*.75,{c})+quadL(x-L*.2,x+L*.26,y+W*.42,h+.03,h+h*.62,"w")+quadR(y-W*.36,y+W*.36,x+L*.28,h+.03,h+h*.62,"w");
+  else r=box(x-W/2,y-L/2,0,W,L,h,{c})+box(x-W*.42,y-L*.22,h,W*.84,L*.5,h*.75,{c})+quadR(y-L*.2,y+L*.26,x+W*.42,h+.03,h+h*.62,"w")+quadL(x-W*.36,x+W*.36,y+L*.28,h+.03,h+h*.62,"w");
+  return r}
+const SPR={};for(const d of ["x","y"])for(const c of ["","dk","rd"])SPR[d+c]=carSprite(d,0,0,c);
+const PATHS=[
+  {v:1.5,p:[[-1,15.5],[12.9,15.5],[13.6,16.5],[15,16.9],[16.4,16.5],[17.1,15.5],[33,15.5]]},
+  {v:1.4,p:[[33,14.5],[17.1,14.5],[16.4,13.5],[15,13.1],[13.6,13.5],[12.9,14.5],[-1,14.5]]},
+  {v:1.3,p:[[14.5,-1],[14.5,12.9],[13.5,13.6],[13.1,15],[13.5,16.4],[14.5,17.1],[14.5,26]]},
+  {v:1.3,p:[[15.5,26],[15.5,17.1],[16.5,16.4],[16.9,15],[16.5,13.6],[15.5,12.9],[15.5,-1]]},
+  {v:2.6,p:[[-1,27.8],[33,27.8]]},{v:2.4,p:[[33,26.6],[-1,26.6]]}
+];
+PATHS.forEach(P2=>{let L=0;P2.seg=[];for(let i=1;i<P2.p.length;i++){const a=P2.p[i-1],b=P2.p[i],l=Math.hypot(b[0]-a[0],b[1]-a[1]);P2.seg.push({a,b,l,L});L+=l}P2.len=L});
+const CARS=[];[[0,3],[1,3],[2,2],[3,2],[4,3],[5,3]].forEach(([pi,n])=>{for(let i=0;i<n;i++)CARS.push({p:PATHS[pi],o:(i/n+pi*.13)%1,c:["","","dk","rd",""][(pi+i*2)%5]})});
+function at(P2,dist){dist=((dist%P2.len)+P2.len)%P2.len;const s=P2.seg.find(q=>dist<=q.L+q.l)||P2.seg[P2.seg.length-1],f=(dist-s.L)/s.l;
+  return {x:s.a[0]+(s.b[0]-s.a[0])*f,y:s.a[1]+(s.b[1]-s.a[1])*f,dir:Math.abs(s.b[0]-s.a[0])>=Math.abs(s.b[1]-s.a[1])?"x":"y"}}
+function initCars(){$("#cars").innerHTML=CARS.map((c,i)=>`<g id="car${i}"></g>`).join("");CARS.forEach((c,i)=>c.el=$("#car"+i));
+  $("#train").innerHTML=`<g id="trn">${[0,1,2,3].map(i=>box(-i*1.75-1.6,-.36,0,1.6,.72,.62,{c:i?"":"rd",win:{fl:.62,band:true}})).join("")}</g>`;
+  $("#sky").innerHTML=[0,1,2].map(i=>`<g id="cl${i}"><ellipse class="cloudsh" cx="0" cy="0" rx="46" ry="18"/><g transform="translate(0,-210)"><circle class="cloud" cx="-22" cy="4" r="16"/><circle class="cloud" cx="0" cy="-6" r="22"/><circle class="cloud" cx="24" cy="4" r="15"/><rect class="cloud" x="-34" y="4" width="72" height="14" rx="7" style="stroke:none"/></g></g>`).join("")}
+let t0=performance.now(),run=true;
+function frame(now){if(!run)return;const t=(now-t0)/1000;
+  CARS.forEach(c=>{const q=at(c.p,c.o*c.p.len+t*c.p.v),key=q.dir+c.c;if(c.k!==key){c.el.innerHTML=SPR[key];c.k=key}const [a,b]=P(q.x,q.y);c.el.setAttribute("transform",`translate(${a.toFixed(1)},${b.toFixed(1)})`)});
+  const tc=t%26,tx=-8+tc*2.2;const [a,b]=P(tx,29.8);$("#trn").setAttribute("transform",`translate(${a.toFixed(1)},${b.toFixed(1)})`);
+  for(let i=0;i<3;i++){const cx=((t*.25+i*13)%46)-8,cy=[4,12,22][i];const [p,q]=P(cx,cy);$("#cl"+i).setAttribute("transform",`translate(${p.toFixed(1)},${q.toFixed(1)})`)}
+  requestAnimationFrame(frame)}
+document.addEventListener("visibilitychange",()=>{run=!document.hidden;if(run)requestAnimationFrame(frame)});
+
+/* ======================= Vista: arrastrar, pellizcar, rueda ======================= */
+const V={s:1,x:0,y:0};const world=$("#world"),svgEl=$("#map");
+const apply=()=>world.setAttribute("transform",`translate(${V.x.toFixed(1)},${V.y.toFixed(1)}) scale(${V.s.toFixed(4)})`);
+const SMIN=()=>Math.min(innerWidth/2300,innerHeight/1500),SMAX=2.6;
+function zoomAt(px,py,ns){ns=Math.max(SMIN(),Math.min(SMAX,ns));const wx=(px-V.x)/V.s,wy=(py-V.y)/V.s;V.s=ns;V.x=px-wx*ns;V.y=py-wy*ns;apply()}
+function center(gx,gy,ns,ms=0){const [wx,wy]=P(gx,gy,.6),s=ns||V.s,wide=innerWidth>=900,tx=(wide&&sheetOn()?(innerWidth-440)/2:innerWidth/2)-wx*s,ty=innerHeight*(sheetOn()&&!wide?.3:.5)-wy*s;
+  if(!ms){V.s=s;V.x=tx;V.y=ty;apply();return}const a={...V},t1=performance.now();
+  const step=n=>{const k=Math.min(1,(n-t1)/ms),e=1-Math.pow(1-k,3);V.s=a.s+(s-a.s)*e;V.x=a.x+(tx-a.x)*e;V.y=a.y+(ty-a.y)*e;apply();if(k<1)requestAnimationFrame(step)};requestAnimationFrame(step)}
+const ptr=new Map();let moved=0,downT=null,pinch=null;
+svgEl.addEventListener("pointerdown",e=>{ptr.set(e.pointerId,{x:e.clientX,y:e.clientY});if(ptr.size===1){moved=0;downT=e.target}svgEl.classList.add("drag");
+  if(ptr.size===2){const [a,b]=[...ptr.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y),s:V.s}}});
+svgEl.addEventListener("pointermove",e=>{const p=ptr.get(e.pointerId);if(!p)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;
+  if(ptr.size===1){V.x+=dx;V.y+=dy;moved+=Math.abs(dx)+Math.abs(dy);apply()}
+  p.x=e.clientX;p.y=e.clientY;
+  if(ptr.size===2&&pinch){const [a,b]=[...ptr.values()];moved+=99;zoomAt((a.x+b.x)/2,(a.y+b.y)/2,pinch.s*Math.hypot(a.x-b.x,a.y-b.y)/pinch.d);
+    if(p===a||p===b){V.x+=dx/2;V.y+=dy/2;apply()}}});
+const up=e=>{if(!ptr.has(e.pointerId))return;ptr.delete(e.pointerId);if(ptr.size<2)pinch=null;if(!ptr.size){svgEl.classList.remove("drag");
+  if(moved<8&&downT&&e.type==="pointerup"){const g=downT.closest&&downT.closest("[data-d]");if(g)openDist(g.dataset.d,false);else closeSheet()}}};
+svgEl.addEventListener("pointerup",up);svgEl.addEventListener("pointercancel",up);
+svgEl.addEventListener("wheel",e=>{e.preventDefault();zoomAt(e.clientX,e.clientY,V.s*Math.exp(-e.deltaY*.0015))},{passive:false});
+svgEl.addEventListener("dblclick",e=>zoomAt(e.clientX,e.clientY,V.s*1.6));
+
+/* ======================= Interfaz ======================= */
+const svgI=p=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+function hud(M){
+  const d=new Date();$("#sub").textContent=d.toLocaleDateString("es-MX",{weekday:"short",day:"numeric",month:"short"}).replace(/\./g,"")+" · energía de hoy";
+  const C=2*Math.PI*15;$("#ring").innerHTML=`<svg viewBox="0 0 38 38"><circle cx="19" cy="19" r="15" fill="none" stroke="color-mix(in srgb,var(--tx) 12%,transparent)" stroke-width="4"/><circle cx="19" cy="19" r="15" fill="none" stroke="${M.score<50?"var(--red)":"var(--tx)"}" stroke-width="4" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-M.score/100)}"/></svg><em>${M.score}</em>`;
+  const warnJ=M.jet.active.length||(M.jet.oilLeft!=null&&M.jet.oilLeft<1500),overF=M.fin.avg>0&&M.fin.wk>M.fin.avg*1.15;
+  $("#chips").innerHTML=[["fin","Finanzas",overF],["rut","Rutinas",M.rut.pct<50],["jet","Jetta",warnJ],["riff","Riff"],["caj","Cajas"],["hub","Estación"]].map(([k,n,r])=>`<button class="chip glass" data-go="${k}"><i class="${r?"red":""}"></i>${n}</button>`).join("");
+  $("#nightB").innerHTML=svgI(document.documentElement.dataset.night==="1"?'<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2.5 12h2M19.5 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>':'<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>');
+}
+const sheetOn=()=>$("#sheet").classList.contains("on");
+function openSheet(html){$("#sheetIn").innerHTML=html;$("#sheet").classList.add("on");$("#scrim").classList.add("on");$("#sheet").scrollTop=0}
+function closeSheet(){$("#sheet").classList.remove("on");$("#scrim").classList.remove("on")}
+$("#scrim").onclick=closeSheet;
+let tT;function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("on");clearTimeout(tT);tT=setTimeout(()=>t.classList.remove("on"),2200)}
+const sample=ok=>ok?"":'<span class="tag">ejemplo</span>';
+const openBtn=(href,n)=>`<a class="btn dark" href="${href}">Abrir ${n}</a>`;
+function openDist(k,fly=true){const M=window.M,Dd=DIST[k];if(!Dd)return;
+  if(fly)center(Dd.c[0],Dd.c[1],Math.max(V.s,Math.min(1.05,innerWidth/700)),520);
+  document.querySelectorAll(`#objs [data-d="${k}"],#front [data-d="${k}"]`).forEach(g=>{g.classList.remove("hl");void g.getBBox;g.classList.add("hl")});
+  let h="";
+  if(k==="fin"){const F=M.fin,over=F.avg>0&&F.wk>F.avg*1.15;
+    h=`<h3>${Dd.n}${sample(F.ok)}</h3><p class="sub">La torre crece con tus apartados; cada edificio es un apartado</p>
+    <div class="kp"><div><small>En apartados</small><b>${money(F.ptot)}</b></div><div><small>Disponible</small><b>${money(F.liq)}</b></div>
+    <div><small>Gastado esta semana</small><b class="${over?"red":""}">${money(F.wk)}</b></div><div><small>Promedio a esta altura</small><b>${money(F.avg)}</b></div></div>
+    <div class="rows">${F.pots.map(p=>`<div><span>${esc(p.n)}</span><b style="${p.v<0?"color:var(--red)":""}">${money(p.v)}</b></div>`).join("")||"<div><span>Sin apartados</span></div>"}</div>
+    <p class="how">Si esta semana gastas más de lo normal, el letrero "Semana" se pone rojo.</p>${openBtn("../finanzas/","Finanzas")}`}
+  if(k==="rut"){const R=M.rut;
+    h=`<h3>${Dd.n}${sample(R.ok)}</h3><p class="sub">${R.pct}% de hoy · ${R.d30} cumplidos en 30 días</p>
+    <div class="rows">${R.habits.map(x=>`<div><i class="dot" style="background:${x.done?"var(--red)":"color-mix(in srgb,var(--tx) 18%,transparent)"}"></i><span>${esc(x.n)}<small>${x.kind==="day"?`racha de ${x.streak} día${x.streak===1?"":"s"}`:`${x.now} de ${x.target} esta semana`}${x.due?"":" · hoy no toca"}</small></span><b>${x.done?"Listo":x.kind==="day"?x.now+"/"+x.target:""}</b></div>`).join("")}</div>
+    <p class="how">Cada hábito es una casa. Cuando lo cumples se le prende la puerta roja y sube su bandera; con 7 días de racha crece un piso, y con 21, otro. Los árboles del parque son lo que cumpliste en los últimos 30 días.</p>${openBtn("../habitos/","Rutinas")}`}
+  if(k==="jet"){const J=M.jet,WN={airbag:"Bolsa de aire",engine:"Check engine",abs:"ABS",oil:"Presión de aceite",battery:"Batería",temp:"Temperatura",epc:"EPC",esp:"ESP",tpms:"Presión de llantas",brake:"Frenos"};
+    h=`<h3>${Dd.n}${sample(J.ok)}</h3><p class="sub">Gasolinera, taller y tu Jetta estacionado</p>
+    <div class="kp"><div><small>Kilometraje</small><b>${Math.round(J.odo).toLocaleString("es-MX")}</b></div><div><small>Gasolina</small><b class="${J.fuel<15?"red":""}">${Math.round(J.fuel)}%</b></div>
+    <div><small>Rendimiento</small><b>${J.kmpl.toFixed(1)} km/L</b></div><div><small>Costo por km</small><b>${J.cpk?"$"+J.cpk.toFixed(2):"—"}</b></div></div>
+    <div class="rows">${J.active.map(a=>`<div><i class="dot" style="background:var(--red)"></i><span>${WN[a]||a}<small>testigo encendido</small></span></div>`).join("")}
+      ${J.oilLeft!=null?`<div><span>Cambio de aceite</span><b style="${J.oilLeft<0?"color:var(--red)":""}">${J.oilLeft<0?"vencido":"en "+Math.round(J.oilLeft).toLocaleString("es-MX")+" km"}</b></div>`:""}
+      <div><span>Último precio por litro</span><b>${J.price?"$"+J.price.toFixed(2):"sin cargas"}</b></div></div>
+    <p class="how">El letrero se pone rojo cuando hay un testigo o un servicio cerca. El precio y el rendimiento del totem salen de tus cargas de gasolina.</p>${openBtn("../jetta/","Jetta")}`}
+  if(k==="riff"){const S=M.riff;
+    h=`<h3>${Dd.n}${sample(S.ok)}</h3><p class="sub">Practicando: ${esc(S.cur.title)}${S.cur.artist?" · "+esc(S.cur.artist):""}</p>
+    <div class="rows">${S.songs.slice(0,8).map(s=>`<div><span>${esc(s.title)}<small>${esc(s.artist||"")}</small></span></div>`).join("")}</div>
+    <p class="how">Cada estudio detrás del auditorio es una de tus canciones (hasta 8).</p>${openBtn("../musica/","Riff")}`}
+  if(k==="caj"){const C=M.caj;
+    h=`<h3>${Dd.n}${sample(C.ok)}</h3><p class="sub">${C.boxes} cajas · ${C.items} cosas anotadas</p>
+    <div class="rows">${C.zones.map(z=>`<div><span>${esc(z.n)}</span><b>${z.c} cajas</b></div>`).join("")}</div>
+    <p class="how">Cada nave es una zona y cada cajita del patio es una de tus cajas.</p>${openBtn("../cajas/","Cajas")}`}
+  if(k==="hub"){h=`<h3>${Dd.n}</h3><p class="sub">Desde aquí sale el tren a todas tus apps</p>
+    <div class="rows">${[["../finanzas/","Finanzas"],["../habitos/","Rutinas"],["../jetta/","Jetta"],["../musica/","Riff"],["../cajas/","Cajas"],["../","Inicio de Diapps"]].map(([u,n])=>`<div><span><a href="${u}" style="color:inherit;text-decoration:none">${n}</a></span><b>›</b></div>`).join("")}</div>`}
+  if(k==="soon"){h=`<h3>${Dd.n}</h3><p class="sub">Terrenos apartados para lo que sigue</p>
+    <div class="rows"><div><span>Gym<small>Entrenos, pesos y progreso; un gimnasio que crece con tus marcas</small></span></div><div><span>PLC Lab<small>Repaso del curso y simulador de escalera</small></span></div></div>`}
+  openSheet(h)}
+$("#sheetIn").addEventListener("click",e=>{const a=e.target.closest(".rows div");if(a&&a.querySelector("a"))location.href=a.querySelector("a").href});
+$("#chips").addEventListener("click",e=>{const b=e.target.closest("[data-go]");if(b)openDist(b.dataset.go)});
+function setNight(n,manual){document.documentElement.dataset.night=n?"1":"0";$("meta[name=theme-color]").content=n?"#111214":"#EFE9DC";if(manual)try{sessionStorage.setItem("ciudad-night",n?"1":"0")}catch(e){}build()}
+$("#nightB").onclick=()=>{setNight(document.documentElement.dataset.night!=="1",true);toast(document.documentElement.dataset.night==="1"?"De noche se prenden las ventanas":"De día")};
+$("#acctB").onclick=()=>{if(!window.Nube){toast("Sin conexión con la cuenta");return}
+  Nube.accountSheet({sync:null,open:openSheet,close:()=>{closeSheet();loadCloud()},toast})};
+
+/* ======================= Arranque ======================= */
+{let n=null;try{n=sessionStorage.getItem("ciudad-night")}catch(e){}const h=new Date().getHours();
+  document.documentElement.dataset.night=n!=null?n:(document.documentElement.dataset.theme==="dark"||h>=19||h<7)?"1":"0";
+  $("meta[name=theme-color]").content=document.documentElement.dataset.night==="1"?"#111214":"#EFE9DC"}
+build();initCars();
+center(15.5,16,Math.max(SMIN(),Math.min(1,innerWidth/820)));
+requestAnimationFrame(frame);
+addEventListener("resize",()=>{if(V.s<SMIN())zoomAt(innerWidth/2,innerHeight/2,SMIN())});
+addEventListener("storage",()=>{for(const k in SRC){const v=LSj(SRC[k][0]);if(v&&stamp(v)>=stamp(D[k]))D[k]=v}build()});
+loadCloud();
+if("serviceWorker" in navigator&&location.protocol!=="file:")addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+</script>
+</body>
+</html>

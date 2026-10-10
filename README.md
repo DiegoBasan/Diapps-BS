@@ -10,6 +10,7 @@ https://diegobasan.github.io/Diapps-BS/
 | `/habitos/` | Rutinas: hábitos diarios y semanales con reloj del día, semana, progreso y fuerza de cada hábito. |
 | `/musica/` | Riff: YouTube con loop y velocidad, audio propio con cambio de tono, acordes en diagrama y diapasón con escalas para el solo. |
 | `/cajas/` | Cajas: mapa de contenedores a escala, fotos de cada caja abierta y buscador de contenido. |
+| `/ciudad/` | Mi Ciudad: mapa isométrico donde cada barrio es una app y los edificios crecen con tus datos. |
 | `/finanzas/` | Mis Finanzas: gastos, presupuesto, regla 50/30/20, mapa de gasto y asistente local. |
 
 ## Agregar un proyecto
