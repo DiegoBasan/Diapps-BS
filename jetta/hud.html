@@ -81,12 +81,14 @@ a{color:inherit;text-decoration:none}
 .ctl button{height:34px;padding:0 12px;border:1px solid var(--cy2);background:rgba(5,15,19,.8);color:var(--cy);font-size:10px;clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)}
 .ctl button.on{background:var(--cy);color:#04161C}
 .tabs{display:none}
+#credit{position:fixed;left:14px;right:14px;bottom:calc(env(safe-area-inset-bottom) + 2px);line-height:1.4;z-index:6;font-size:8px;color:var(--tx2);text-align:center;opacity:.8;pointer-events:none}
 /* etiquetas sobre piezas */
 #tags{position:fixed;inset:0;pointer-events:none;z-index:3}
 #tags svg{position:absolute;inset:0;width:100%;height:100%}
 .tag{position:absolute;padding:4px 8px;border:1px solid var(--or2);background:rgba(20,10,4,.75);color:var(--or);font-size:10px;white-space:nowrap;transform:translate(0,-50%)}
 .tag.bad{border-color:rgba(255,59,48,.6);color:#FF8A82;background:rgba(30,6,4,.8)}
 .tag small{display:block;color:var(--tx2);font-size:9px}
+{let m="mk6";try{m=localStorage.getItem("jetta-hud-model")||"mk6"}catch(e){}if(m==="det")setModel("det")}
 /* arranque */
 #boot{position:fixed;inset:0;z-index:20;background:var(--bg);display:grid;place-items:center;transition:opacity .6s}
 #boot.off{opacity:0;pointer-events:none}
@@ -97,6 +99,7 @@ a{color:inherit;text-decoration:none}
 #boot .pb i{display:block;height:100%;width:0;background:var(--cy);transition:width .25s}
 /* celular: paneles como pestañas abajo */
 @media (max-width:899px){
+  #credit{top:calc(env(safe-area-inset-top) + 62px);bottom:auto;text-align:left;font-size:7.5px}
   .pn{left:10px;right:10px;bottom:calc(env(safe-area-inset-bottom) + 96px);max-height:38vh;overflow:auto;display:none}
   .pn.show{display:block}
   .tabs{display:flex;position:fixed;left:10px;right:10px;bottom:calc(env(safe-area-inset-bottom) + 56px);z-index:6;gap:4px}
@@ -127,8 +130,9 @@ a{color:inherit;text-decoration:none}
 <section class="pn" id="pWarn"><h4><span class="h" style="color:var(--cy)">Testigos</span><span>DIAG</span></h4><div class="wl" id="warn"></div><h4 style="margin-top:12px"><span>CARGAS · LITROS</span><span id="fillsN"></span></h4><div class="fills" id="fills"></div></section>
 <div class="tabs" id="tabs"><button data-p="pSys" class="on">SISTEMAS</button><button data-p="pData">TELEMETRÍA</button><button data-p="pWarn">TESTIGOS</button></div>
 <div class="ctl" id="ctl">
-  <button data-c="explode">EXPLOSIÓN</button><button data-c="scan" class="on">ESCANEO</button><button data-c="rot" class="on">ROTAR</button><button data-c="view">VISTA</button>
+  <button data-c="explode">EXPLOSIÓN</button><button data-c="scan" class="on">ESCANEO</button><button data-c="rot" class="on">ROTAR</button><button data-c="view">VISTA</button><button data-c="model">MK6</button>
 </div>
+<div id="credit" hidden>MODELO DETALLE: "CAR CONCEPT" · KHRONOS GROUP · BASADO EN MODELO CC0 DE UNITY FAN · CC BY 4.0</div>
 <div id="boot"><div><b class="h">Inicializando</b><p id="b1"></p><p id="b2"></p><p id="b3"></p><div class="pb"><i id="bp"></i></div></div></div>
 <script type="module">
 import * as THREE from "../shared/vendor/three/three.module.min.js";
@@ -238,9 +242,47 @@ function setTags(){TAGS.length=0;
   if(focus){const s=sv.find(x=>x.id===focus);if(s&&!TAGS.some(t=>t.t===s.n.toUpperCase()))TAGS.push({part:s.part,t:s.n.toUpperCase(),s:s.left<0?"VENCIDO":"EN "+fmt(s.left)+" KM",bad:s.st==="bad"})}
   hl=new Set(TAGS.map(t=>t.part));if(focus){const s=sv.find(x=>x.id===focus);if(s)hl=new Set([s.part])}}
 const anchor={engine:[X0+.78,.85,0],wheels:[X0+Fx,WR+.2,.9],brakes:[X0+Rx,WR+.15,.82],cabin:[X0+2.6,1.35,0],trans:[X0+1.3,.5,0],battery:[X0+.62,.92,.55],tank:[X0+3.15,.4,.45],body:[X0+4.5,.9,.8]};
+let SET={parts:PARTS,pg:PGROUP,anc:anchor,root:car};
+/* ---------- Modelo detallado (opcional) ----------
+   "Car Concept" de Khronos Group (CC BY 4.0, basado en un modelo CC0 de Unity Fan), sin texturas y comprimido.
+   Sus piezas vienen con nombre: se clasifican para resaltarlas y separarlas igual que en el modelo MK6. */
+let DET=null;
+async function loadDetail(){if(DET)return DET;$("#link").textContent="DESCARGANDO MODELO…";
+  const {GLTFLoader}=await import("../shared/vendor/three/loaders/GLTFLoader.js");
+  const gl=await new GLTFLoader().loadAsync("models/concept.glb");
+  const wrap=new THREE.Group();wrap.add(gl.scene);
+  const fit=()=>{wrap.updateMatrixWorld(true);return new THREE.Box3().setFromObject(wrap)};
+  let b=fit(),sz=b.getSize(new THREE.Vector3());if(sz.z>sz.x){wrap.rotation.y=Math.PI/2;b=fit();sz=b.getSize(new THREE.Vector3())}
+  wrap.scale.setScalar(L/sz.x);b=fit();const c=b.getCenter(new THREE.Vector3());wrap.position.set(-c.x,-b.min.y,-c.z);
+  // el frente (faros) va hacia -x como en el MK6
+  const head=gl.scene.getObjectByName("BodyHeadlights");if(head){wrap.updateMatrixWorld(true);const hc=new THREE.Box3().setFromObject(head).getCenter(new THREE.Vector3());if(hc.x>0){wrap.rotation.y+=Math.PI;b=fit();const c2=b.getCenter(new THREE.Vector3());wrap.position.x-=c2.x;wrap.position.z-=c2.z}}
+  wrap.updateMatrixWorld(true);
+  const root=new THREE.Group(),parts={};scene.add(root);
+  const mk=n=>{if(!parts[n]){const g=new THREE.Group();g.userData={name:n,home:new THREE.Vector3(),ex:new THREE.Vector3(),mats:[]};root.add(g);parts[n]=g}return parts[n]};
+  const chain=o=>{let s="";for(let x=o;x&&x!==wrap;x=x.parent)s+=" "+(x.name||"");return s};
+  const cls=n=>/License/.test(n)?null:/Brake/.test(n)?"brakes":/WheelFrontL/.test(n)?"wFL":/WheelFrontR/.test(n)?"wFR":/WheelRearL/.test(n)?"wRL":/WheelRearR/.test(n)?"wRR":
+    /Engine|Axles/.test(n)?"engine":/Hood/.test(n)?"hood":/DoorL/.test(n)?"doorL":/DoorR/.test(n)?"doorR":/Interior|Windshield|Window|Roof|Pillar/.test(n)?"cabin":"body";
+  const COL={body:OR,hood:OR,doorL:OR,doorR:OR,cabin:CY,engine:OR,brakes:CY,wFL:OR,wFR:OR,wRL:OR,wRR:OR};
+  const toFloat=geo=>{const g=new THREE.BufferGeometry();const a=geo.attributes.position,arr=new Float32Array(a.count*3);for(let i=0;i<a.count;i++){arr[i*3]=a.getX(i);arr[i*3+1]=a.getY(i);arr[i*3+2]=a.getZ(i)}
+    g.setAttribute("position",new THREE.BufferAttribute(arr,3));if(geo.index)g.setIndex(geo.index.clone());return g};
+  gl.scene.traverse(m=>{if(!m.isMesh)return;const k=cls(chain(m));if(!k)return;const geo=toFloat(m.geometry);geo.applyMatrix4(m.matrixWorld);
+    addMesh(mk(k),geo,COL[k],{fill:k==="cabin"?.02:.03,edge:k==="cabin"?.4:.6,th:30})});
+  // separación de la vista explotada según dónde está cada pieza
+  const cen={};for(const k in parts){const bb=new THREE.Box3().setFromObject(parts[k]);cen[k]={c:bb.getCenter(new THREE.Vector3()),top:bb.max.y}}
+  const side=k=>Math.sign((cen[k]||{c:{z:1}}).c.z)||1;
+  const EXD={hood:[0,.9,0],cabin:[0,.7,0],engine:[0,1.1,0],doorL:[0,.1,side("doorL")*.95],doorR:[0,.1,side("doorR")*.95],wFL:[0,0,side("wFL")*.8],wFR:[0,0,side("wFR")*.8],wRL:[0,0,side("wRL")*.8],wRR:[0,0,side("wRR")*.8]};
+  for(const k in parts)parts[k].userData.ex.set(...(EXD[k]||[0,0,0]));
+  const at=(k,dy=0,dz=0)=>cen[k]?[cen[k].c.x,cen[k].top+dy,cen[k].c.z+dz]:[0,.6,0];
+  const anc={engine:at("engine",.05),wheels:at("wFL",-.1,side("wFL")*.12),brakes:at("brakes",-.2),cabin:at("cabin",-.1),trans:at("engine",-.2),battery:at("engine",.05),tank:at("body",-.6),body:at("body",-.2)};
+  const pg={engine:["engine","hood"],wheels:["wFL","wFR","wRL","wRR"],brakes:["brakes"],cabin:["cabin"],trans:["engine"],battery:["engine"],tank:["body"],body:["body","doorL","doorR"]};
+  root.visible=false;DET={parts,pg,anc,root};$("#link").textContent="ENLACE ESTABLECIDO";return DET}
+const MK6={parts:PARTS,pg:PGROUP,anc:anchor,root:car};
+async function setModel(m){if(m==="det"){try{const d=await loadDetail();SET=d;d.root.visible=true;car.visible=false}catch(e){$("#link").textContent="NO SE PUDO CARGAR EL MODELO";m="mk6"}}
+  if(m!=="det"){SET=MK6;car.visible=true;if(DET)DET.root.visible=false}
+  try{localStorage.setItem("jetta-hud-model",m)}catch(e){}$("#credit").hidden=m!=="det";const b=$('[data-c="model"]');if(b)b.textContent=m==="det"?"DETALLE":"MK6";b.classList.toggle("on",m==="det")}
 const tmpV=new THREE.Vector3();
 function drawTags(){const W=innerWidth,H=innerHeight;let lines="",html="";const used=[];
-  TAGS.slice(0,5).forEach((t,i)=>{const pg=PGROUP[t.part]||[];const g=PARTS[pg[0]];const a=anchor[t.part];if(!a)return;tmpV.set(...a);if(g)tmpV.add(g.position);tmpV.applyMatrix4(car.matrixWorld).project(cam);
+  TAGS.slice(0,5).forEach((t,i)=>{const pg=SET.pg[t.part]||[];const g=SET.parts[pg[0]];const a=SET.anc[t.part];if(!a)return;tmpV.set(...a);if(g)tmpV.add(g.position);tmpV.applyMatrix4(SET.root.matrixWorld).project(cam);
     const x=(tmpV.x+1)/2*W,y=(1-tmpV.y)/2*H;if(tmpV.z>1)return;const right=x<W/2?false:true;let ty=Math.max(90,Math.min(H-200,y-70+i*12));while(used.some(u=>Math.abs(u-ty)<38))ty+=40;used.push(ty);
     const wide=W>=900,tx=right?Math.min(W-(wide?450:150),x+70):Math.max(wide?335:10,x-190),c=t.bad?"#FF3B30":"#FF8A2A";
     lines+=`<polyline points="${x.toFixed(0)},${y.toFixed(0)} ${(right?tx-12:tx+150).toFixed(0)},${ty.toFixed(0)} ${(right?tx:tx+140).toFixed(0)},${ty.toFixed(0)}" fill="none" stroke="${c}" stroke-width="1" opacity=".8"/><circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="3.5" fill="none" stroke="${c}"/><circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="1.5" fill="${c}"/>`;
@@ -255,9 +297,9 @@ function frame(now){const t=(now-t0)/1000;
   cam.position.set(Math.sin(V.th)*Math.cos(V.ph)*V.r,Math.sin(V.ph)*V.r+.55,Math.cos(V.th)*Math.cos(V.ph)*V.r);cam.lookAt(0,LOOK,0);
   explode+=(exT-explode)*.07;
   const boot=Math.min(1,t/1.8);
-  for(const k in PARTS){const g=PARTS[k],u=g.userData;g.position.copy(u.ex).multiplyScalar(explode);
-    const on=[...hl].some(p=>(PGROUP[p]||[]).includes(k)),pulse=.65+.35*Math.sin(t*5);
-    u.mats.forEach(m=>{const c=on?(TAGS.some(x=>x.bad&&(PGROUP[x.part]||[]).includes(k))?RD:OR):m.c;
+  for(const k in SET.parts){const g=SET.parts[k],u=g.userData;g.position.copy(u.ex).multiplyScalar(explode);
+    const on=[...hl].some(p=>(SET.pg[p]||[]).includes(k)),pulse=.65+.35*Math.sin(t*5);
+    u.mats.forEach(m=>{const c=on?(TAGS.some(x=>x.bad&&(SET.pg[x.part]||[]).includes(k))?RD:OR):m.c;
       m.lm.color.setHex(c);m.lm.opacity=(on?Math.min(1,m.edge+.3)*pulse:m.edge*(hl.size?.55:1))*boot;if(m.fm){m.fm.color.setHex(c);m.fm.opacity=(on?m.fill*3:m.fill)*boot}})}
   WH.forEach(w=>w.children.forEach(()=>{}));
   ticks.rotation.y=t*.05;arcs.rotation.y=-t*.18;
@@ -281,11 +323,12 @@ function panels(){
   const mx=Math.max(1,...last.map(f=>f.litros||0));$("#fills").className="fills"+(last.length?"":" none");
   $("#fills").innerHTML=last.length?last.map(f=>`<i style="height:${Math.max(4,(f.litros||0)/mx*100)}%" title="${f.d}"></i>`).join(""):Array.from({length:14},(_,i)=>`<i style="height:${10+((i*37)%50)}%"></i>`).join("")}
 $("#sys").addEventListener("click",e=>{const b=e.target.closest("[data-s]");if(!b)return;const id=b.dataset.s;focus=focus===id?null:id;setTags();panels();
-  const s=sv.find(x=>x.id===id);if(focus&&s){const a=anchor[s.part];V.tth=Math.atan2(a[0]+2,a[2]+4)-.4;V.tph=s.part==="wheels"||s.part==="brakes"?.2:.55}});
+  const s=sv.find(x=>x.id===id);if(focus&&s){const a=SET.anc[s.part]||[0,.6,0];V.tth=Math.atan2(a[0]+2,a[2]+4)-.4;V.tph=s.part==="wheels"||s.part==="brakes"?.2:.55}});
 $("#ctl").addEventListener("click",e=>{const b=e.target.closest("[data-c]");if(!b)return;const c=b.dataset.c;
   if(c==="explode"){exT=exT?0:1;b.classList.toggle("on",!!exT)}
   if(c==="scan"){scanOn=!scanOn;b.classList.toggle("on",scanOn)}
   if(c==="rot"){auto=!auto;b.classList.toggle("on",auto)}
+  if(c==="model"){setModel(car.visible?"det":"mk6");return}
   if(c==="view"){vi=(vi+1)%VIEWS.length;[V.tth,V.tph]=VIEWS[vi];lastUser=performance.now()}});
 $("#tabs").addEventListener("click",e=>{const b=e.target.closest("[data-p]");if(!b)return;const was=b.classList.contains("on")&&$("#"+b.dataset.p).classList.contains("show");
   document.querySelectorAll(".pn").forEach(p=>p.classList.remove("show"));$("#tabs").querySelectorAll("button").forEach(x=>x.classList.remove("on"));

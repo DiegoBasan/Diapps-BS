@@ -54,3 +54,7 @@ La configuración web de Firebase no es secreta. Incluye bloqueo con Face ID (pa
 
 En pantallas de 1100px o más: el inicio se vuelve un mega dashboard que resume los datos de todas las apps
 (leídos del almacenamiento del navegador) y cada app muestra todas sus pantallas a la vez en columnas.
+
+## Créditos de modelos 3D
+- `jetta/models/concept.glb`: "Car Concept" de Khronos Group (glTF-Sample-Assets), basado en un modelo CC0 de Unity Fan. Licencia CC BY 4.0 (ver `jetta/models/LICENSE-CarConcept.md`). Se quitaron texturas y logotipos y se simplificó la geometría para el HUD.
+- `shared/vendor/three`: Three.js r160 (MIT).
