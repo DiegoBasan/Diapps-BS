@@ -13,6 +13,7 @@ https://diegobasan.github.io/Diapps-BS/
 | `/ciudad/` | Mi Ciudad: mapa isométrico donde cada barrio es una app y los edificios crecen con tus datos. |
 | `/control/` | Control: tablero de rendimiento con relieve de actividad, alertas y estado de todas tus apps. |
 | `/compa/` | Compa: robot 3D en una isla flotante con un objeto por app; reacciona a tus datos, camina a cada objeto y permite check-in de hábitos. |
+| `/linea/` | Línea: tablero de la línea de ensamble de tractores con escena 3D (PBR, sombras y oclusión ambiental), estaciones con andon, órdenes, OEE y alarmas simuladas. |
 | `/papeles/` | Papeles: carpetas de documentos en un carrusel 3D, con fotos/PDF guardados en el dispositivo y fechas de vencimiento. |
 | `/finanzas/` | Mis Finanzas: gastos, presupuesto, regla 50/30/20, mapa de gasto y asistente local. |
 
@@ -60,4 +61,5 @@ En pantallas de 1100px o más: el inicio se vuelve un mega dashboard que resume 
 - `jetta/models/concept.glb`: "Car Concept" de Khronos Group (glTF-Sample-Assets), basado en un modelo CC0 de Unity Fan. Licencia CC BY 4.0 (ver `jetta/models/LICENSE-CarConcept.md`). Se quitaron texturas y logotipos y se simplificó la geometría para el HUD.
 - `compa/models/robot.glb`: "RobotExpressive" de Tomás Laulhé (Quaternius), CC0, con modificaciones de Don McCurdy.
 - `compa/models/sedan.glb` y `box.glb`: Car Kit de Kenney, CC0.
-- `shared/vendor/three`: Three.js r160 (MIT).
+- `linea/models/tractor.glb`: Car Kit de Kenney, CC0.
+- `shared/vendor/three`: Three.js r160 (MIT), con addons de posprocesado (GTAO) y RoomEnvironment.
