@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Jetta · HUD</title>
+<meta name="description" content="Tu Jetta MK6 en 3D con datos de servicio, gasolina y testigos en una interfaz holográfica">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#05090B">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap">
+<style>
+/* HUD del Jetta: interfaz holográfica estilo película. El coche se arma con geometría en código (Three.js, guardado en shared/vendor)
+   y los paneles leen tus datos reales de la app Jetta (jetta6v3): servicios, gasolina, cargas y testigos. */
+:root{--bg:#05090B;--cy:#38C6E8;--cy2:rgba(56,198,232,.55);--cy3:rgba(56,198,232,.16);--or:#FF8A2A;--or2:rgba(255,138,42,.5);--rd:#FF3B30;--tx:#D7F3FA;--tx2:#6E99A6}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--tx);font-family:"Share Tech Mono",ui-monospace,monospace;font-size:11px;letter-spacing:.06em}
+body::before{content:"";position:fixed;inset:0;background:radial-gradient(70% 60% at 50% 45%,rgba(30,70,85,.35),transparent 70%),radial-gradient(circle,rgba(56,198,232,.13) 1px,transparent 1.3px) 0 0/22px 22px;pointer-events:none}
+body::after{content:"";position:fixed;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,.018) 0 1px,transparent 1px 3px);pointer-events:none;z-index:9}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0;letter-spacing:inherit}
+a{color:inherit;text-decoration:none}
+#c{position:fixed;inset:0;width:100%;height:100%;touch-action:none;display:block}
+.h{font-family:Rajdhani,sans-serif;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+/* marco y barra superior */
+.top{position:fixed;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top) + 10px) 14px 0;display:flex;align-items:center;gap:10px;z-index:5;pointer-events:none}
+.top>*{pointer-events:auto}
+.back{width:38px;height:38px;border:1px solid var(--cy2);display:grid;place-items:center;clip-path:polygon(0 0,100% 0,100% 70%,70% 100%,0 100%);background:rgba(56,198,232,.06)}
+.back svg{width:16px;height:16px;color:var(--cy)}
+.ttl{flex:1;min-width:0}
+.ttl b{display:block;font-size:17px;color:#fff}
+.ttl small{color:var(--tx2);font-size:10px;display:flex;gap:8px;align-items:center;white-space:nowrap;overflow:hidden}
+.ttl small i{width:6px;height:6px;border-radius:50%;background:var(--cy);box-shadow:0 0 8px var(--cy);animation:bl 1.2s steps(2) infinite}
+@keyframes bl{50%{opacity:.2}}
+.clock{color:var(--cy);font-size:12px;text-align:right}
+.clock small{display:block;color:var(--tx2);font-size:9px}
+.frame{position:fixed;inset:calc(env(safe-area-inset-top) + 58px) 8px calc(env(safe-area-inset-bottom) + 8px);pointer-events:none;z-index:1}
+.frame i{position:absolute;width:18px;height:18px;border-color:var(--cy2);border-style:solid}
+.frame i:nth-child(1){left:0;top:0;border-width:1px 0 0 1px}.frame i:nth-child(2){right:0;top:0;border-width:1px 1px 0 0}
+.frame i:nth-child(3){left:0;bottom:0;border-width:0 0 1px 1px}.frame i:nth-child(4){right:0;bottom:0;border-width:0 1px 1px 0}
+/* paneles */
+.pn{position:fixed;z-index:4;background:linear-gradient(180deg,rgba(8,22,28,.82),rgba(5,12,15,.7));border:1px solid var(--cy3);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);padding:10px 12px}
+.pn::before{content:"";position:absolute;left:-1px;top:-1px;width:26px;height:2px;background:var(--cy)}
+.pn h4{margin:0 0 8px;font-size:10px;color:var(--cy);display:flex;justify-content:space-between;font-weight:400}
+.pn h4 span{color:var(--tx2)}
+.sys{display:grid;gap:5px}
+.sr{display:grid;grid-template-columns:42px 1fr 64px;gap:8px;align-items:center;padding:4px 4px;border-left:2px solid transparent;text-align:left;width:100%}
+.sr:hover,.sr.on{background:rgba(56,198,232,.08);border-left-color:var(--cy)}
+.sr.on{border-left-color:var(--or)}
+.sr em{font-style:normal;color:var(--tx2);font-size:9.5px}
+.sr b{font-weight:400;font-size:11px;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.sr .bar{display:block;height:4px;margin-top:3px;background:repeating-linear-gradient(90deg,var(--cy3) 0 5px,transparent 5px 7px)}
+.sr .bar i{display:block;height:100%;background:repeating-linear-gradient(90deg,var(--cy) 0 5px,transparent 5px 7px)}
+.sr.warn .bar i{background:repeating-linear-gradient(90deg,var(--or) 0 5px,transparent 5px 7px)}.sr.warn b{color:var(--or)}
+.sr.bad .bar i{background:repeating-linear-gradient(90deg,var(--rd) 0 5px,transparent 5px 7px)}.sr.bad b{color:var(--rd)}
+.sr .v{text-align:right;font-size:10px;color:var(--tx2)}
+.sr.bad .v{color:var(--rd)}.sr.warn .v{color:var(--or)}
+.big{font-family:Rajdhani,sans-serif;font-weight:600;font-size:30px;color:#fff;letter-spacing:.04em;line-height:1}
+.big small{font-size:12px;color:var(--tx2);margin-left:4px}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin-top:10px}
+.kv div small{display:block;color:var(--tx2);font-size:9px}
+.kv div b{font-weight:400;font-size:14px;color:var(--tx)}
+.seg{display:flex;gap:2px;margin-top:8px}
+.seg i{flex:1;height:10px;background:var(--cy3)}
+.seg i.on{background:var(--cy);box-shadow:0 0 6px var(--cy2)}
+.seg.low i.on{background:var(--or);box-shadow:0 0 6px var(--or2)}
+.wl{display:grid;gap:5px;margin-top:4px}
+.wl div{display:flex;gap:8px;align-items:center;padding:5px 6px;border:1px solid rgba(255,59,48,.35);background:rgba(255,59,48,.07);color:#FFB3AD}
+.wl div::before{content:"";width:7px;height:7px;background:var(--rd);box-shadow:0 0 8px var(--rd);animation:bl 1s steps(2) infinite;flex:none}
+.wl .ok{border-color:var(--cy3);background:none;color:var(--tx2)}.wl .ok::before{background:var(--cy);animation:none;box-shadow:none}
+.fills{display:flex;align-items:flex-end;gap:3px;height:46px;margin-top:6px}
+.fills i{flex:1;background:linear-gradient(0deg,var(--or2),var(--or));min-height:2px}
+.fills.none i{background:var(--cy3)}
+.stream{color:rgba(56,198,232,.4);font-size:9px;line-height:1.35;height:52px;overflow:hidden;margin-top:8px;white-space:pre}
+/* controles */
+.ctl{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 14px);z-index:6;display:flex;gap:6px}
+.ctl button{height:34px;padding:0 12px;border:1px solid var(--cy2);background:rgba(5,15,19,.8);color:var(--cy);font-size:10px;clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)}
+.ctl button.on{background:var(--cy);color:#04161C}
+.tabs{display:none}
+/* etiquetas sobre piezas */
+#tags{position:fixed;inset:0;pointer-events:none;z-index:3}
+#tags svg{position:absolute;inset:0;width:100%;height:100%}
+.tag{position:absolute;padding:4px 8px;border:1px solid var(--or2);background:rgba(20,10,4,.75);color:var(--or);font-size:10px;white-space:nowrap;transform:translate(0,-50%)}
+.tag.bad{border-color:rgba(255,59,48,.6);color:#FF8A82;background:rgba(30,6,4,.8)}
+.tag small{display:block;color:var(--tx2);font-size:9px}
+/* arranque */
+#boot{position:fixed;inset:0;z-index:20;background:var(--bg);display:grid;place-items:center;transition:opacity .6s}
+#boot.off{opacity:0;pointer-events:none}
+#boot div{width:240px}
+#boot b{display:block;color:var(--cy);font-size:12px;margin-bottom:8px}
+#boot p{margin:2px 0;color:var(--tx2);font-size:10px;min-height:13px}
+#boot .pb{height:2px;background:var(--cy3);margin-top:10px}
+#boot .pb i{display:block;height:100%;width:0;background:var(--cy);transition:width .25s}
+/* celular: paneles como pestañas abajo */
+@media (max-width:899px){
+  .pn{left:10px;right:10px;bottom:calc(env(safe-area-inset-bottom) + 96px);max-height:38vh;overflow:auto;display:none}
+  .pn.show{display:block}
+  .tabs{display:flex;position:fixed;left:10px;right:10px;bottom:calc(env(safe-area-inset-bottom) + 56px);z-index:6;gap:4px}
+  .tabs button{flex:1;height:32px;border:1px solid var(--cy3);background:rgba(5,15,19,.8);font-size:10px;color:var(--tx2)}
+  .tabs button.on{border-color:var(--cy);color:var(--cy)}
+  .stream{display:none}
+  .ctl button{padding:0 9px;font-size:9.5px}
+}
+@media (min-width:900px){
+  #pSys{left:18px;top:86px;width:300px}
+  #pData{right:18px;top:86px;width:270px}
+  #pWarn{right:18px;bottom:70px;width:270px}
+  .ctl{bottom:22px}
+}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="tags"><svg id="tagl"></svg></div>
+<div class="frame"><i></i><i></i><i></i><i></i></div>
+<div class="top">
+  <a class="back" href="./" aria-label="Volver a Jetta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></a>
+  <div class="ttl"><b class="h">Jetta MK6 · 2.5L</b><small><i></i><span id="link">ENLACE ESTABLECIDO</span><span>· SIS_V.2026</span></small></div>
+  <div class="clock"><span id="clk"></span><small id="dte"></small></div>
+</div>
+<section class="pn" id="pSys"><h4><span class="h" style="color:var(--cy)">Sistemas</span><span>SRV_KM</span></h4><div class="sys" id="sys"></div><div class="stream" id="stream"></div></section>
+<section class="pn" id="pData"><h4><span class="h" style="color:var(--cy)">Telemetría</span><span id="odoS">ODO</span></h4><div id="data"></div></section>
+<section class="pn" id="pWarn"><h4><span class="h" style="color:var(--cy)">Testigos</span><span>DIAG</span></h4><div class="wl" id="warn"></div><h4 style="margin-top:12px"><span>CARGAS · LITROS</span><span id="fillsN"></span></h4><div class="fills" id="fills"></div></section>
+<div class="tabs" id="tabs"><button data-p="pSys" class="on">SISTEMAS</button><button data-p="pData">TELEMETRÍA</button><button data-p="pWarn">TESTIGOS</button></div>
+<div class="ctl" id="ctl">
+  <button data-c="explode">EXPLOSIÓN</button><button data-c="scan" class="on">ESCANEO</button><button data-c="rot" class="on">ROTAR</button><button data-c="view">VISTA</button>
+</div>
+<div id="boot"><div><b class="h">Inicializando</b><p id="b1"></p><p id="b2"></p><p id="b3"></p><div class="pb"><i id="bp"></i></div></div></div>
+<script type="module">
+import * as THREE from "../shared/vendor/three/three.module.min.js";
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt=n=>Math.round(n).toLocaleString("es-MX");
+
+/* ======================= Datos del Jetta (los mismos de la app) ======================= */
+const DEF={odo:214072,fuel:22,oil:62,active:["airbag"],done:{oil:205100,airf:190600,cabin:205100,plugs:176100,atf:181600,belt:147600,rot:205100,align:200600,pads:197600},fills:[]};
+let S;try{S=JSON.parse(localStorage.getItem("jetta6v3"))}catch(e){}
+if(!S||!S.done)S=DEF;
+const MAINT=[["oil","Aceite y filtro",10000,"engine"],["rot","Rotación llantas",10000,"wheels"],["align","Alineación",20000,"wheels"],["pads","Balatas",30000,"brakes"],
+  ["cabin","Filtro de cabina",15000,"cabin"],["airf","Filtro de aire",30000,"engine"],["plugs","Bujías",60000,"engine"],["atf","ATF Tiptronic",60000,"trans"],["belt","Banda accesorios",90000,"engine"]];
+const LIGHT={airbag:["Bolsas de aire","cabin"],engine:["Check engine","engine"],epc:["EPC","engine"],oilp:["Presión de aceite","engine"],temp:["Temperatura","engine"],batt:["Carga / batería","battery"],
+  brake:["Frenos","brakes"],abs:["ABS","brakes"],esc:["Estabilidad","brakes"],tpms:["Presión llantas","wheels"],steer:["Dirección","wheels"],fuel:["Reserva","tank"],belt:["Cinturón","cabin"],door:["Puerta abierta","body"],service:["Servicio","engine"]};
+const sv=MAINT.filter(m=>S.done&&S.done[m[0]]!=null).map(([id,n,km,part])=>{const left=S.done[id]+km-S.odo,p=Math.max(0,Math.min(1,left/km));return {id,n,km,part,left,p,st:left<0?"bad":left<km*.15?"warn":"ok"}});
+const fl=(S.fills||[]).slice().sort((a,b)=>a.odo-b.odo);let fkm=0,fL=0;for(let i=1;i<fl.length;i++){fkm+=fl[i].odo-fl[i-1].odo;fL+=fl[i].litros}
+const kmpl=fL>0&&fkm/fL>3&&fkm/fL<30?fkm/fL:11.5,cpk=fkm>0?fl.slice(1).reduce((s,f)=>s+f.pesos,0)/fkm:null;
+const active=(S.active||[]).filter(k=>LIGHT[k]||k);
+
+/* ======================= Escena 3D ======================= */
+const cv=$("#c"),R=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});R.setPixelRatio(Math.min(2,devicePixelRatio||1));
+const scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(34,1,.1,100);
+const OR=0xff8a2a,CY=0x38c6e8,RD=0xff3b30;
+const lineMat=(c,o=.9)=>new THREE.LineBasicMaterial({color:c,transparent:true,opacity:o,blending:THREE.AdditiveBlending,depthWrite:false});
+const fillMat=(c,o=.06)=>new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:o,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+const car=new THREE.Group();scene.add(car);
+const PARTS={};
+function part(name){if(!PARTS[name]){const g=new THREE.Group();g.userData={name,home:new THREE.Vector3(),ex:new THREE.Vector3(),mats:[]};car.add(g);PARTS[name]=g}return PARTS[name]}
+function addMesh(g,geo,c,{fill=.06,edge=.9,th=18}={}){const fm=fillMat(c,fill),lm=lineMat(c,edge);g.add(new THREE.Mesh(geo,fm));g.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo,th),lm));g.userData.mats.push({fm,lm,c,fill,edge})}
+function addLine(g,pts,c,o=.8){const m=lineMat(c,o);g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts.map(p=>new THREE.Vector3(...p))),m));g.userData.mats.push({lm:m,c,edge:o})}
+const L=4.64,X0=-L/2;/* x: de -2.32 (frente) a 2.32 (atrás) */
+const Fx=0.95,Rx=3.6,WR=.33;
+/* carrocería baja: perfil lateral extruido a lo ancho, con arcos de rueda */
+{const s=new THREE.Shape(),P=(x,y)=>[x+X0,y];
+  s.moveTo(...P(.06,.26));s.lineTo(...P(Fx-.4,.26));s.absarc(Fx+X0,.26,.4,Math.PI,0,true);s.lineTo(...P(Rx-.4,.26));s.absarc(Rx+X0,.26,.4,Math.PI,0,true);
+  s.lineTo(...P(4.52,.26));s.lineTo(...P(4.61,.46));s.lineTo(...P(4.63,.86));s.lineTo(...P(4.5,1.0));s.lineTo(...P(3.95,.99));s.lineTo(...P(1.52,.94));
+  s.lineTo(...P(.3,.75));s.lineTo(...P(.06,.64));s.lineTo(...P(0,.45));s.lineTo(...P(.06,.26));
+  const geo=new THREE.ExtrudeGeometry(s,{depth:1.7,bevelEnabled:true,bevelThickness:.05,bevelSize:.04,bevelSegments:2,curveSegments:14});geo.translate(0,0,-.85);
+  const g=part("body");addMesh(g,geo,OR,{fill:.05,edge:.85,th:25});
+  for(const z of [-.9,.9]){addLine(g,[[X0+.3,.62,z],[X0+1.5,.8,z],[X0+3.9,.86,z],[X0+4.55,.86,z]],OR,.55);addLine(g,[[X0+.45,.36,z],[X0+4.4,.36,z]],OR,.35);
+    for(const x of [1.58,2.62,3.5])addLine(g,[[X0+x,.3,z],[X0+x+.02,.94,z]],OR,.45);
+    addLine(g,[[X0+2.05,.72,z],[X0+2.25,.72,z]],OR,.7);addLine(g,[[X0+3.05,.74,z],[X0+3.25,.74,z]],OR,.7)}
+  for(const z of [-.62,.62]){addLine(g,[[X0+.02,.55,z],[X0+.1,.66,z],[X0+.42,.7,z*1.05],[X0+.3,.56,z*1.08],[X0+.02,.55,z]],CY,.9)}
+  for(const z of [-.65,.65])addLine(g,[[X0+4.62,.8,z],[X0+4.58,.68,z],[X0+4.5,.68,z*1.1],[X0+4.55,.84,z*1.1],[X0+4.62,.8,z]],RD,.9);
+  addLine(g,[[X0+.02,.5,-.4],[X0+.02,.5,.4],[X0+.04,.62,.4],[X0+.04,.62,-.4],[X0+.02,.5,-.4]],OR,.6)}
+/* cabina: parabrisas, techo y medallón, más angosta */
+{const s=new THREE.Shape(),P=(x,y)=>[x+X0,y];s.moveTo(...P(1.52,.94));s.lineTo(...P(2.22,1.42));s.quadraticCurveTo(...P(2.7,1.47),...P(3.18,1.43));s.lineTo(...P(3.95,.99));s.lineTo(...P(1.52,.94));
+  const geo=new THREE.ExtrudeGeometry(s,{depth:1.4,bevelEnabled:true,bevelThickness:.05,bevelSize:.05,bevelSegments:3,curveSegments:10});geo.translate(0,0,-.7);
+  const g=part("cabin");addMesh(g,geo,CY,{fill:.05,edge:.75,th:25});
+  for(const z of [-.76,.76]){addLine(g,[[X0+1.7,.98,z],[X0+2.25,1.36,z],[X0+3.12,1.38,z],[X0+3.75,1.0,z],[X0+1.7,.98,z]],CY,.6);addLine(g,[[X0+2.62,.97,z],[X0+2.64,1.38,z]],CY,.6)}
+  const sw=new THREE.TorusGeometry(.17,.012,6,24);sw.rotateY(Math.PI/2);sw.rotateZ(.35);sw.translate(X0+1.95,.95,.38);addMesh(g,sw,CY,{fill:.15,edge:.9});
+  for(const [x,z] of [[2.35,.38],[2.35,-.38],[3.25,.38],[3.25,-.38]]){const seat=new THREE.BoxGeometry(.45,.12,.48);seat.translate(X0+x,.55,z);addMesh(g,seat,CY,{fill:.04,edge:.4});
+    const back=new THREE.BoxGeometry(.1,.55,.48);back.rotateZ(-.18);back.translate(X0+x+.25,.85,z);addMesh(g,back,CY,{fill:.04,edge:.4})}}
+/* motor 5 cilindros, transmisión, batería y tanque */
+{const g=part("engine");const blk=new THREE.BoxGeometry(.62,.42,.72);blk.translate(X0+.78,.58,0);addMesh(g,blk,OR,{fill:.08,edge:.9});
+  for(let i=0;i<5;i++){const c=new THREE.CylinderGeometry(.055,.055,.12,12);c.translate(X0+.78,.85,-.28+i*.14);addMesh(g,c,OR,{fill:.12,edge:.8})}
+  const pul=new THREE.CylinderGeometry(.11,.11,.05,20);pul.rotateX(Math.PI/2);pul.translate(X0+.78,.45,.4);addMesh(g,pul,OR,{fill:.1,edge:.8})
+  const air=new THREE.BoxGeometry(.3,.14,.3);air.translate(X0+.45,.82,-.48);addMesh(g,air,CY,{fill:.05,edge:.6})}
+{const g=part("trans");const t=new THREE.CylinderGeometry(.16,.22,.55,14);t.rotateZ(Math.PI/2);t.translate(X0+1.3,.48,.05);addMesh(g,t,CY,{fill:.05,edge:.55});
+  addLine(g,[[X0+1.55,.42,0],[X0+Rx-.1,.32,0]],CY,.5)}
+{const g=part("battery");const b=new THREE.BoxGeometry(.26,.2,.18);b.translate(X0+.62,.82,.55);addMesh(g,b,CY,{fill:.08,edge:.8})}
+{const g=part("tank");const t=new THREE.BoxGeometry(.7,.2,.9);t.translate(X0+3.15,.38,0);addMesh(g,t,CY,{fill:.05,edge:.5})}
+/* llantas con rin de 5 rayos y discos de freno */
+function wheel(x,z,name){const g=part(name);const s=z>0?1:-1;
+  const tire=new THREE.CylinderGeometry(WR,WR,.22,32,1,true);tire.rotateX(Math.PI/2);tire.translate(x+X0,WR,z);addMesh(g,tire,OR,{fill:.07,edge:.25,th:5});
+  for(const dz of [-.11,.11]){const pts=[];for(let k=0;k<=40;k++){const a=k/40*Math.PI*2;pts.push([x+X0+Math.cos(a)*WR,WR+Math.sin(a)*WR,z+dz])}addLine(g,pts,OR,.9)}
+  const rim=[];for(let k=0;k<=36;k++){const a=k/36*Math.PI*2;rim.push([x+X0+Math.cos(a)*.21,WR+Math.sin(a)*.21,z+s*.1])}addLine(g,rim,OR,.8);
+  for(let k=0;k<5;k++){const a=k/5*Math.PI*2+.3;addLine(g,[[x+X0+Math.cos(a)*.05,WR+Math.sin(a)*.05,z+s*.1],[x+X0+Math.cos(a)*.2,WR+Math.sin(a)*.2,z+s*.1]],OR,.8)}
+  const b=part("brakes");const d=new THREE.CylinderGeometry(.17,.17,.03,24);d.rotateX(Math.PI/2);d.translate(x+X0,WR,z-s*.02);addMesh(b,d,CY,{fill:.1,edge:.7,th:5});
+  const cal=new THREE.BoxGeometry(.1,.14,.07);cal.translate(x+X0+.12,WR+.1,z-s*.02);addMesh(b,cal,CY,{fill:.12,edge:.8});return g}
+const WH=[wheel(Fx,.78,"wFL"),wheel(Fx,-.78,"wFR"),wheel(Rx,.78,"wRL"),wheel(Rx,-.78,"wRR")];
+const PGROUP={engine:["engine"],wheels:["wFL","wFR","wRL","wRR"],brakes:["brakes"],cabin:["cabin"],trans:["trans"],battery:["battery"],tank:["tank"],body:["body"]};
+/* desplazamientos de la vista explotada */
+const EX={body:[0,0,0],cabin:[0,.75,0],engine:[-.5,1.1,0],trans:[-.2,.5,0],battery:[-.6,1.3,.5],tank:[0,-.45,0],brakes:[0,0,0],wFL:[0,0,.75],wFR:[0,0,-.75],wRL:[0,0,.75],wRR:[0,0,-.75]};
+for(const k in PARTS)PARTS[k].userData.ex.set(...(EX[k]||[0,0,0]));
+/* piso holográfico: anillos, rejilla polar y escáner */
+const floor=new THREE.Group();scene.add(floor);
+{const pg=new THREE.PolarGridHelper(3.6,16,6,64,CY,CY);pg.material.transparent=true;pg.material.opacity=.13;pg.material.blending=THREE.AdditiveBlending;floor.add(pg);
+  for(const [r,o] of [[2.9,.45],[3.15,.25],[3.7,.15]]){const pts=[];for(let k=0;k<=128;k++){const a=k/128*Math.PI*2;pts.push(new THREE.Vector3(Math.cos(a)*r,0,Math.sin(a)*r))}
+    floor.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),lineMat(CY,o)))}}
+const ticks=new THREE.Group();floor.add(ticks);for(let k=0;k<72;k++){const a=k/72*Math.PI*2,r1=3.25,r2=k%6?3.32:3.42;ticks.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(Math.cos(a)*r1,0,Math.sin(a)*r1),new THREE.Vector3(Math.cos(a)*r2,0,Math.sin(a)*r2)]),lineMat(CY,.5)))}
+const arcs=new THREE.Group();floor.add(arcs);for(let k=0;k<3;k++){const pts=[],a0=k*2.1;for(let j=0;j<=30;j++){const a=a0+j/30*1.1;pts.push(new THREE.Vector3(Math.cos(a)*3.0,0,Math.sin(a)*3.0))}arcs.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),lineMat(OR,.7)))}
+const scanner=new THREE.Group();scene.add(scanner);
+{const pl=new THREE.PlaneGeometry(1.6,2.2);pl.rotateY(Math.PI/2);const m=new THREE.Mesh(pl,fillMat(CY,.035));m.position.y=.8;scanner.add(m);
+  const e=new THREE.LineSegments(new THREE.EdgesGeometry(pl),lineMat(CY,.9));e.position.y=.8;scanner.add(e)}
+
+/* ======================= Cámara orbital con el dedo ======================= */
+const V={th:-.75,ph:.32,r:8.2,tth:-.75,tph:.32,tr:8.2};let auto=true,explode=0,exT=0,scanOn=true,focus=null,lastUser=0;
+function resize(){const w=innerWidth,h=innerHeight;R.setSize(w,h,false);cam.aspect=w/h;cam.fov=w<h?42:32;cam.updateProjectionMatrix();V.tr=w<h?12.6:8.2;LOOK=w<h?-.35:.6}
+let LOOK=.6;
+addEventListener("resize",resize);resize();V.r=V.tr;
+const ptr=new Map();let pinch0=0,r0=0;
+cv.addEventListener("pointerdown",e=>{ptr.set(e.pointerId,{x:e.clientX,y:e.clientY});lastUser=performance.now();if(ptr.size===2){const [a,b]=[...ptr.values()];pinch0=Math.hypot(a.x-b.x,a.y-b.y);r0=V.tr}});
+addEventListener("pointermove",e=>{const p=ptr.get(e.pointerId);if(!p)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;lastUser=performance.now();
+  if(ptr.size===1){V.tth-=dx*.008;V.tph=Math.max(.02,Math.min(1.35,V.tph+dy*.006))}
+  else if(ptr.size===2){const [a,b]=[...ptr.values()];V.tr=Math.max(4.5,Math.min(14,r0*pinch0/Math.max(1,Math.hypot(a.x-b.x,a.y-b.y))))}});
+const up=e=>ptr.delete(e.pointerId);addEventListener("pointerup",up);addEventListener("pointercancel",up);
+cv.addEventListener("wheel",e=>{e.preventDefault();V.tr=Math.max(4.5,Math.min(14,V.tr*Math.exp(e.deltaY*.001)))},{passive:false});
+const VIEWS=[[-.75,.32],[0,.08],[-Math.PI/2,.1],[-.6,1.3],[Math.PI-.7,.3]];let vi=0;
+
+/* ======================= Resaltar piezas y etiquetas ======================= */
+let hl=new Set();const TAGS=[];
+function setTags(){TAGS.length=0;
+  sv.filter(s=>s.st!=="ok").forEach(s=>TAGS.push({part:s.part,t:s.n.toUpperCase(),s:s.left<0?"VENCIDO "+fmt(-s.left)+" KM":"EN "+fmt(s.left)+" KM",bad:s.st==="bad"}));
+  active.forEach(k=>{const l=LIGHT[k];if(l)TAGS.push({part:l[1],t:l[0].toUpperCase(),s:"TESTIGO ACTIVO",bad:true})});
+  if(focus){const s=sv.find(x=>x.id===focus);if(s&&!TAGS.some(t=>t.t===s.n.toUpperCase()))TAGS.push({part:s.part,t:s.n.toUpperCase(),s:s.left<0?"VENCIDO":"EN "+fmt(s.left)+" KM",bad:s.st==="bad"})}
+  hl=new Set(TAGS.map(t=>t.part));if(focus){const s=sv.find(x=>x.id===focus);if(s)hl=new Set([s.part])}}
+const anchor={engine:[X0+.78,.85,0],wheels:[X0+Fx,WR+.2,.9],brakes:[X0+Rx,WR+.15,.82],cabin:[X0+2.6,1.35,0],trans:[X0+1.3,.5,0],battery:[X0+.62,.92,.55],tank:[X0+3.15,.4,.45],body:[X0+4.5,.9,.8]};
+const tmpV=new THREE.Vector3();
+function drawTags(){const W=innerWidth,H=innerHeight;let lines="",html="";const used=[];
+  TAGS.slice(0,5).forEach((t,i)=>{const pg=PGROUP[t.part]||[];const g=PARTS[pg[0]];const a=anchor[t.part];if(!a)return;tmpV.set(...a);if(g)tmpV.add(g.position);tmpV.applyMatrix4(car.matrixWorld).project(cam);
+    const x=(tmpV.x+1)/2*W,y=(1-tmpV.y)/2*H;if(tmpV.z>1)return;const right=x<W/2?false:true;let ty=Math.max(90,Math.min(H-200,y-70+i*12));while(used.some(u=>Math.abs(u-ty)<38))ty+=40;used.push(ty);
+    const wide=W>=900,tx=right?Math.min(W-(wide?450:150),x+70):Math.max(wide?335:10,x-190),c=t.bad?"#FF3B30":"#FF8A2A";
+    lines+=`<polyline points="${x.toFixed(0)},${y.toFixed(0)} ${(right?tx-12:tx+150).toFixed(0)},${ty.toFixed(0)} ${(right?tx:tx+140).toFixed(0)},${ty.toFixed(0)}" fill="none" stroke="${c}" stroke-width="1" opacity=".8"/><circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="3.5" fill="none" stroke="${c}"/><circle cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="1.5" fill="${c}"/>`;
+    html+=`<div class="tag${t.bad?" bad":""}" style="left:${tx.toFixed(0)}px;top:${ty.toFixed(0)}px">${esc(t.t)}<small>${esc(t.s)}</small></div>`});
+  $("#tagl").innerHTML=lines;$("#tags").querySelectorAll(".tag").forEach(e=>e.remove());$("#tags").insertAdjacentHTML("beforeend",html)}
+
+/* ======================= Animación ======================= */
+const t0=performance.now();let lastTag=0;
+function frame(now){const t=(now-t0)/1000;
+  if(auto&&now-lastUser>2500)V.tth+=.0025;
+  V.th+=(V.tth-V.th)*.08;V.ph+=(V.tph-V.ph)*.08;V.r+=(V.tr-V.r)*.08;
+  cam.position.set(Math.sin(V.th)*Math.cos(V.ph)*V.r,Math.sin(V.ph)*V.r+.55,Math.cos(V.th)*Math.cos(V.ph)*V.r);cam.lookAt(0,LOOK,0);
+  explode+=(exT-explode)*.07;
+  const boot=Math.min(1,t/1.8);
+  for(const k in PARTS){const g=PARTS[k],u=g.userData;g.position.copy(u.ex).multiplyScalar(explode);
+    const on=[...hl].some(p=>(PGROUP[p]||[]).includes(k)),pulse=.65+.35*Math.sin(t*5);
+    u.mats.forEach(m=>{const c=on?(TAGS.some(x=>x.bad&&(PGROUP[x.part]||[]).includes(k))?RD:OR):m.c;
+      m.lm.color.setHex(c);m.lm.opacity=(on?Math.min(1,m.edge+.3)*pulse:m.edge*(hl.size?.55:1))*boot;if(m.fm){m.fm.color.setHex(c);m.fm.opacity=(on?m.fill*3:m.fill)*boot}})}
+  WH.forEach(w=>w.children.forEach(()=>{}));
+  ticks.rotation.y=t*.05;arcs.rotation.y=-t*.18;
+  scanner.visible=scanOn;if(scanOn){const k=(t*.35)%1.4;scanner.position.x=-2.8+k*4.8;scanner.children.forEach(c=>c.material.opacity=c.type==="Mesh"?.035:.8*(1-Math.abs(k/1.4-.5)))}
+  R.render(scene,cam);
+  if(now-lastTag>33){drawTags();lastTag=now}
+  requestAnimationFrame(frame)}
+
+/* ======================= Paneles ======================= */
+function panels(){
+  $("#sys").innerHTML=sv.map((s,i)=>`<button class="sr ${s.st}${focus===s.id?" on":""}" data-s="${s.id}"><em>SIS_${String(i+1).padStart(2,"0")}</em><span><b>${s.n.toUpperCase()}</b><span class="bar"><i style="width:${(s.p*100).toFixed(0)}%"></i></span></span><span class="v">${s.left<0?"-"+fmt(-s.left):fmt(s.left)}</span></button>`).join("");
+  const segs=20,on=Math.round(S.fuel/100*segs),L=55*S.fuel/100;
+  $("#data").innerHTML=`<div class="big">${fmt(S.odo)}<small>KM</small></div>
+    <div style="margin-top:10px;display:flex;justify-content:space-between;color:var(--tx2);font-size:9.5px"><span>TANQUE</span><span style="color:${S.fuel<20?"var(--or)":"var(--cy)"}">${Math.round(S.fuel)}% · ${L.toFixed(1)} L</span></div>
+    <div class="seg${S.fuel<20?" low":""}">${Array.from({length:segs},(_,i)=>`<i class="${i<on?"on":""}"></i>`).join("")}</div>
+    <div class="kv"><div><small>AUTONOMÍA</small><b>${fmt(L*kmpl)} KM</b></div><div><small>RENDIMIENTO</small><b>${kmpl.toFixed(1)} KM/L</b></div>
+      <div><small>COSTO/KM</small><b>${cpk?"$"+cpk.toFixed(2):"—"}</b></div><div><small>ACEITE (NIVEL)</small><b>${S.oil!=null?Math.round(S.oil)+"%":"—"}</b></div></div>`;
+  $("#odoS").textContent="ODO_"+String(Math.round(S.odo)).slice(-4);
+  $("#warn").innerHTML=active.length?active.map(k=>`<div>${esc((LIGHT[k]||[k])[0]).toUpperCase()}</div>`).join(""):`<div class="ok">SIN TESTIGOS ACTIVOS</div>`;
+  const last=fl.slice(-14);$("#fillsN").textContent=fl.length+" REG";
+  const mx=Math.max(1,...last.map(f=>f.litros||0));$("#fills").className="fills"+(last.length?"":" none");
+  $("#fills").innerHTML=last.length?last.map(f=>`<i style="height:${Math.max(4,(f.litros||0)/mx*100)}%" title="${f.d}"></i>`).join(""):Array.from({length:14},(_,i)=>`<i style="height:${10+((i*37)%50)}%"></i>`).join("")}
+$("#sys").addEventListener("click",e=>{const b=e.target.closest("[data-s]");if(!b)return;const id=b.dataset.s;focus=focus===id?null:id;setTags();panels();
+  const s=sv.find(x=>x.id===id);if(focus&&s){const a=anchor[s.part];V.tth=Math.atan2(a[0]+2,a[2]+4)-.4;V.tph=s.part==="wheels"||s.part==="brakes"?.2:.55}});
+$("#ctl").addEventListener("click",e=>{const b=e.target.closest("[data-c]");if(!b)return;const c=b.dataset.c;
+  if(c==="explode"){exT=exT?0:1;b.classList.toggle("on",!!exT)}
+  if(c==="scan"){scanOn=!scanOn;b.classList.toggle("on",scanOn)}
+  if(c==="rot"){auto=!auto;b.classList.toggle("on",auto)}
+  if(c==="view"){vi=(vi+1)%VIEWS.length;[V.tth,V.tph]=VIEWS[vi];lastUser=performance.now()}});
+$("#tabs").addEventListener("click",e=>{const b=e.target.closest("[data-p]");if(!b)return;const was=b.classList.contains("on")&&$("#"+b.dataset.p).classList.contains("show");
+  document.querySelectorAll(".pn").forEach(p=>p.classList.remove("show"));$("#tabs").querySelectorAll("button").forEach(x=>x.classList.remove("on"));
+  if(!was){$("#"+b.dataset.p).classList.add("show");b.classList.add("on")}});
+/* reloj y flujo de datos decorativo con valores reales */
+const HEX=()=>Math.floor(Math.random()*65535).toString(16).toUpperCase().padStart(4,"0");
+setInterval(()=>{const d=new Date();$("#clk").textContent=d.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false});
+  $("#dte").textContent=d.toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"}).toUpperCase().replace(/\./g,"");
+  const st=$("#stream");const ln=[`0x${HEX()} ODO ${Math.round(S.odo)}`,`0x${HEX()} FUEL ${Math.round(S.fuel)} / KML ${kmpl.toFixed(1)}`,`0x${HEX()} SRV ${sv.filter(s=>s.st!=="ok").length} PEND`,`0x${HEX()} DIAG ${active.length?active.join(","):"OK"}`];
+  st.textContent=(ln[Math.floor(Math.random()*ln.length)]+"\n"+st.textContent).split("\n").slice(0,4).join("\n")},1000);
+/* arranque */
+{const msgs=[["b1","CARGANDO MODELO MK6 … OK"],["b2",`SERVICIOS: ${sv.length} · TESTIGOS: ${active.length}`],["b3","ENLACE CON VEHÍCULO … ESTABLECIDO"]];let k=0;
+  const step=()=>{if(k<msgs.length){$("#"+msgs[k][0]).textContent=msgs[k][1];$("#bp").style.width=((k+1)/msgs.length*100)+"%";k++;setTimeout(step,320)}else setTimeout(()=>$("#boot").classList.add("off"),250)};step()}
+if(innerWidth<900)$("#tabs").querySelectorAll("button").forEach(b=>b.classList.remove("on"));
+setTags();panels();requestAnimationFrame(frame);
+</script>
+</body>
+</html>
