@@ -1,0 +1,33 @@
+{
+  "name": "Compa",
+  "short_name": "Compa",
+  "description": "Tu compañero 3D: vive en una isla con tus cosas y reacciona a tu día",
+  "lang": "es-MX",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#9CCBF2",
+  "theme_color": "#9CCBF2",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

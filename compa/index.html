@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Compa</title>
+<meta name="description" content="Tu compañero 3D: vive en una isla con tus cosas y reacciona a cómo va tu día">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Compa">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
+<meta name="theme-color" content="#9CCBF2">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<script src="../shared/nube.js"></script>
+<script src="../shared/vida.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800&display=swap">
+<style>
+/* Compa: un robot (modelo CC0 de Quaternius) vive en una isla flotante con un objeto por cada app.
+   La isla, el clima y el ánimo del robot salen de tus datos (shared/vida.js); al tocar un objeto camina hacia él y te cuenta cómo va. */
+:root{--glass:rgba(255,255,255,.72);--tx:#16181A;--tx2:#5E6670;--line:rgba(0,0,0,.07)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:#9CCBF2;color:var(--tx);font-family:Urbanist,system-ui,sans-serif}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0}
+a{color:inherit;text-decoration:none}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.glass{background:var(--glass);backdrop-filter:blur(20px) saturate(170%);-webkit-backdrop-filter:blur(20px) saturate(170%);box-shadow:0 8px 30px rgba(20,40,70,.12),0 0 0 .5px rgba(255,255,255,.6) inset}
+.top{position:fixed;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top) + 10px) 14px 0;display:flex;gap:8px;align-items:flex-start;z-index:5;pointer-events:none}
+.top>*{pointer-events:auto}
+.ib{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;flex:none}
+.ib svg{width:19px;height:19px}
+.ttl{flex:1;min-width:0;border-radius:22px;padding:7px 8px 8px 14px;display:flex;align-items:center;gap:10px}
+.ttl b{display:block;font-size:19px;font-weight:800;letter-spacing:-.02em;line-height:1.15}
+.ttl small{display:block;font-size:12.5px;color:var(--tx2);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ring{width:36px;height:36px;position:relative;flex:none}
+.ring svg{width:36px;height:36px;transform:rotate(-90deg)}
+.ring em{position:absolute;inset:0;display:grid;place-items:center;font-style:normal;font-size:11px;font-weight:800}
+.ib.on{background:#16181A;color:#fff}
+/* etiquetas de los objetos */
+#labels{position:fixed;inset:0;pointer-events:none;z-index:2}
+.lb{position:absolute;transform:translate(-50%,-100%);padding:5px 10px 5px 8px;border-radius:14px;font-size:12px;font-weight:700;white-space:nowrap;display:flex;gap:6px;align-items:center;transition:opacity .3s;pointer-events:auto;cursor:pointer}
+.lb i{width:8px;height:8px;border-radius:50%;background:#3BBF6B;flex:none}
+.lb i.warn{background:#F2A33A}.lb i.bad{background:#F0544F}
+.lb.hide{opacity:0}
+/* globo de diálogo */
+.bubble{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 76px);z-index:6;max-width:480px;margin:0 auto;border-radius:26px;padding:14px 16px 14px;
+  transform:translateY(20px) scale(.98);opacity:0;pointer-events:none;transition:all .35s cubic-bezier(.2,.9,.25,1)}
+.bubble.on{transform:none;opacity:1;pointer-events:auto}
+@media (max-width:899px){.bubble::after{display:none}}
+.bubble::after{content:"";position:absolute;left:50%;top:-8px;width:16px;height:16px;background:inherit;transform:translateX(-50%) rotate(45deg);border-radius:3px;backdrop-filter:none}
+.bh{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.bh img{width:30px;height:30px;border-radius:9px}
+.bh b{flex:1;font-size:16px;font-weight:800}
+.bh button{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:rgba(0,0,0,.05)}
+.bh button svg{width:15px;height:15px}
+.bubble p{margin:0;font-size:15.5px;line-height:1.42;font-weight:500}
+.bubble p strong{font-weight:800}
+.bact{display:flex;gap:8px;margin-top:12px}
+.bact a,.bact button{flex:1;height:42px;border-radius:21px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14.5px;background:rgba(0,0,0,.06)}
+.bact a.dark{background:#16181A;color:#fff}
+/* check-in de hábitos */
+.chips{position:fixed;left:0;right:0;bottom:0;padding:0 14px calc(env(safe-area-inset-bottom) + 14px);display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;z-index:5}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;height:46px;padding:0 16px 0 8px;border-radius:23px;display:flex;align-items:center;gap:9px;font-weight:700;font-size:14.5px;white-space:nowrap}
+.chip i{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-style:normal;color:#fff;font-size:13px}
+.chip small{color:var(--tx2);font-weight:600}
+.chip.lead{padding:0 14px;color:var(--tx2);font-weight:700}
+.chip.done{opacity:.55}
+#load{position:fixed;inset:0;z-index:20;display:grid;place-items:center;background:linear-gradient(180deg,#8FC3F0,#DDF0FF);transition:opacity .6s}
+#load.off{opacity:0;pointer-events:none}
+#load div{text-align:center;font-weight:700;color:#2B4A66}
+#load i{display:block;width:46px;height:46px;margin:0 auto 12px;border-radius:50%;border:4px solid rgba(43,74,102,.2);border-top-color:#2B4A66;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 66px);transform:translate(-50%,-10px);opacity:0;z-index:30;background:#16181A;color:#fff;padding:11px 18px;border-radius:20px;font-weight:700;font-size:14px;transition:all .3s;pointer-events:none;white-space:nowrap}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.cr{position:fixed;right:10px;bottom:calc(env(safe-area-inset-bottom) + 66px);font-size:9px;color:rgba(0,0,0,.35);z-index:1;pointer-events:none}
+.night .cr{color:rgba(255,255,255,.35)}
+@media (min-width:900px){.bubble{left:auto;right:24px;bottom:90px;width:420px}.bubble::after{display:none}.chips{justify-content:center}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="labels"></div>
+<div class="top">
+  <a class="ib glass" href="../" aria-label="Volver a Diapps"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></a>
+  <div class="ttl glass"><span style="flex:1;min-width:0"><b id="hi">Compa</b><small id="sub">Despertando…</small></span><span class="ring" id="ring"></span></div>
+  <button class="ib glass" id="voice" aria-label="Voz"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg></button>
+  <button class="ib glass" id="acct" aria-label="Cuenta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4.5 4.5 0 0 1-.5-9 6 6 0 0 1 11.6 1.6A3.8 3.8 0 0 1 17.5 18z"/></svg></button>
+</div>
+<div class="bubble glass" id="bubble"><div class="bh"><img id="bIc" alt=""><b id="bT"></b><button id="bX" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><p id="bP"></p><div class="bact" id="bA"></div></div>
+<div class="chips" id="chips"></div>
+<div class="cr">Robot: Quaternius (CC0) · Auto y cajas: Kenney (CC0)</div>
+<div id="load"><div><i></i>Despertando a tu Compa…</div></div>
+<div class="toast" id="toast"></div>
+<script type="module">
+import * as THREE from "../shared/vendor/three/three.module.min.js";
+import {GLTFLoader} from "../shared/vendor/three/loaders/GLTFLoader.js";
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt=n=>Math.round(n).toLocaleString("es-MX");
+let hideAmt=false;try{hideAmt=localStorage.getItem("diapps-fin-hide")==="1"}catch(e){}
+const money=v=>hideAmt?"$•••":"$"+fmt(v);
+let tT;function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("on");clearTimeout(tT);tT=setTimeout(()=>t.classList.remove("on"),2200)}
+const APPS={jet:["Jetta","../jetta/","../jetta/icons/icon.svg"],fin:["Finanzas","../finanzas/","../finanzas/icons/icon.svg"],rut:["Rutinas","../habitos/","../habitos/icons/icon.svg"],
+  caj:["Cajas","../cajas/","../cajas/icons/icon.svg"],riff:["Riff","../musica/","../musica/icons/icon.svg"],pap:["Papeles","../papeles/","../papeles/icons/icon.svg"],me:["Compa","../","icons/icon-192.png"]};
+let M=Vida.model(),A=Vida.alerts(M);
+
+/* ======================= Escena ======================= */
+const cv=$("#c"),R=new THREE.WebGLRenderer({canvas:cv,antialias:true});R.setPixelRatio(Math.min(2,devicePixelRatio||1));
+R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFSoftShadowMap;R.toneMapping=THREE.ACESFilmicToneMapping;R.toneMappingExposure=1.05;R.outputColorSpace=THREE.SRGBColorSpace;
+const scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(38,1,.1,200);
+const hemi=new THREE.HemisphereLight(0xdff1ff,0x6b8f5a,1.0);scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xffffff,2.2);sun.position.set(8,14,6);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);
+Object.assign(sun.shadow.camera,{left:-9,right:9,top:9,bottom:-9,near:1,far:40});sun.shadow.bias=-.0005;sun.shadow.normalBias=.02;scene.add(sun);
+const std=(c,o={})=>new THREE.MeshStandardMaterial({color:c,roughness:.85,metalness:0,flatShading:true,...o});
+const shadowy=o=>{o.traverse(m=>{if(m.isMesh){m.castShadow=true;m.receiveShadow=true}});return o};
+let seed=11;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647};
+const TOP=.35;
+/* isla flotante: pasto arriba, tierra y rocas abajo */
+const island=new THREE.Group();scene.add(island);
+{const top=new THREE.Mesh(new THREE.CylinderGeometry(6,5.75,.7,40,1),[std(0x8a6a4a),std(0x86C96F),std(0x6e5238)]);top.receiveShadow=true;island.add(top);
+  const g=new THREE.ConeGeometry(5.7,5,26,5,true);g.rotateX(Math.PI);g.translate(0,-2.85,0);const p=g.attributes.position;
+  for(let i=0;i<p.count;i++){const y=p.getY(i);if(y<-.4){const k=1+(rnd()-.5)*.28;p.setX(i,p.getX(i)*k);p.setZ(i,p.getZ(i)*k);p.setY(i,y+(rnd()-.5)*.35)}}g.computeVertexNormals();
+  const under=new THREE.Mesh(g,std(0x7a5a3e,{side:THREE.DoubleSide}));under.receiveShadow=true;island.add(under);
+  for(let i=0;i<14;i++){const r=new THREE.Mesh(new THREE.DodecahedronGeometry(.25+rnd()*.45,0),std(rnd()<.5?0x8d8478:0x9a9184));const a=rnd()*Math.PI*2,rr=4+rnd()*1.6;
+    r.position.set(Math.cos(a)*rr,-.6-rnd()*2.4,Math.sin(a)*rr);r.rotation.set(rnd()*3,rnd()*3,0);island.add(r)}
+  const FL=[0xffffff,0xffd34e,0xff8fb1,0xb48cff];
+  for(let i=0;i<70;i++){const a=rnd()*Math.PI*2,rr=Math.sqrt(rnd())*5.5;const x=Math.cos(a)*rr,z=Math.sin(a)*rr;if(Math.hypot(x,z)<1.2)continue;
+    if(rnd()<.35){const f=new THREE.Mesh(new THREE.SphereGeometry(.06,6,4),std(FL[i%4]));f.position.set(x,TOP+.1,z);island.add(f);const st=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.12),std(0x4f8f3f));st.position.set(x,TOP+.05,z);island.add(st)}
+    else{const t=new THREE.Mesh(new THREE.ConeGeometry(.07,.22,4),std(0x5fae52));t.position.set(x,TOP+.1,z);t.rotation.y=rnd()*3;island.add(t)}}}
+/* estaciones: un objeto por app alrededor del robot */
+const ST={},HIT=[];
+const ANG={jet:-.35,fin:.75,rut:1.85,caj:2.95,riff:4.0,pap:5.1},RAD=3.7;
+const posOf=k=>new THREE.Vector3(Math.cos(ANG[k])*RAD,TOP,Math.sin(ANG[k])*RAD);
+function station(k){const g=new THREE.Group();g.position.copy(posOf(k));g.rotation.y=-ANG[k]-Math.PI/2;g.userData.st=k;island.add(g);ST[k]=g;HIT.push(g);return g}
+// Finanzas: torre de monedas (más monedas = más ahorro) y una alcancía
+function buildFin(){const g=ST.fin||station("fin");g.clear();const n=Math.max(2,Math.min(18,Math.round((M.fin.ptot||0)/2200)));const gold=std(0xF4C542,{metalness:.25,roughness:.4,flatShading:false,emissive:0x5a3d00,emissiveIntensity:.25});
+  for(let s=0;s<3;s++){const cnt=Math.max(1,Math.round(n*(s===0?1:s===1?.6:.35)));for(let i=0;i<cnt;i++){const c=new THREE.Mesh(new THREE.CylinderGeometry(.3,.3,.085,20),gold);c.position.set((s-1)*.68+(rnd()-.5)*.04,.045+i*.09,(s===1?.35:0)+(rnd()-.5)*.04);g.add(c)}}
+  const pig=new THREE.Group();const pk=std(0xF6A6B8,{flatShading:false,roughness:.6});const body=new THREE.Mesh(new THREE.SphereGeometry(.34,16,12),pk);body.scale.set(1.25,1,1);body.position.y=.38;pig.add(body);
+  const sn=new THREE.Mesh(new THREE.CylinderGeometry(.11,.11,.08,12),pk);sn.rotation.z=Math.PI/2;sn.position.set(.44,.38,0);pig.add(sn);
+  for(const [x,z] of [[.2,.15],[.2,-.15],[-.2,.15],[-.2,-.15]]){const l=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,.14,8),pk);l.position.set(x,.07,z);pig.add(l)}
+  for(const z of [.13,-.13]){const e=new THREE.Mesh(new THREE.ConeGeometry(.08,.12,4),pk);e.position.set(.25,.68,z);pig.add(e)}
+  pig.position.set(.9,0,-.55);pig.rotation.y=.6;g.add(pig);shadowy(g);
+  const over=M.fin.avg>0&&M.fin.wk>M.fin.avg*1.15;g.userData.lvl=over?"warn":"ok"}
+// Rutinas: un árbol que crece con tus rachas; cada hábito cumplido hoy es un fruto
+function buildRut(){const g=ST.rut||station("rut");g.clear();const H=M.rut.habits||[],avg=H.length?H.reduce((s,h)=>s+Math.min(30,h.streak||0),0)/H.length:3,sc=.75+Math.min(.7,avg/30);
+  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.12*sc,.2*sc,1.2*sc,7),std(0x8B5E3C));trunk.position.y=.6*sc;g.add(trunk);
+  const leaf=std(M.rut.pct>=50?0x58B85A:0x8FB86A);const blobs=[[0,1.55,0,.75],[.45,1.3,.2,.5],[-.42,1.35,-.1,.55],[.1,1.9,-.15,.45]];
+  blobs.forEach(([x,y,z,r])=>{const b=new THREE.Mesh(new THREE.IcosahedronGeometry(r*sc,0),leaf);b.position.set(x*sc,y*sc,z*sc);b.rotation.set(rnd(),rnd(),rnd());g.add(b)});
+  H.forEach((h,i)=>{const a=i/H.length*Math.PI*2+.3,y=(1.35+((i*37)%5)*.1)*sc,r=.62*sc;const f=new THREE.Mesh(new THREE.SphereGeometry(h.done?.11:.07,10,8),
+      h.done?std(new THREE.Color(h.c||"#ff6b6b"),{flatShading:false,roughness:.4,emissive:new THREE.Color(h.c||"#ff6b6b"),emissiveIntensity:.15}):std(0xcfd8c4));
+    f.position.set(Math.cos(a)*r,y,Math.sin(a)*r);g.add(f)});
+  shadowy(g);g.userData.lvl=M.rut.pct>=100?"ok":M.rut.pct<40?"warn":"ok"}
+// Riff: bocina con notas que flotan
+function buildRiff(){const g=ST.riff||station("riff");g.clear();const box=new THREE.Mesh(new THREE.BoxGeometry(.8,1.1,.6),std(0x2C2F36,{flatShading:false,roughness:.5}));box.position.y=.55;g.add(box);
+  for(const [y,r] of [[.78,.2],[.36,.14]]){const c=new THREE.Mesh(new THREE.CylinderGeometry(r,r,.06,24),std(0x50555F,{flatShading:false}));c.rotation.x=Math.PI/2;c.position.set(0,y,.31);g.add(c);
+    const d=new THREE.Mesh(new THREE.CylinderGeometry(r*.35,r*.35,.07,16),std(0x9B7BFF,{flatShading:false,emissive:0x9B7BFF,emissiveIntensity:.3}));d.rotation.x=Math.PI/2;d.position.set(0,y,.33);g.add(d)}
+  const neck=new THREE.Mesh(new THREE.BoxGeometry(.08,.9,.04),std(0x6B4A2E));neck.position.set(.7,.85,0);neck.rotation.z=-.25;g.add(neck);
+  const gb=new THREE.Mesh(new THREE.SphereGeometry(.24,14,10),std(0xC9783E,{flatShading:false}));gb.scale.set(1,1.2,.35);gb.position.set(.55,.3,0);g.add(gb);
+  shadowy(g);g.userData.lvl="ok"}
+// Papeles: archivero con bandera roja si algo vence pronto
+function buildPap(){const g=ST.pap||station("pap");g.clear();const body=new THREE.Mesh(new THREE.BoxGeometry(.75,1.15,.6),std(0x8FA3B8,{flatShading:false,roughness:.5}));body.position.y=.575;g.add(body);
+  for(let i=0;i<3;i++){const d=new THREE.Mesh(new THREE.BoxGeometry(.62,.28,.04),std(0xB8C7D6,{flatShading:false}));d.position.set(0,.22+i*.36,.31);g.add(d);
+    const h=new THREE.Mesh(new THREE.BoxGeometry(.18,.04,.05),std(0x4A5560));h.position.set(0,.24+i*.36,.34);g.add(h)}
+  const pa=A.filter(a=>a.app==="pap"),bad=pa.some(a=>a.lvl==="danger"),warn=pa.some(a=>a.lvl==="alert");
+  if(bad||warn){const pole=new THREE.Mesh(new THREE.CylinderGeometry(.02,.02,.7),std(0x555555));pole.position.set(.32,1.5,0);g.add(pole);
+    const fl=new THREE.Mesh(new THREE.BoxGeometry(.3,.18,.02),std(bad?0xF0544F:0xF2A33A));fl.position.set(.48,1.75,0);g.add(fl);g.userData.flag=fl}
+  shadowy(g);g.userData.lvl=bad?"bad":warn?"warn":"ok"}
+/* letreros de aviso flotantes (sprites dibujados en canvas) */
+function signTex(ch,col){const c=document.createElement("canvas");c.width=c.height=128;const x=c.getContext("2d");x.fillStyle=col;x.beginPath();x.arc(64,64,56,0,7);x.fill();x.fillStyle="#fff";x.font="bold 84px Urbanist,sans-serif";x.textAlign="center";x.textBaseline="middle";x.fillText(ch,64,70);
+  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
+const SIGN={warn:signTex("!","#F2A33A"),bad:signTex("!","#F0544F")};const signs={};
+function setSign(k,h){if(signs[k]){island.remove(signs[k]);delete signs[k]}const l=ST[k]&&ST[k].userData.lvl;if(l!=="warn"&&l!=="bad")return;
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:SIGN[l],depthTest:false}));s.scale.set(.5,.5,1);s.position.copy(ST[k].position).add(new THREE.Vector3(0,h,0));s.renderOrder=5;island.add(s);signs[k]=s;s.userData.y=h}
+/* cielo, nubes, estrellas y lluvia según la hora y tu energía */
+const sky=document.createElement("canvas");sky.width=2;sky.height=256;const skyT=new THREE.CanvasTexture(sky);skyT.colorSpace=THREE.SRGBColorSpace;scene.background=skyT;
+scene.fog=new THREE.Fog(0xDDF0FF,26,60);
+const clouds=new THREE.Group();scene.add(clouds);
+for(let i=0;i<7;i++){const c=new THREE.Group();const m=std(0xffffff,{flatShading:true,transparent:true,opacity:.92});for(let k=0;k<4;k++){const s=new THREE.Mesh(new THREE.IcosahedronGeometry(.7+rnd()*.7,0),m);s.position.set(k*.9-1.3,rnd()*.4,rnd()*.6);c.add(s)}
+  const a=rnd()*Math.PI*2,r=15+rnd()*8;c.position.set(Math.cos(a)*r,6+rnd()*5,Math.sin(a)*r);c.scale.setScalar(.8+rnd()*.5);c.userData={a,r,v:.01+rnd()*.02};clouds.add(c)}
+const stars=new THREE.Points((()=>{const g=new THREE.BufferGeometry(),n=500,p=new Float32Array(n*3);for(let i=0;i<n;i++){const a=rnd()*Math.PI*2,b=rnd()*1.2+.15,r=70;p.set([Math.cos(a)*Math.cos(b)*r,Math.sin(b)*r,Math.sin(a)*Math.cos(b)*r],i*3)}g.setAttribute("position",new THREE.BufferAttribute(p,3));return g})(),
+  new THREE.PointsMaterial({color:0xffffff,size:.35,fog:false}));scene.add(stars);
+const rain=new THREE.LineSegments((()=>{const g=new THREE.BufferGeometry(),n=500,p=new Float32Array(n*6);for(let i=0;i<n;i++){const x=(rnd()-.5)*16,y=rnd()*12,z=(rnd()-.5)*16;p.set([x,y,z,x-.03,y-.35,z],i*6)}g.setAttribute("position",new THREE.BufferAttribute(p,3));return g})(),
+  new THREE.LineBasicMaterial({color:0xBFD3E6,transparent:true,opacity:.6}));scene.add(rain);
+let mood="day";
+function setSky(){const h=new Date().getHours()+new Date().getMinutes()/60,low=M.score<45;
+  const P=h<6||h>=20.5?["#0B1430","#2A3360",.25,"night"]:h<8.5?["#8DB8E8","#FCD9B8",.9,"dawn"]:h<17.5?["#6FB5F5","#DDF0FF",1.15,"day"]:["#5B6FB8","#F8B48A",.8,"dusk"];
+  let [a,b,int]=P;if(low&&P[3]!=="night"){a="#7E8C9C";b="#CBD3DC";int*=.75}mood=P[3];
+  const x=sky.getContext("2d"),gr=x.createLinearGradient(0,0,0,256);gr.addColorStop(0,a);gr.addColorStop(1,b);x.fillStyle=gr;x.fillRect(0,0,2,256);skyT.needsUpdate=true;
+  scene.fog.color.set(b);sun.intensity=2.2*int;hemi.intensity=mood==="night"?.75:1;if(mood==="night"){sun.color.set(0xAFC4FF);sun.intensity=.9}if(mood!=="night")sun.color.set(mood==="dusk"||mood==="dawn"?0xFFD2A6:0xffffff);
+  stars.visible=mood==="night";rain.visible=low;clouds.children.forEach(c=>{const m=c.children[0].material;m.color.set(low?0xA9B3BE:mood==="night"?0x8C96BE:0xffffff);m.opacity=mood==="night"?.35:.92});
+  document.body.classList.toggle("night",mood==="night");$('meta[name="theme-color"]').content=a}
+
+/* ======================= Modelos ======================= */
+const loader=new GLTFLoader();let robot=null,mixer=null,ACT={},cur=null,face=null;
+const load=u=>new Promise((res,rej)=>loader.load(u,res,undefined,rej));
+async function loadModels(){
+  const [rb,car,box]=await Promise.all([load("models/robot.glb"),load("models/sedan.glb"),load("models/box.glb")]);
+  // robot
+  robot=rb.scene;robot.scale.setScalar(.36);/* el modelo mide ≈4.3 unidades; su caja con huesos no sirve para medir */robot.position.set(0,TOP,0);shadowy(robot);island.add(robot);HIT.push(robot);robot.userData.st="me";
+  robot.traverse(o=>{if(o.morphTargetDictionary&&o.morphTargetDictionary.Sad!=null)face=o});
+  mixer=new THREE.AnimationMixer(robot);rb.animations.forEach(c=>{const a=mixer.clipAction(c);ACT[c.name]=a;if(["Jump","Yes","No","Wave","Punch","ThumbsUp","Death","Standing"].includes(c.name)){a.clampWhenFinished=true;a.loop=THREE.LoopOnce}});
+  mixer.addEventListener("finished",()=>{if(!walking)play(baseAnim(),.35)});
+  play(baseAnim(),0);
+  // Jetta (sedán de Kenney) con caja de aviso si hay servicio o testigo
+  const cg=station("jet"),c=car.scene,cb=new THREE.Box3().setFromObject(c),cs=cb.getSize(new THREE.Vector3()),ck=2.1/Math.max(cs.x,cs.z);c.scale.setScalar(ck);c.position.y=-cb.min.y*ck;c.rotation.y=Math.PI/2;shadowy(c);cg.add(c);
+  const J=M.jet;cg.userData.lvl=J.active.length||(J.oilLeft!=null&&J.oilLeft<0)?"bad":(J.oilLeft!=null&&J.oilLeft<1500)||J.fuel<20?"warn":"ok";
+  // Cajas: pila según cuántas cajas tienes
+  const bgp=station("caj"),n=Math.max(1,Math.min(10,Math.round((M.caj.boxes||3)/2.5))),bx=box.scene,bbb=new THREE.Box3().setFromObject(bx),bs=bbb.getSize(new THREE.Vector3()),bk=.55/Math.max(bs.x,bs.y,bs.z);
+  const spots=[[0,0,0],[.6,0,0],[-.6,0,0],[.3,1,0],[-.3,1,0],[0,0,.6],[0,2,0],[.6,0,.6],[-.6,0,.6],[.3,1,.6]];
+  for(let i=0;i<n;i++){const b=bx.clone(true);b.scale.setScalar(bk);const [x,lv,z]=spots[i];b.position.set(x,-bbb.min.y*bk+lv*.55,z-.3);b.rotation.y=(rnd()-.5)*.3;bgp.add(b)}shadowy(bgp);bgp.userData.lvl="ok";
+  buildFin();buildRut();buildRiff();buildPap();
+  for(const [k,h] of [["jet",1.6],["fin",2.2],["rut",2.9],["pap",2.3]])setSign(k,h);
+  // senderos de piedra del centro a cada estación
+  for(const k in ANG){for(let s=1.2;s<RAD-.6;s+=.55){const p=new THREE.Mesh(new THREE.CylinderGeometry(.16+rnd()*.06,.18,.05,7),std(0xC9C1B2));p.position.set(Math.cos(ANG[k])*s+(rnd()-.5)*.1,TOP+.02,Math.sin(ANG[k])*s+(rnd()-.5)*.1);p.receiveShadow=true;island.add(p)}}
+}
+
+/* ======================= Comportamiento del robot ======================= */
+function baseAnim(){return M.score<45?"Sitting":"Idle"}
+function play(name,fade=.3){const a=ACT[name];if(!a||a===cur)return a;a.reset().setEffectiveTimeScale(1).setEffectiveWeight(1).fadeIn(fade).play();if(cur)cur.fadeOut(fade);cur=a;return a}
+let faceT={Sad:0,Angry:0,Surprised:0};const setFace=f=>{faceT={Sad:0,Angry:0,Surprised:0};if(f)faceT[f]=1};
+let walking=null,lastAct=performance.now(),busy=false;
+function walkTo(k,after){const target=k==="me"?new THREE.Vector3(0,TOP,0):posOf(k).multiplyScalar((RAD-1.25)/RAD).setY(TOP);
+  if(robot.position.distanceTo(target)<.2){face2(k);after&&after();return}
+  if(cur===ACT.Sitting){play("Standing",.25);setTimeout(()=>walkTo(k,after),900);return}
+  walking={target,k,after};play(M.score>=70?"Running":"Walking",.25)}
+function face2(k){if(k==="me"){robot.userData.yaw=Math.atan2(cam.position.x,cam.position.z);return}const p=posOf(k);robot.userData.yaw=Math.atan2(p.x-robot.position.x,p.z-robot.position.z)}
+function emote(name,f){play(name,.2);setFace(f);setTimeout(()=>setFace(M.score<45?"Sad":null),2600)}
+/* ======================= Globo de diálogo ======================= */
+let voiceOn=false;try{voiceOn=localStorage.getItem("compa-voice")==="1"}catch(e){}
+function speak(t){if(!voiceOn||!window.speechSynthesis)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t.replace(/<[^>]+>/g,""));u.lang="es-MX";u.rate=1.02;u.pitch=1.15;speechSynthesis.speak(u)}
+function say(k,html,actions){const ap=APPS[k]||APPS.me;$("#bIc").src=ap[2];$("#bT").textContent=k==="me"?"Compa":ap[0];$("#bP").innerHTML=html;
+  $("#bA").innerHTML=actions||(k!=="me"?`<a class="dark" href="${ap[1]}">Abrir ${ap[0]}</a>`:"");$("#bubble").classList.add("on");speak(html)}
+$("#bX").onclick=()=>{$("#bubble").classList.remove("on");window.speechSynthesis&&speechSynthesis.cancel()};
+function textFor(k){const t=[];
+  if(k==="jet"){const J=M.jet;t.push(`Tu Jetta lleva <strong>${fmt(J.odo)} km</strong>. Tienes <strong>${Math.round(J.fuel)}%</strong> de gasolina, unos ${fmt(55*J.fuel/100*J.kmpl)} km.`);
+    if(J.active.length)t.push(`Ojo: hay ${J.active.length===1?"un testigo encendido":J.active.length+" testigos encendidos"}.`);
+    if(J.oilLeft!=null)t.push(J.oilLeft<0?`El cambio de aceite ya se pasó por ${fmt(-J.oilLeft)} km.`:`El aceite toca en ${fmt(J.oilLeft)} km.`);
+    return [t.join(" "),J.active.length||(J.oilLeft!=null&&J.oilLeft<1500)?"No":"ThumbsUp",J.active.length?"Sad":null]}
+  if(k==="fin"){const F=M.fin,over=F.avg>0&&F.wk>F.avg*1.15;t.push(`Tienes <strong>${money(F.ptot)}</strong> en apartados y llevas ${money(F.wk)} gastado esta semana.`);
+    t.push(over?`Vas ${Math.round((F.wk/F.avg-1)*100)}% arriba de lo normal; mejor frenarle un poco.`:F.avg>0?"Vas por debajo de tu promedio, ¡bien!":"");return [t.join(" "),over?"No":"Yes",over?"Angry":null]}
+  if(k==="rut"){const H=M.rut.habits.filter(h=>h.due),left=H.filter(h=>!h.done);t.push(`Vas <strong>${M.rut.pct}%</strong> de hoy.`);
+    t.push(left.length?`Te falta: ${left.slice(0,4).map(h=>h.n.toLowerCase()).join(", ")}.`:"¡Día completo! Cada fruto del árbol es un hábito cumplido.");
+    const best=[...H].sort((a,b)=>b.streak-a.streak)[0];if(best&&best.streak>2)t.push(`Tu mejor racha: ${best.n.toLowerCase()} con ${best.streak} días.`);
+    return [t.join(" "),left.length?"Wave":"Dance",null]}
+  if(k==="caj")return [`Tienes <strong>${M.caj.boxes} cajas</strong> con ${M.caj.items} cosas anotadas en ${M.caj.zones.length} zonas.`,"Yes",null];
+  if(k==="riff")return [`Estás practicando <strong>${esc(M.riff.cur.title||"")}</strong>${M.riff.cur.artist?" de "+esc(M.riff.cur.artist):""}. Tienes ${M.riff.songs.length} canciones guardadas.`,"Dance",null];
+  if(k==="pap"){const L=A.filter(a=>a.app==="pap"&&a.lvl!=="ok");return [L.length?L.slice(0,3).map(a=>`<strong>${esc(a.t)}</strong>: ${esc(a.s).toLowerCase()}`).join(". ")+".":"Tus papeles están al día. Agrega fechas de vencimiento en Papeles y aquí te aviso.",L.some(a=>a.lvl==="danger")?"No":L.length?"Wave":"ThumbsUp",L.length?"Surprised":null]}
+  // el robot: lo más importante ahora
+  const ord={danger:0,alert:1},U=A.filter(a=>ord[a.lvl]!=null).sort((a,b)=>ord[a.lvl]-ord[b.lvl]);
+  const h=new Date().getHours(),hi=h<12?"Buenos días":h<19?"Buenas tardes":"Buenas noches";
+  if(!U.length)return [`${hi}, Diego. Todo va en orden: energía de <strong>${M.score}</strong>. ¿Bailamos?`,"Dance",null];
+  return [`${hi}, Diego. Lo más importante ahora: <strong>${esc(U[0].t)}</strong>${U[0].s?" ("+esc(U[0].s).toLowerCase()+")":""}.${U.length>1?` Y ${U.length-1} cosa${U.length>2?"s":""} más pendiente${U.length>2?"s":""}.`:""}`,U[0].lvl==="danger"?"No":"Wave",U[0].lvl==="danger"?"Surprised":null]}
+function visit(k){lastAct=performance.now();$("#bubble").classList.remove("on");const [txt,anim,f]=textFor(k);
+  walkTo(k,()=>{face2(k);emote(anim,f);say(k,txt)})}
+
+/* ======================= Check-in de hábitos (escribe en Rutinas) ======================= */
+function rutRaw(){return Vida.D.rut}
+function chips(){const R=rutRaw(),el=$("#chips");
+  if(!R||!Array.isArray(R.habits)){el.innerHTML=`<span class="chip glass lead">Abre Rutinas una vez para hacer check-in aquí</span>`;return}
+  const H=M.rut.habits.map((h,i)=>({...h,raw:R.habits[i]})).filter(h=>h.due);
+  el.innerHTML=`<span class="chip glass lead">Hoy ${M.rut.pct}%</span>`+H.map((h,i)=>`<button class="chip glass${h.done?" done":""}" data-h="${esc(h.raw.id)}"><i style="background:${h.c||"#888"}">${h.done?"✓":h.kind==="day"?h.now+"/"+h.target:h.now}</i>${esc(h.n)}</button>`).join("")}
+$("#chips").addEventListener("click",e=>{const b=e.target.closest("[data-h]");if(!b)return;const R=rutRaw(),h=R.habits.find(x=>x.id===b.dataset.h);if(!h)return;
+  const t=Vida.dToday(),n=new Date(),L=(R.log=R.log||{})[t]=R.log[t]||{},cnt=(L[h.id]||[]).length;
+  if(h.kind==="day"&&cnt>=h.target){toast(h.n+": ya está completo hoy");return}if(h.kind!=="day"&&cnt){toast(h.n+": ya contaste hoy");return}
+  (L[h.id]=L[h.id]||[]).push(n.getHours()*60+n.getMinutes());R._u=Date.now();
+  try{localStorage.setItem("ritmo1",JSON.stringify(R))}catch(e){}if(window.Nube&&Nube.user())Nube.save("rutinas",R,R._u).catch(()=>{});
+  refresh();const all=M.rut.pct>=100;toast(all?"¡Día completo!":`${h.n} ✓`);
+  lastAct=performance.now();walkTo("rut",()=>{face2("rut");emote(all?"Dance":"ThumbsUp");if(all)say("rut","¡Lo lograste! Todos tus hábitos de hoy están completos. El árbol está lleno de frutos 🍎")})});
+function refresh(){M=Vida.model();A=Vida.alerts(M);buildFin();buildRut();buildPap();for(const [k,h] of [["fin",2.2],["rut",2.9],["pap",2.3]])setSign(k,h);chips();hud();setSky();if(cur&&(cur===ACT.Idle||cur===ACT.Sitting))play(baseAnim())}
+/* ======================= Interfaz ======================= */
+function hud(){const d=new Date(),h=d.getHours();$("#hi").textContent=(h<12?"Buenos días":h<19?"Buenas tardes":"Buenas noches")+", Diego";
+  $("#sub").textContent=d.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"});
+  const C=2*Math.PI*14;$("#ring").innerHTML=`<svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="14" fill="none" stroke="rgba(0,0,0,.1)" stroke-width="4"/><circle cx="18" cy="18" r="14" fill="none" stroke="${M.score<45?"#F0544F":M.score<70?"#F2A33A":"#3BBF6B"}" stroke-width="4" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-M.score/100)}"/></svg><em>${M.score}</em>`;
+  $("#voice").classList.toggle("on",voiceOn)}
+$("#voice").onclick=()=>{voiceOn=!voiceOn;try{localStorage.setItem("compa-voice",voiceOn?"1":"0")}catch(e){}hud();toast(voiceOn?"Compa te hablará":"Voz apagada");if(voiceOn&&$("#bubble").classList.contains("on"))speak($("#bP").innerHTML)};
+$("#acct").onclick=()=>{if(!window.Nube)return;Nube.accountSheet({sync:null,open:h=>{const w=document.createElement("div");w.id="acc";w.className="glass";w.style.cssText="position:fixed;left:12px;right:12px;bottom:12px;z-index:40;border-radius:26px;padding:18px;max-width:460px;margin:0 auto";
+    w.innerHTML=h+'<div class="bact"><button id="accX">Cerrar</button></div>';document.querySelectorAll("#acc").forEach(x=>x.remove());document.body.appendChild(w);$("#accX").onclick=()=>w.remove()},
+  close:async()=>{document.querySelectorAll("#acc").forEach(x=>x.remove());if(await Vida.loadCloud())refresh()},toast})};
+/* etiquetas sobre cada objeto */
+const LBL={jet:"Jetta",fin:"Finanzas",rut:"Rutinas",caj:"Cajas",riff:"Riff",pap:"Papeles"};
+$("#labels").innerHTML=Object.keys(LBL).map(k=>`<div class="lb glass" data-k="${k}"><i></i>${LBL[k]}</div>`).join("");
+$("#labels").addEventListener("click",e=>{const l=e.target.closest("[data-k]");if(l)visit(l.dataset.k)});
+const tmp=new THREE.Vector3();
+function labels(){const W=innerWidth,H=innerHeight,placed=[];for(const el of $("#labels").children){const k=el.dataset.k,g=ST[k];if(!g){el.classList.add("hide");continue}
+  tmp.copy(g.position).add(new THREE.Vector3(0,k==="rut"?2.75:k==="fin"?1.9:1.5,0)).applyMatrix4(island.matrixWorld).project(cam);
+  const behind=tmp.z>1,x=(tmp.x+1)/2*W;let y=(1-tmp.y)/2*H;for(let k2=0;k2<4;k2++){const c=placed.find(q=>Math.abs(q[0]-x)<90&&Math.abs(q[1]-y)<30);if(!c)break;y=c[1]-32}placed.push([x,y]);el.style.left=x.toFixed(0)+"px";el.style.top=y.toFixed(0)+"px";
+  const toCam=new THREE.Vector3().copy(g.position).applyMatrix4(island.matrixWorld).sub(cam.position).normalize(),n=new THREE.Vector3().copy(g.position).setY(0).normalize();
+  el.classList.toggle("hide",behind||n.dot(toCam)>.55);el.querySelector("i").className=g.userData.lvl||"ok"}}
+
+/* ======================= Cámara: arrastrar y pellizcar ======================= */
+const V={th:.5,ph:.42,r:16,tth:.5,tph:.42,tr:16};let lastUser=0;
+function resize(){const w=innerWidth,h=innerHeight;R.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();V.tr=w<h?21:15.5;LOOK=w<h?-1.6:.4}
+let LOOK=.4;
+addEventListener("resize",resize);resize();V.r=V.tr;
+const ptr=new Map();let p0=0,r0=0,moved=0;
+cv.addEventListener("pointerdown",e=>{ptr.set(e.pointerId,{x:e.clientX,y:e.clientY,sx:e.clientX,sy:e.clientY});moved=0;lastUser=performance.now();if(ptr.size===2){const [a,b]=[...ptr.values()];p0=Math.hypot(a.x-b.x,a.y-b.y);r0=V.tr}});
+addEventListener("pointermove",e=>{const p=ptr.get(e.pointerId);if(!p)return;const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;moved+=Math.abs(dx)+Math.abs(dy);lastUser=performance.now();
+  if(ptr.size===1){V.tth-=dx*.007;V.tph=Math.max(.15,Math.min(1.05,V.tph+dy*.005))}else if(ptr.size===2){const [a,b]=[...ptr.values()];V.tr=Math.max(9,Math.min(30,r0*p0/Math.max(1,Math.hypot(a.x-b.x,a.y-b.y))))}});
+const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();
+addEventListener("pointerup",e=>{const p=ptr.get(e.pointerId);ptr.delete(e.pointerId);if(!p||moved>8||e.target!==cv)return;
+  ndc.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(ndc,cam);const hit=ray.intersectObjects(HIT,true)[0];if(!hit)return;
+  let o=hit.object;while(o&&o.userData.st==null)o=o.parent;if(!o)return;const k=o.userData.st;
+  if(k==="me"){lastAct=performance.now();$("#bubble").classList.remove("on");face2("me");const [txt,anim,f]=textFor("me");emote(anim==="Dance"?"Jump":anim,f);say("me",txt,`<a href="../control/">Ver Control</a><button id="dance">Bailar</button>`);
+    setTimeout(()=>{const d=$("#dance");if(d)d.onclick=()=>{play("Dance",.3);setTimeout(()=>play(baseAnim(),.4),5200)}},0)}else visit(k)});
+addEventListener("pointercancel",e=>ptr.delete(e.pointerId));
+cv.addEventListener("wheel",e=>{e.preventDefault();V.tr=Math.max(9,Math.min(30,V.tr*Math.exp(e.deltaY*.001)))},{passive:false});
+
+/* ======================= Animación ======================= */
+const clock=new THREE.Clock();
+function frame(){const dt=Math.min(.05,clock.getDelta()),t=clock.elapsedTime;
+  if(performance.now()-lastUser>4000)V.tth+=dt*.04;
+  V.th+=(V.tth-V.th)*.08;V.ph+=(V.tph-V.ph)*.08;V.r+=(V.tr-V.r)*.08;
+  cam.position.set(Math.sin(V.th)*Math.cos(V.ph)*V.r,Math.sin(V.ph)*V.r+.6,Math.cos(V.th)*Math.cos(V.ph)*V.r);cam.lookAt(0,LOOK,0);
+  island.position.y=Math.sin(t*.6)*.12;
+  clouds.children.forEach(c=>{c.userData.a+=c.userData.v*dt;c.position.x=Math.cos(c.userData.a)*c.userData.r;c.position.z=Math.sin(c.userData.a)*c.userData.r});
+  if(rain.visible){const p=rain.geometry.attributes.position;for(let i=0;i<p.count;i+=2){let y=p.getY(i)-dt*14;if(y<-2)y+=14;p.setY(i,y);p.setY(i+1,y-.35)}p.needsUpdate=true}
+  for(const k in signs){const s=signs[k];s.position.y=s.userData.y+TOP+Math.sin(t*2.4+ANG[k])*.08}
+  if(ST.pap&&ST.pap.userData.flag)ST.pap.userData.flag.rotation.y=Math.sin(t*4)*.3;
+  if(ST.riff){const sp=ST.riff.children[2];if(sp)sp.scale.setScalar(1+Math.max(0,Math.sin(t*8))*.06)}
+  if(robot){if(walking){const d=new THREE.Vector3().subVectors(walking.target,robot.position);d.y=0;const L=d.length(),sp=(cur===ACT.Running?2.6:1.5)*dt;
+      if(L<=sp){robot.position.copy(walking.target);const w=walking;walking=null;play(baseAnim()==="Sitting"?"Idle":"Idle",.25);w.after&&w.after()}
+      else{d.normalize();robot.position.addScaledVector(d,sp);robot.userData.yaw=Math.atan2(d.x,d.z)}}
+    if(robot.userData.yaw!=null){let dy=robot.userData.yaw-robot.rotation.y;dy=Math.atan2(Math.sin(dy),Math.cos(dy));robot.rotation.y+=dy*Math.min(1,dt*8)}
+    if(face)for(const n in faceT){const i=face.morphTargetDictionary[n];face.morphTargetInfluences[i]+=(faceT[n]-face.morphTargetInfluences[i])*Math.min(1,dt*6)}
+    // vida propia: si nadie lo toca, pasea o baila según tu día
+    if(!walking&&performance.now()-lastAct>15000&&!$("#bubble").classList.contains("on")){lastAct=performance.now();const r=Math.random();
+      if(M.score>=85&&r<.35){play("Dance",.3);setTimeout(()=>play(baseAnim(),.4),4800)}
+      else if(M.score<45){play("Sitting",.4);setFace("Sad")}
+      else if(r<.6){const ks=Object.keys(ANG),k=ks[Math.floor(Math.random()*ks.length)];walkTo(k,()=>{face2("me");if(Math.random()<.5)emote("Wave")})}
+      else{walkTo("me",()=>{face2("me");emote(Math.random()<.5?"Yes":"Wave")})}}
+    mixer.update(dt)}
+  R.render(scene,cam);labels();requestAnimationFrame(frame)}
+
+/* ======================= Arranque ======================= */
+setSky();hud();chips();
+loadModels().then(()=>{$("#load").classList.add("off");face2("me");setFace(M.score<45?"Sad":null);
+  setTimeout(()=>{emote("Wave");const [txt]=textFor("me");say("me",txt,`<a href="../control/">Ver Control</a><button id="dance">Bailar</button>`);
+    const d=$("#dance");if(d)d.onclick=()=>{play("Dance",.3);setTimeout(()=>play(baseAnim(),.4),5200)}},700)})
+  .catch(e=>{$("#load div").innerHTML="No se pudo cargar el modelo 3D.<br><small>"+esc(e.message||e)+"</small>"});
+requestAnimationFrame(frame);
+setInterval(setSky,60000);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden){Vida.refresh();refresh()}});
+Vida.loadCloud().then(ch=>{if(ch)refresh()});
+if("serviceWorker" in navigator&&location.protocol!=="file:")addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+</script>
+</body>
+</html>
