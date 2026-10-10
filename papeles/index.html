@@ -52,15 +52,17 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;paddin
 .pill{flex:none;height:38px;padding:0 14px;border-radius:19px;background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 1px var(--line);display:flex;align-items:center;gap:8px;font-size:12.5px}
 .pill svg{width:15px;height:15px;opacity:.8}
 /* carrusel 3D */
-.stage{position:relative;height:330px;perspective:1000px;perspective-origin:50% 40%;margin-top:6px;touch-action:pan-y;user-select:none;-webkit-user-select:none;overflow:hidden}
+.stage{position:relative;height:350px;perspective:820px;perspective-origin:42% 30%;margin-top:6px;touch-action:pan-y;user-select:none;-webkit-user-select:none;overflow:hidden}
 .stage.big{height:400px}
-.arc{position:absolute;left:0;right:0;top:12px;height:90px;pointer-events:none}
+.scene{position:absolute;inset:0;transform-style:preserve-3d;transform:translateY(6px) rotateX(-16deg) rotateZ(-9deg)}
+.arc{position:absolute;left:8%;right:8%;top:12px;height:90px;pointer-events:none}
+@media (min-width:1000px){.arc{left:25%;right:25%;top:14px;height:60px}}
 .arcbtn{position:absolute;left:50%;top:6px;transform:translateX(-50%);width:42px;height:42px;border-radius:50%;background:rgba(70,199,116,.12);box-shadow:inset 0 0 0 1.5px rgba(70,199,116,.6),0 0 24px rgba(70,199,116,.35);display:grid;place-items:center;color:var(--g1);z-index:200;pointer-events:auto}
 .arcbtn svg{width:20px;height:20px}
-.fold{position:absolute;left:50%;top:84px;width:150px;height:196px;margin-left:-75px;transform-style:preserve-3d;transition:filter .3s;will-change:transform}
-.big .fold{width:180px;height:236px;margin-left:-90px}
+.fold{position:absolute;left:50%;top:96px;width:142px;height:178px;margin-left:-71px;transform-style:preserve-3d;transition:filter .3s;will-change:transform}
+.big .fold{width:170px;height:214px;margin-left:-85px}
 .fold .pg{position:absolute;inset:0;border-radius:18px;background:linear-gradient(160deg,rgba(255,255,255,.92),rgba(220,226,223,.55) 55%,rgba(200,206,203,.28));
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.55),0 18px 40px rgba(0,0,0,.45);overflow:hidden;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.55),0 10px 24px rgba(0,0,0,.35);overflow:hidden}
 .fold .tab{position:absolute;top:-12px;left:14px;width:58px;height:20px;border-radius:9px 9px 0 0;background:rgba(235,240,237,.8)}
 .fold .lines{position:absolute;left:16px;right:16px;top:22px;display:grid;gap:7px}
 .fold .lines i{display:block;height:7px;border-radius:4px;background:rgba(40,46,43,.16)}
@@ -68,7 +70,7 @@ button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;paddin
 .fold .ic{position:absolute;left:16px;bottom:44px;font-size:22px;filter:grayscale(1) contrast(.9);opacity:.75}
 .fold .nm{position:absolute;left:14px;bottom:14px;right:12px;font-size:15px;font-weight:600;color:#2A2F2C;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fold .ct{position:absolute;right:14px;top:16px;font-size:11px;font-weight:700;color:rgba(40,46,43,.55)}
-.fold.on .pg{background:linear-gradient(160deg,#5CD889,var(--g2) 60%,var(--g3));box-shadow:inset 0 0 0 1px rgba(255,255,255,.35),0 22px 50px rgba(46,170,90,.45)}
+.fold.on .pg{background:linear-gradient(160deg,#5CD889,var(--g2) 60%,var(--g3));box-shadow:inset 0 0 0 1px rgba(255,255,255,.35),0 0 40px rgba(46,170,90,.35)}
 .fold.on .tab{background:#5CD889}
 .fold.on .lines i{background:rgba(255,255,255,.22)}
 .fold.on .nm,.fold.on .ct{color:#fff}
@@ -196,7 +198,7 @@ select.inp{background-image:none}
 <div class="stage" id="stage">
   <svg class="arc" viewBox="0 0 400 90" preserveAspectRatio="none"><path d="M40 88 Q200 -20 360 88" fill="none" stroke="rgba(70,199,116,.45)" stroke-width="1.2"/></svg>
   <button class="arcbtn" id="arcbtn" aria-label="Siguiente carpeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 8l-4 4 4 4M15 8l4 4-4 4"/></svg></button>
-  <div id="folds"></div>
+  <div class="scene" id="folds"></div>
   <div class="info" id="info"></div>
 </div>
 <div class="dots" id="dots"></div>
@@ -256,30 +258,42 @@ const docsOf=f=>S.docs.filter(d=>d.f===f);
 function pct(f){const L=docsOf(f);if(!L.length)return 0;return Math.round(L.filter(d=>{const s=st(d);return s==="ok"||s==="warn"}).length/L.length*100)}
 const upcoming=()=>S.docs.filter(d=>d.date&&d.type!=="otro").sort((a,b)=>a.date.localeCompare(b.date));
 
-/* ======================= Carrusel 3D ======================= */
-let cur=0,pos=0,vel=0,big=false;
-function layout(){const n=S.folders.length,el=[...document.querySelectorAll(".fold")],W=innerWidth,sp=W<600?30:40,near=W<600?84:120;
-  el.forEach((e,i)=>{const o=i-pos,a=Math.abs(o),s=Math.sign(o),c=Math.min(a,1);
-    const x=s*(c*near+Math.max(0,a-1)*sp),z=-c*90-a*16,ry=-s*c*70,y=-Math.min(a,4)*5+(a<1?0:a*2);
-    e.style.transform=`translate3d(${x}px,${y}px,${z}px) rotateY(${ry}deg)`;e.style.zIndex=100-Math.round(a*10);e.style.opacity=a>9?0:1-Math.max(0,a-6)*.25;
-    e.style.filter=a<.5?"none":`brightness(${Math.max(.55,1-a*.06)})`;e.classList.toggle("on",a<.5)});
-  $("#info").classList.toggle("hide",Math.abs(pos-Math.round(pos))>.15)}
-function renderFolds(){$("#folds").innerHTML=S.folders.map((f,i)=>{const L=docsOf(f.id),bad=L.some(d=>st(d)==="bad"),warn=L.some(d=>st(d)==="warn");
-  return `<div class="fold${bad?" bad":warn?" warn":""}" data-i="${i}"><div class="tab"></div><div class="pg"><div class="lines"><i></i><i></i><i></i><i></i></div><span class="ct">${L.length}</span><span class="ic">${f.ic||"📁"}</span><span class="nm">${esc(f.n)}</span></div></div>`}).join("");
+/* ======================= Carrusel 3D =======================
+   Fila infinita de carpetas (se repiten en ciclo) vista en perspectiva: toda la escena está inclinada y en diagonal,
+   las carpetas van muy giradas y pegadas como en un fichero; la activa sale de la fila, más de frente y en verde. */
+let cur=0,pos=0,tgt=0,vel=0,big=false;const K=14;let slots=[];
+const mod=(a,n)=>((a%n)+n)%n;
+function fill(e,fi){const f=S.folders[fi],L=docsOf(f.id),bad=L.some(d=>st(d)==="bad"),warn=L.some(d=>st(d)==="warn");
+  e.className="fold"+(bad?" bad":warn?" warn":"");e.dataset.fi=fi;
+  e.innerHTML=`<div class="tab"></div><div class="pg"><div class="lines"><i></i><i></i><i></i><i></i></div><span class="ct">${L.length}</span><span class="ic">${f.ic||"📁"}</span><span class="nm">${esc(f.n)}</span></div>`}
+function renderFolds(){const box=$("#folds");box.innerHTML="";slots=[];
+  for(let k=-K;k<=K;k++){const e=document.createElement("div");e.className="fold";box.appendChild(e);slots.push({k,e,fi:-1})}
   $("#dots").innerHTML=S.folders.map((_,i)=>`<i class="${i===cur?"on":""}"></i>`).join("");layout()}
-function go(i,anim=true){const n=S.folders.length;cur=Math.max(0,Math.min(n-1,i));$("#dots").querySelectorAll("i").forEach((d,k)=>d.classList.toggle("on",k===cur));
-  if(!anim){pos=cur;layout()}else snap();renderPanel();renderInfo()}
-let raf=0;function snap(){cancelAnimationFrame(raf);const step=()=>{pos+=(cur-pos)*.18;if(Math.abs(cur-pos)<.002)pos=cur;layout();if(pos!==cur)raf=requestAnimationFrame(step)};raf=requestAnimationFrame(step)}
+function layout(){const n=S.folders.length;if(!n||!slots.length)return;const base=Math.floor(pos),fr=pos-base,m=innerWidth<600?1:innerWidth<1000?1.2:1.45;
+  slots.forEach(s=>{const fi=mod(base+s.k,n),o=s.k-fr,a=Math.abs(o),c=Math.min(a,1),sg=o<0?-1:1;
+    if(s.fi!==fi||s.e.dataset.fi!=fi){s.fi=fi;fill(s.e,fi)}
+    // separación: se abre un hueco alrededor de la activa; las demás quedan pegadas
+    const x=(o*24+sg*c*62)*m,y=-(1-c)*22+Math.min(a*a*.55,70),z=(1-c)*70-c*30-a*6,
+      ry=(a<1?-sg*c*58:-sg*(58+Math.min(a-1,8)*1.6))-14*(1-c),rz=(1-c)*-2;
+    s.e.style.transform=`translate3d(${x.toFixed(1)}px,${y.toFixed(1)}px,${z.toFixed(1)}px) rotateY(${ry.toFixed(1)}deg) rotateZ(${rz.toFixed(1)}deg)`;
+    s.e.style.zIndex=200-Math.round(a*10);s.e.style.opacity=a>K-1?0:a>K-4?(K-1-a)/3:1;
+    s.e.style.filter=a<.5?"none":`brightness(${Math.max(.5,1-a*.035)}) blur(${a>7?Math.min(2,(a-7)*.4):0}px)`;s.e.classList.toggle("on",a<.5)});
+  $("#info").classList.toggle("hide",Math.abs(pos-Math.round(pos))>.15)}
+function go(i,anim=true){const n=S.folders.length;if(!n)return;let d=mod(i-cur,n);if(d>n/2)d-=n;tgt=Math.round(anim?tgt:pos)+d;if(!anim)tgt=Math.round(pos)+d;
+  cur=mod(tgt,n);$("#dots").querySelectorAll("i").forEach((e,k)=>e.classList.toggle("on",k===cur));
+  if(!anim){pos=tgt;layout()}else snap();renderPanel();renderInfo()}
+function goTo(t){const n=S.folders.length;tgt=t;cur=mod(tgt,n);$("#dots").querySelectorAll("i").forEach((e,k)=>e.classList.toggle("on",k===cur));snap();renderPanel();renderInfo()}
+let raf=0;function snap(){cancelAnimationFrame(raf);const step=()=>{pos+=(tgt-pos)*.16;if(Math.abs(tgt-pos)<.002)pos=tgt;layout();if(pos!==tgt)raf=requestAnimationFrame(step)};raf=requestAnimationFrame(step)}
 {const st0=$("#stage");let x0=null,p0=0,moved=0,lt=0,lx=0;
   st0.addEventListener("pointerdown",e=>{if(e.target.closest(".info,.arcbtn"))return;x0=e.clientX;p0=pos;moved=0;lt=performance.now();lx=e.clientX;vel=0;cancelAnimationFrame(raf)});
   addEventListener("pointermove",e=>{if(x0==null)return;const dx=e.clientX-x0;moved=Math.max(moved,Math.abs(dx));const now=performance.now();vel=(e.clientX-lx)/Math.max(1,now-lt);lt=now;lx=e.clientX;
-    pos=Math.max(-.4,Math.min(S.folders.length-.6,p0-dx/(innerWidth<600?62:90)));layout()});
+    pos=p0-dx/(innerWidth<600?40:60);layout()});
   addEventListener("pointerup",e=>{if(x0==null)return;x0=null;
-    if(moved<6){const f=e.target.closest(".fold");if(f){const i=+f.dataset.i;if(i===cur)$("#panel").scrollIntoView({behavior:"smooth",block:"start"});else go(i)}else snap();return}
-    go(Math.round(pos-Math.max(-1.2,Math.min(1.2,vel))*.6))});
-  st0.addEventListener("wheel",e=>{if(Math.abs(e.deltaX)>Math.abs(e.deltaY)||e.shiftKey){e.preventDefault();clearTimeout(st0._w);pos=Math.max(0,Math.min(S.folders.length-1,pos+(e.deltaX||e.deltaY)/120));layout();st0._w=setTimeout(()=>go(Math.round(pos)),120)}},{passive:false})}
-$("#arcbtn").onclick=()=>go(cur+1>=S.folders.length?0:cur+1);
-addEventListener("keydown",e=>{if(e.target.closest("input,textarea,select"))return;if(e.key==="ArrowRight")go(cur+1);if(e.key==="ArrowLeft")go(cur-1)});
+    if(moved<6){const f=e.target.closest(".fold");if(f){const sl=slots.find(s=>s.e===f);const t=Math.floor(pos)+sl.k;if(t===Math.round(pos)&&Math.abs(pos-t)<.2)$("#panel").scrollIntoView({behavior:"smooth",block:"start"});else goTo(t)}else goTo(Math.round(pos));return}
+    goTo(Math.round(pos-Math.max(-1.5,Math.min(1.5,vel))*1.2))});
+  st0.addEventListener("wheel",e=>{if(Math.abs(e.deltaX)>Math.abs(e.deltaY)||e.shiftKey){e.preventDefault();clearTimeout(st0._w);cancelAnimationFrame(raf);pos+=(e.deltaX||e.deltaY)/90;layout();st0._w=setTimeout(()=>goTo(Math.round(pos)),120)}},{passive:false})}
+$("#arcbtn").onclick=()=>goTo(tgt+1);
+addEventListener("keydown",e=>{if(e.target.closest("input,textarea,select"))return;if(e.key==="ArrowRight")goTo(tgt+1);if(e.key==="ArrowLeft")goTo(tgt-1)});
 
 function renderInfo(){const f=S.folders[cur];if(!f)return;const L=docsOf(f.id),nx=L.filter(d=>d.date&&d.type!=="otro"&&daysTo(d.date)>=0).sort((a,b)=>a.date.localeCompare(b.date))[0];
   $("#info").innerHTML=`<b>${esc(f.n)}</b><small>${L.length} documento${L.length===1?"":"s"}${nx?" · "+fshort(nx.date):""}</small><div class="pct">${pct(f.id)}<i>%</i></div><small>al día y con archivo</small><button class="go" data-edit-folder aria-label="Editar carpeta">${svg('<path d="M7 17L17 7M9 7h8v8"/>')}</button><span class="dot"></span>`}
@@ -365,9 +379,9 @@ function folderSheet(id){const f=id?S.folders.find(x=>x.id===id):{n:"",ic:"📁"
     <div class="btns">${id?`<button class="btn red" id="fDel">Eliminar</button>`:`<button class="btn" id="fCan">Cancelar</button>`}<button class="btn green" id="fOk">Guardar</button></div>`);
   $("#fI").onclick=e=>{const b=e.target.closest("[data-ic]");if(!b)return;ic=b.dataset.ic;$("#fI").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b))};
   if($("#fCan"))$("#fCan").onclick=closeSheet;
-  if($("#fDel"))$("#fDel").onclick=()=>{if(docsOf(id).length){toast("Mueve o borra sus documentos primero");return}if(S.folders.length<2)return;S.folders=S.folders.filter(x=>x.id!==id);save();closeSheet();cur=Math.min(cur,S.folders.length-1);pos=cur;renderAll()};
+  if($("#fDel"))$("#fDel").onclick=()=>{if(docsOf(id).length){toast("Mueve o borra sus documentos primero");return}if(S.folders.length<2)return;S.folders=S.folders.filter(x=>x.id!==id);save();closeSheet();cur=Math.min(cur,S.folders.length-1);pos=tgt=cur;renderAll()};
   $("#fOk").onclick=()=>{const n=$("#fN").value.trim();if(!n){toast("Escribe el nombre");return}
-    if(id)Object.assign(f,{n,ic});else{S.folders.push({id:"c"+Date.now().toString(36),n,ic});cur=S.folders.length-1}save();closeSheet();renderAll();go(cur)}}
+    if(id)Object.assign(f,{n,ic});else S.folders.push({id:"c"+Date.now().toString(36),n,ic});save();closeSheet();renderAll();go(id?cur:S.folders.length-1)}}
 
 /* búsqueda */
 $("#bSearch").onclick=()=>{$("#srch").classList.add("on");$("#q").value="";$("#qr").innerHTML="";setTimeout(()=>$("#q").focus(),50)};
@@ -380,7 +394,7 @@ $("#bAcct").onclick=()=>{if(!window.Nube){toast("Sin conexión con la cuenta");r
   Nube.accountSheet({sync:window.SYNC,open:h=>openSheet(h+'<p class="lbl" style="margin-top:14px">A tu cuenta solo sube la lista de documentos y sus fechas. Las fotos y PDF se quedan en este dispositivo.</p>'),close:closeSheet,toast})};
 
 function renderAll(){renderFolds();renderTop();renderKeys();renderPanel();renderInfo()}
-window.SYNC=window.Nube?Nube.sync("papeles",{get:()=>S,set:d=>{S=d;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}cur=Math.min(cur,S.folders.length-1);pos=cur;renderAll();toast("Datos actualizados desde tu cuenta")}}):null;
+window.SYNC=window.Nube?Nube.sync("papeles",{get:()=>S,set:d=>{S=d;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}cur=Math.min(cur,S.folders.length-1);pos=tgt=cur;renderAll();toast("Datos actualizados desde tu cuenta")}}):null;
 renderAll();go(0,false);
 addEventListener("resize",layout);
 if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
