@@ -11,6 +11,7 @@ https://diegobasan.github.io/Diapps-BS/
 | `/musica/` | Riff: YouTube con loop y velocidad, audio propio con cambio de tono, acordes en diagrama y diapasón con escalas para el solo. |
 | `/cajas/` | Cajas: mapa de contenedores a escala, fotos de cada caja abierta y buscador de contenido. |
 | `/ciudad/` | Mi Ciudad: mapa isométrico donde cada barrio es una app y los edificios crecen con tus datos. |
+| `/control/` | Control: tablero de rendimiento con relieve de actividad, alertas y estado de todas tus apps. |
 | `/finanzas/` | Mis Finanzas: gastos, presupuesto, regla 50/30/20, mapa de gasto y asistente local. |
 
 ## Agregar un proyecto

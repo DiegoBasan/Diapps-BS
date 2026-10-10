@@ -22,6 +22,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <script src="../shared/nube.js"></script>
+<script src="../shared/vida.js"></script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800&family=Saira+Condensed:wght@600;700;800&display=swap">
 <style>
 /* Mi Ciudad: un mapa isométrico (estilo ilustración de plano urbano) donde cada barrio es una app de Diapps.
@@ -154,56 +155,8 @@ const dAdd=(s,n)=>{const d=new Date(s+"T12:00");d.setDate(d.getDate()+n);return 
 const mxn0=v=>"$"+Math.round(v).toLocaleString("es-MX");
 let hideAmt=false;try{hideAmt=localStorage.getItem("diapps-fin-hide")==="1"}catch(e){}
 const money=v=>hideAmt?"$•••":mxn0(v);
-const SRC={fin:["finz2","finanzas"],rut:["ritmo1","rutinas"],jet:["jetta6v3","jetta"],riff:["riff1","riff"],caj:["cajas1","cajas"]};
-const D={};for(const k in SRC)D[k]=LSj(SRC[k][0]);
-const stamp=d=>d?(d._u||d.updated||0):-1;
-async function loadCloud(){if(!window.Nube||!Nube.user())return;let ch=false;
-  await Promise.all(Object.keys(SRC).map(async k=>{try{const r=await Nube.load(SRC[k][1]);if(r&&r.data&&r.updated>stamp(D[k])){D[k]=r.data;ch=true}}catch(e){}}));
-  if(ch){build();toast("Ciudad actualizada desde tu cuenta")}}
-
-function model(){
-  const t=dToday(),M={};
-  /* Finanzas: apartados de Mercado Pago, disponible y gasto de la semana */
-  const F=D.fin;
-  if(F&&Array.isArray(F.tx)){
-    const START={bbva:8200,bbvaa:-900,nu:-2400,mp:900,cash:1300,save:12000},meta=F.meta||{},b={};
-    for(const k in START)b[k]=meta[k]&&meta[k].start!=null?meta[k].start:START[k];
-    F.tx.forEach(x=>{if(x.type==="move"){b[x.acc]-=x.a;b[x.to]+=x.a}else if(b[x.acc]!=null)b[x.acc]+=x.type==="in"?x.a:-x.a});
-    const P=F.pots||{items:{},mv:[]};(P.mv||[]).forEach(m=>{if(m.t!=="adj")b.mp-=m.a});
-    const pbal=k=>{const it=P.items[k];return it.base+(P.mv||[]).filter(m=>m.k===k&&m.s>it.baseSeq&&!(it.baseDate&&m.ref&&m.d<=it.baseDate)).reduce((s,m)=>s+m.a,0)};
-    const pots=Object.keys(P.items||{}).map(k=>({n:P.items[k].n,v:pbal(k)})).sort((a,c)=>c.v-a.v);
-    const liq=["bbva","mp","cash"].reduce((s,k)=>s+(b[k]||0),0);
-    const mon=dAdd(t,-((new Date(t+"T12:00").getDay()+6)%7)),spent=(a,z)=>F.tx.filter(x=>x.type==="out"&&x.d>=a&&x.d<=z).reduce((s,x)=>s+x.a,0);
-    const wk=spent(mon,t),dow=(new Date(t+"T12:00").getDay()+6)%7;let prev=0;for(let i=1;i<=4;i++)prev+=spent(dAdd(mon,-7*i),dAdd(mon,-7*i+dow));
-    M.fin={ok:true,pots,ptot:pots.reduce((s,p)=>s+p.v,0),liq,wk,avg:prev/4,sample:!!F.sample};
-  }else M.fin={ok:false,pots:[{n:"Fondo de emergencia",v:15000},{n:"Viaje",v:8200},{n:"Jetta",v:4300},{n:"Regalos",v:1800},{n:"Tarjeta Nu",v:3200}],ptot:32500,liq:9800,wk:1450,avg:1700};
-  /* Rutinas: % de hoy, racha por hábito y cumplidos de los últimos 30 días */
-  const R=D.rut;
-  if(R&&Array.isArray(R.habits)){
-    const cnt=(h,d)=>((R.log||{})[d]||{})[h.id]?.length||0,due=(h,d)=>!h.days||!h.days.length||h.days.includes(new Date(d+"T12:00").getDay());
-    const mon=dAdd(t,-((new Date(t+"T12:00").getDay()+6)%7)),wkc=h=>{let n=0;for(let x=mon;x<=t;x=dAdd(x,1))if(cnt(h,x))n++;return n};
-    const streak=h=>{if(h.kind!=="day")return wkc(h);let d=cnt(h,t)>=h.target?t:dAdd(t,-1),n=0;for(let i=0;i<400;i++,d=dAdd(d,-1)){if(!due(h,d))continue;if(cnt(h,d)>=h.target)n++;else break}return n};
-    const habits=R.habits.map(h=>({n:h.n,c:h.c,kind:h.kind,target:h.target,now:h.kind==="day"?cnt(h,t):wkc(h),due:h.kind!=="day"||due(h,t),streak:streak(h)})).map(h=>({...h,done:h.now>=h.target}));
-    const dh=habits.filter(h=>h.kind==="day"&&h.due),pct=dh.length?Math.round(dh.reduce((s,h)=>s+Math.min(1,h.now/h.target),0)/dh.length*100):0;
-    let d30=0;for(let i=0;i<30;i++){const d=dAdd(t,-i),l=(R.log||{})[d]||{};for(const k in l)d30+=(l[k]||[]).length}
-    M.rut={ok:true,habits,pct,d30,sample:!!R.sample};
-  }else M.rut={ok:false,habits:[["Creatina",1,9],["Lavar dientes",0,3],["Minoxidil",1,22],["Basura",1,4],["Duolingo",0,12],["Curso PLC",0,2],["Crema",1,7]].map(([n,d,s])=>({n,done:!!d,streak:s,kind:"day",target:1,now:d,due:true})),pct:57,d30:64};
-  /* Jetta: kilometraje, gasolina, rendimiento y servicios */
-  const J=D.jet||{odo:214072,fuel:22,oil:62,active:["airbag"],done:{oil:205100},fills:[],_def:true};
-  {const fl=(J.fills||[]).slice().sort((a,c)=>a.odo-c.odo);let km=0,L=0;for(let i=1;i<fl.length;i++){km+=fl[i].odo-fl[i-1].odo;L+=fl[i].litros}
-    const kmpl=L>0&&km/L>3&&km/L<30?km/L:11.5,oilLeft=J.done&&J.done.oil!=null?J.done.oil+10000-J.odo:null;
-    M.jet={ok:!J._def,odo:J.odo,fuel:J.fuel,oil:J.oil,active:J.active||[],kmpl,measured:L>0,price:fl.length?fl[fl.length-1].price:null,fills:fl.length,cpk:km>0?fl.slice(1).reduce((s,f)=>s+f.pesos,0)/km:null,oilLeft}}
-  /* Riff y Cajas */
-  const S=D.riff;M.riff=S&&Array.isArray(S.songs)?{ok:true,songs:S.songs,cur:S.songs.find(s=>s.id===S.cur)||S.songs[0]}:{ok:false,songs:[{title:"Let It Be",artist:"The Beatles"},{title:"Wonderwall",artist:"Oasis"},{title:"Hotel California",artist:"Eagles"}],cur:{title:"Let It Be",artist:"The Beatles"}};
-  const C=D.caj;M.caj=C&&Array.isArray(C.boxes)?{ok:true,boxes:C.boxes.length,items:C.boxes.reduce((n,b)=>n+(b.items||[]).length,0),zones:(C.zones||[]).map(z=>({n:z.n||z.name||z.id,c:C.boxes.filter(b=>b.z===z.id).length}))}
-    :{ok:false,boxes:14,items:52,zones:[{n:"Cuarto",c:6},{n:"Bodega",c:8}]};
-  /* Energía de la ciudad: promedio de cómo van hábitos, gasto y el coche */
-  const parts=[M.rut.pct];
-  parts.push(M.fin.avg>0?Math.max(0,Math.min(100,Math.round(100-(M.fin.wk/M.fin.avg-1)*100))):80);
-  let jh=100-25*M.jet.active.length-(M.jet.oilLeft!=null&&M.jet.oilLeft<0?30:0)-(M.jet.fuel<15?15:0);parts.push(Math.max(0,jh));
-  M.score=Math.round(parts.reduce((s,x)=>s+x,0)/parts.length);
-  return M;
-}
+const {SRC,D,stamp}=Vida,model=Vida.model;
+async function loadCloud(){if(await Vida.loadCloud()){build();toast("Ciudad actualizada desde tu cuenta")}}
 
 /* ======================= Dibujo isométrico =======================
    Cuadrícula (x,y) en el piso, z hacia arriba. Caras visibles: arriba (t), frente-izquierda (+y, l) y frente-derecha (+x, r). */
@@ -489,7 +442,7 @@ build();initCars();
 center(15.5,16,Math.max(SMIN(),Math.min(1,innerWidth/820)));
 requestAnimationFrame(frame);
 addEventListener("resize",()=>{if(V.s<SMIN())zoomAt(innerWidth/2,innerHeight/2,SMIN())});
-addEventListener("storage",()=>{for(const k in SRC){const v=LSj(SRC[k][0]);if(v&&stamp(v)>=stamp(D[k]))D[k]=v}build()});
+addEventListener("storage",()=>{if(Vida.refresh())build()});
 loadCloud();
 if("serviceWorker" in navigator&&location.protocol!=="file:")addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 </script>

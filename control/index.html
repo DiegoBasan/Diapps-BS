@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Control</title>
+<meta name="description" content="Centro de control: el rendimiento de tu vida en Diapps, con alertas en un relieve de actividad">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Control">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#111312">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<script src="../shared/nube.js"></script>
+<script src="../shared/vida.js"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Urbanist:wght@300;400;500;600;700&display=swap">
+<style>
+/* Control: tablero oscuro tipo "rendimiento del sistema". El relieve de puntos es tu actividad real
+   (gasto, hábitos, gasolina, canciones) en el tiempo; los marcadores son alertas calculadas con los datos de tus apps. */
+:root{--bg:#111312;--card:#191B1A;--card2:#212423;--line:rgba(255,255,255,.07);--tx:#E9EDEB;--tx2:#828B87;--tx3:#5A625E;
+  --ok:#5BE08F;--al:#F28C38;--dg:#F0544F;--unk:#8E9692;--teal:#2FD3A0}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);font-family:Urbanist,system-ui,sans-serif;font-weight:400}
+body{min-height:100vh;padding:calc(env(safe-area-inset-top) + 10px) 14px calc(env(safe-area-inset-bottom) + 24px)}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0}
+a{color:inherit}
+.top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.ib{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--card2);flex:none}
+.ib svg{width:18px;height:18px}
+.brand{font-weight:700;font-size:16px;letter-spacing:-.01em;flex:1}
+.brand small{color:var(--tx2);font-weight:500;margin-left:4px}
+h1{font-weight:500;font-size:34px;line-height:1.05;letter-spacing:-.02em;margin:6px 0 4px}
+.sub{color:var(--tx3);font-size:12.5px}
+.pills{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:14px -14px 12px;padding:0 14px}
+.pills::-webkit-scrollbar{display:none}
+.pill{flex:none;height:34px;padding:0 6px 0 12px;border-radius:17px;background:var(--card2);font-size:12.5px;display:flex;align-items:center;gap:8px;color:var(--tx2);white-space:nowrap}
+.pill b{font-weight:500;color:var(--tx);background:rgba(255,255,255,.06);height:24px;border-radius:12px;padding:0 10px;display:flex;align-items:center;gap:6px}
+.pill b svg{width:11px;height:11px}
+.card{background:var(--card);border-radius:24px;padding:16px;margin-bottom:12px;position:relative}
+.card h4{margin:0 0 12px;font-weight:500;font-size:14.5px;display:flex;align-items:center;gap:8px}
+.card h4 em{font-style:normal;margin-left:auto;color:var(--tx3);font-size:12px}
+/* relieve */
+.terra{padding:0;overflow:hidden;background:radial-gradient(120% 90% at 50% 40%,#16201C 0%,var(--card) 70%)}
+#tc{display:block;width:100%;height:clamp(280px,78vw,560px);touch-action:pan-y}
+.mk{position:absolute;width:28px;height:28px;margin:-14px 0 0 -14px;border-radius:50%;display:grid;place-items:center;background:rgba(20,22,21,.82);box-shadow:0 0 0 1px rgba(255,255,255,.08),0 4px 14px rgba(0,0,0,.4);transition:transform .2s;z-index:2}
+.mk:active{transform:scale(.9)}
+.mk svg{width:16px;height:16px}
+.mk.pulse::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:1.5px solid var(--dg);animation:pl 1.8s infinite}
+@keyframes pl{0%{opacity:.9;transform:scale(.8)}100%{opacity:0;transform:scale(1.5)}}
+.pop{position:absolute;z-index:3;background:rgba(28,30,29,.94);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:16px;padding:9px 12px 9px 10px;display:flex;gap:9px;align-items:center;font-size:12.5px;max-width:240px;box-shadow:0 8px 30px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.07);pointer-events:none;opacity:0;transition:opacity .2s}
+.pop.on{opacity:1}
+.pop svg{width:16px;height:16px;flex:none}
+.pop small{display:block;color:var(--tx2);font-size:11.5px}
+.bl{position:absolute;left:12px;font-size:10.5px;color:var(--tx2);letter-spacing:.04em;text-transform:uppercase;pointer-events:none;text-shadow:0 1px 6px #000}
+.tbar{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:flex;gap:4px;padding:4px;border-radius:22px;background:rgba(24,26,25,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 0 0 1px rgba(255,255,255,.06);z-index:2}
+.tbar button{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:var(--tx2)}
+.tbar button svg{width:16px;height:16px}
+.tbar button.on{background:var(--tx);color:#111}
+.tip{position:absolute;top:12px;right:12px;background:rgba(20,22,21,.7);padding:6px 10px;border-radius:12px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:1;font-size:11.5px;color:var(--tx2);text-align:right;pointer-events:none;line-height:1.35}
+.tip b{color:var(--tx);font-weight:600;font-size:13px}
+/* medidores */
+.gg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.gauge{text-align:center;padding:16px 10px 14px}
+.gauge svg{width:84px;height:84px;display:block;margin:0 auto 8px}
+.gauge small{display:block;color:var(--tx2);font-size:11.5px}
+.gauge b{font-weight:400;font-size:28px;letter-spacing:-.02em}
+.gauge b i{font-style:normal;font-size:12px;color:var(--tx2);margin-left:3px}
+/* apps */
+.app{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:16px;background:var(--card2);margin-top:8px;width:100%;text-align:left;font-size:13.5px}
+.app img{width:24px;height:24px;border-radius:7px}
+.app span{flex:1}
+.app .cn{display:flex;gap:5px}
+.app .cn i{font-style:normal;font-size:11px;min-width:20px;height:20px;border-radius:10px;display:grid;place-items:center;padding:0 6px;background:rgba(255,255,255,.06)}
+.app.on{box-shadow:0 0 0 1.5px var(--teal)}
+.app svg.ch{width:12px;height:12px;color:var(--tx3);transition:transform .2s}
+.app.on svg.ch{transform:rotate(180deg)}
+.al{margin:6px 0 0 8px;font-size:12.5px}
+.al div{display:flex;gap:9px;align-items:flex-start;padding:7px 4px;border-bottom:1px solid var(--line)}
+.al svg{width:14px;height:14px;flex:none;margin-top:2px}
+.al small{display:block;color:var(--tx2)}
+/* chispas */
+.spark{display:flex;align-items:flex-end;gap:1.5px;height:56px;position:relative}
+.spark i{flex:1;background:#4A524E;border-radius:1px;min-height:2px}
+.spark i.hi{background:var(--teal)}
+.spark i.mid{background:#7F8C86}
+.axis{display:flex;justify-content:space-between;color:var(--tx3);font-size:11px;margin-top:6px}
+.peaks{height:64px;width:100%;display:block}
+/* 360 */
+.b360{display:grid;grid-template-columns:62px 1fr;align-items:center;row-gap:12px;position:relative}
+.b360 .lb{font-size:12px;color:var(--tx2)}
+.dots{display:grid;gap:0;align-items:center;justify-items:center}
+.dots i{border-radius:50%;background:#59625D;display:block}
+.sel{position:absolute;border:1px dashed rgba(255,255,255,.28);border-radius:4px;pointer-events:none}
+.b360 .mk{width:22px;height:22px;margin:-11px 0 0 -11px}
+.b360 .mk svg{width:12px;height:12px}
+.selpill{position:absolute;transform:translate(-50%,-50%);background:rgba(36,38,37,.95);border-radius:14px;padding:6px 10px;font-size:11.5px;display:flex;gap:6px;align-items:center;white-space:nowrap;box-shadow:0 6px 20px rgba(0,0,0,.4);max-width:90%;overflow:hidden;text-overflow:ellipsis}
+.selpill svg{width:13px;height:13px;flex:none}
+/* tarjetas */
+.kc{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.k{background:linear-gradient(180deg,var(--card2),var(--card));border-radius:20px;padding:14px;min-height:122px;display:flex;flex-direction:column;text-align:left;width:100%}
+.k h5{margin:0;font-weight:500;font-size:13.5px;display:flex;gap:8px;align-items:center}
+.k h5 svg{width:15px;height:15px}
+.k small{margin-top:auto;color:var(--tx2);font-size:11px}
+.k b{font-weight:400;font-size:30px;letter-spacing:-.02em;line-height:1.1}
+.k b i{font-style:normal;font-size:11.5px;color:var(--tx2);margin-left:4px}
+.k.on{box-shadow:0 0 0 1.5px var(--tx2)}
+/* hoja de cuenta */
+.scrim{position:fixed;inset:0;z-index:8;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .25s}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:8px;right:8px;bottom:8px;z-index:9;max-width:480px;margin:0 auto;background:#1E201F;border-radius:28px;padding:20px 20px calc(env(safe-area-inset-bottom) + 18px);transform:translateY(110%);transition:transform .35s cubic-bezier(.2,.9,.25,1)}
+.sheet.on{transform:none}
+.sheet h3{margin:0 0 6px;font-weight:600}
+.btn{height:48px;border-radius:24px;font-weight:600;display:flex;align-items:center;justify-content:center;width:100%;background:var(--card2)}
+.btn.dark{background:var(--tx);color:#111}
+.btns{display:flex;gap:8px;margin-top:8px}.btns .btn{flex:1}
+.field{margin:8px 0}.field input{background:var(--card2)!important;color:var(--tx)}.lbl{color:var(--tx2);font-size:14px}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 24px);transform:translate(-50%,20px);opacity:0;z-index:12;background:var(--tx);color:#111;padding:11px 18px;border-radius:20px;font-weight:600;font-size:14px;transition:all .3s;pointer-events:none;white-space:nowrap}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.tag{font-size:10.5px;padding:2px 7px;border-radius:8px;background:rgba(255,255,255,.08);color:var(--tx2);margin-left:6px;vertical-align:middle}
+@media (max-width:1099px){.grid{display:flex;flex-direction:column}.c1,.c2,.c3{display:contents}.terra{order:2}#gauges{order:3}#cApps{order:4}#cSpark{order:5}#cPeaks{order:6}}
+/* escritorio: misma composición que un tablero de monitoreo */
+@media (min-width:1100px){
+  body{padding:18px 28px 28px}
+  .grid{display:grid;grid-template-columns:300px minmax(0,1fr) 250px;gap:16px;align-items:start}
+  .c1,.c3{display:flex;flex-direction:column}
+  #tc{height:min(58vh,620px)}
+  .bottom{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:4px}
+  .gg{grid-template-columns:1fr}
+  h1{font-size:40px}
+}
+</style>
+</head>
+<body>
+<div class="top">
+  <a class="ib" href="../" aria-label="Volver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></a>
+  <span class="brand">diapps&gt;<small>control</small></span>
+  <button class="ib" id="refresh" aria-label="Actualizar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg></button>
+  <button class="ib" id="acct" aria-label="Cuenta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4.5 4.5 0 0 1-.5-9 6 6 0 0 1 11.6 1.6A3.8 3.8 0 0 1 17.5 18z"/></svg></button>
+</div>
+<div class="grid">
+  <div class="c1">
+    <h1>Rendimiento<br>del sistema</h1>
+    <div class="sub" id="asof"></div>
+    <div class="pills">
+      <button class="pill" id="pPer">Periodo <b><span></span><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 4.5l3 3 3-3"/></svg></b></button>
+      <button class="pill" id="pApp">App <b><span></span><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 4.5l3 3 3-3"/></svg></b></button>
+    </div>
+    <div class="card" id="cSpark"></div>
+    <div class="card" id="cPeaks"></div>
+  </div>
+  <div class="c2">
+    <div class="card terra" id="terra"><canvas id="tc"></canvas><div id="marks"></div><div class="pop" id="pop"></div><div class="tip" id="tip"></div>
+      <div class="tbar" id="tbar"></div></div>
+  </div>
+  <div class="c3">
+    <div class="gg" id="gauges"></div>
+    <div class="card" id="cApps"></div>
+  </div>
+</div>
+<div class="bottom">
+  <div class="card" id="c360"></div>
+  <div class="card" id="cKpi"></div>
+</div>
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet"><div id="sheetIn"></div></div>
+<div class="toast" id="toast"></div>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let hideAmt=false;try{hideAmt=localStorage.getItem("diapps-fin-hide")==="1"}catch(e){}
+const money=v=>hideAmt?"$•••":"$"+Math.round(v).toLocaleString("es-MX");
+const fdate=d=>new Date(d+"T12:00").toLocaleDateString("es-MX",{day:"numeric",month:"short"}).replace(".","");
+const APPS={fin:{n:"Finanzas",ic:"../finanzas/icons/icon.svg",href:"../finanzas/"},rut:{n:"Rutinas",ic:"../habitos/icons/icon.svg",href:"../habitos/"},
+  jet:{n:"Jetta",ic:"../jetta/icons/icon.svg",href:"../jetta/"},riff:{n:"Riff",ic:"../musica/icons/icon.svg",href:"../musica/"},caj:{n:"Cajas",ic:"../cajas/icons/icon.svg",href:"../cajas/"},nube:{n:"Cuenta",ic:"../icons/icon.svg",href:"../"}};
+const BANDS=[["fin","gasto"],["rut","hab"],["jet","gas"],["riff","riff"]];
+const BV={fin:.2,rut:.45,jet:.68,riff:.88};
+const LV={ok:{n:"Protegido",c:"var(--ok)"},danger:{n:"Peligro",c:"var(--dg)"},alert:{n:"Alertas",c:"var(--al)"},unk:{n:"Sin datos",c:"var(--unk)"}};
+const ICO={
+  ok:c=>`<svg viewBox="0 0 24 24"><path d="M12 2.5l8 3v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10v-6z" fill="${c||"var(--ok)"}"/><path d="M8.5 12l2.4 2.4 4.6-4.8" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  alert:c=>`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="${c||"var(--al)"}"/><path d="M12 7v6" stroke="#111" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="16.6" r="1.4" fill="#111"/></svg>`,
+  danger:c=>`<svg viewBox="0 0 24 24"><path d="M12 3l10 17.5H2z" fill="${c||"var(--dg)"}" stroke-linejoin="round"/><path d="M12 9.5v5" stroke="#111" stroke-width="2.3" stroke-linecap="round"/><circle cx="12" cy="17.4" r="1.3" fill="#111"/></svg>`,
+  unk:c=>`<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5" fill="${c||"var(--unk)"}"/><path d="M9 9l6 6M15 9l-6 6" stroke="#111" stroke-width="2.2" stroke-linecap="round"/></svg>`};
+const svgI=p=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+const ST={per:90,app:"all",lvl:"all",sel:null};
+const PERS=[30,90,180];const APPL=["all","fin","rut","jet","riff"];
+let M,A,S;
+
+/* ======================= Relieve de puntos =======================
+   Cada franja horizontal es una app; el eje x es el tiempo. La altura es la actividad del día (suavizada)
+   con ruido fractal para que se vea como terreno. Se dibuja con perspectiva leve, de atrás hacia adelante. */
+const cv=$("#tc"),cx=cv.getContext("2d");let CW=0,CH=0,DPR=1,GX=0,GY=0,H=null,SP=5;
+function hash(x,y){let h=x*374761393+y*668265263;h=(h^(h>>>13))*1274126177;return((h^(h>>>16))>>>0)/4294967296}
+function vnoise(x,y){const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,s=t=>t*t*(3-2*t);
+  const a=hash(xi,yi),b=hash(xi+1,yi),c=hash(xi,yi+1),d=hash(xi+1,yi+1),u=s(xf),v=s(yf);return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v}
+const fbm=(x,y)=>vnoise(x,y)*.55+vnoise(x*2.1,y*2.1)*.28+vnoise(x*4.3,y*4.3)*.17;
+function heights(){
+  const r=cv.getBoundingClientRect();DPR=Math.min(2,devicePixelRatio||1);CW=r.width;CH=r.height;cv.width=CW*DPR;cv.height=CH*DPR;
+  SP=CW<520?5:6;GX=Math.floor((CW-24)/SP);GY=Math.floor((CH-40)/SP*1.15);
+  const n=S.days.length,su=Math.max(1.6,n/60)/n,sv=.085;H=new Float32Array(GX*GY);
+  const act=BANDS.map(([k,f])=>{const a=S[f],mx=Math.max(...a,0);return {k,v:BV[k],a:mx>0?a.map(x=>Math.sqrt(x/mx)):a,w:ST.app==="all"||ST.app===k?1:.12}});
+  const cols=new Float32Array(GX*act.length);
+  for(let i=0;i<GX;i++){const u=i/(GX-1);act.forEach((b,bi)=>{let s=0;const c0=Math.max(0,Math.floor((u-4*su)*n)),c1=Math.min(n-1,Math.ceil((u+4*su)*n));
+    for(let d=c0;d<=c1;d++){if(!b.a[d])continue;const du=(d+.5)/n-u;s+=b.a[d]*Math.exp(-du*du/(2*su*su))}cols[i*act.length+bi]=s*b.w})}
+  let mx=0;
+  for(let j=0;j<GY;j++){const v0=j/(GY-1);for(let i=0;i<GX;i++){const u=i/(GX-1);
+    // deformación con ruido para que las franjas parezcan costas y no rectángulos
+    const v=v0+(fbm(u*3.1+9,v0*3.1)-.5)*.22,ii=Math.max(0,Math.min(GX-1,Math.round(i+(fbm(u*2.3,v0*2.7+4)-.5)*GX*.05)));let f=0;
+    act.forEach((b,bi)=>{const dv=v-b.v;f+=cols[ii*act.length+bi]*Math.exp(-dv*dv/(2*sv*sv))});
+    const nz=fbm(u*8,v0*6),edge=Math.min(1,u*7,(1-u)*7,v0*5,(1-v0)*5);
+    const h=(f*.7+nz*.9*(.25+Math.min(1,f))-.34)*edge;H[j*GX+i]=h;if(h>mx)mx=h}}
+  for(let k=0;k<H.length;k++)H[k]=Math.max(0,H[k]/(mx||1));
+  placeMarks()}
+const RAMP=["#173a31","#1a5646","#1d7259","#21906d","#2fae85","#46c79a","#79dab0","#a9e6b8","#c9b071","#c58a4f","#b06a3c","#8f4f2e"];
+function colorOf(h){if(h<.14)return -1;return Math.min(RAMP.length-1,Math.floor((h-.14)/.86*RAMP.length))}
+const pos=(i,j,h)=>{const p=j/(GY-1),sx=12+(CW-24)*(.04*(1-p))+i*SP*(1-.08*(1-p)),sy=14+p*(CH-46)-h*(SP*3.2)*(.6+.4*p);return [sx,sy]};
+let t0=performance.now(),run=true;
+function draw(now){if(!run)return;const t=(now-t0)/1000;cx.setTransform(DPR,0,0,DPR,0,0);cx.clearRect(0,0,CW,CH);
+  if(H){const buckets=RAMP.map(()=>[]),dim=[],sweep=(t*.08)%1.25-.1;
+    for(let j=0;j<GY;j++)for(let i=0;i<GX;i++){let h=H[j*GX+i];const u=i/(GX-1);
+      h+=Math.sin(t*1.2+i*.18+j*.11)*.012;const near=Math.abs(u-sweep)<.025;
+      const [x,y]=pos(i,j,h);let c=colorOf(h);if(c<0){if((i+j)%2===0)dim.push(x,y);continue}if(near)c=Math.min(RAMP.length-1,c+3);buckets[c].push(x,y)}
+    cx.fillStyle="#1f2a26";for(let k=0;k<dim.length;k+=2)cx.fillRect(dim[k],dim[k+1],1,1);
+    buckets.forEach((b,c)=>{cx.fillStyle=RAMP[c];const s=1.2+c*.06;for(let k=0;k<b.length;k+=2)cx.fillRect(b[k],b[k+1],s,s)});
+    if(ST.sel!=null){const [x]=pos(ST.sel,GY-1,0);cx.strokeStyle="rgba(255,255,255,.35)";cx.setLineDash([3,4]);cx.beginPath();cx.moveTo(x,10);cx.lineTo(x,CH-10);cx.stroke();cx.setLineDash([])}}
+  requestAnimationFrame(draw)}
+document.addEventListener("visibilitychange",()=>{run=!document.hidden;if(run)requestAnimationFrame(draw)});
+/* tocar el relieve: muestra lo que pasó ese día */
+function pick(e){const r=cv.getBoundingClientRect(),x=e.clientX-r.left,i=Math.max(0,Math.min(GX-1,Math.round((x-12)/SP)));ST.sel=i;
+  const n=S.days.length,d=Math.min(n-1,Math.floor(i/(GX-1)*(n-1)+.5)),parts=[];
+  if(S.gasto[d])parts.push(money(S.gasto[d])+" de gasto");if(S.hab[d])parts.push(S.hab[d]+" hábitos");if(S.gas[d])parts.push(Math.round(S.gas[d])+" L de gasolina");if(S.riff[d])parts.push(S.riff[d]+" canción nueva");
+  $("#tip").innerHTML=`<b>${fdate(S.days[d])}</b><br>${parts.join("<br>")||"sin actividad"}`}
+cv.addEventListener("pointerdown",pick);cv.addEventListener("pointermove",e=>{if(e.buttons||e.pointerType==="mouse")pick(e)});
+cv.addEventListener("pointerleave",()=>{ST.sel=null;$("#tip").innerHTML=tipDefault()});
+const tipDefault=()=>`<b>${ST.per} días</b><br>de actividad`;
+
+/* marcadores: los más graves primero, máximo 3 por app, cerca de lo más reciente */
+function placeMarks(){const box=$("#marks");let h="";
+  BANDS.forEach(([k])=>{h+=`<div class="bl" style="top:${(14+BV[k]*(CH-46)-18).toFixed(0)}px">${APPS[k].n}</div>`});
+  const ord={danger:0,alert:1,ok:2,unk:3},by={};
+  A.filter(a=>BV[a.app]!=null&&a.lvl!=="unk"&&(ST.lvl==="all"||ST.lvl===a.lvl)&&(ST.app==="all"||ST.app===a.app)).sort((a,b)=>ord[a.lvl]-ord[b.lvl]).forEach(a=>{(by[a.app]=by[a.app]||[]).push(a)});
+  for(const k in by)by[k].slice(0,3).forEach((a,n)=>{const u=.86-n*.17,v=BV[k]+(n%2?.07:-.05),i=Math.round(u*(GX-1)),j=Math.round(v*(GY-1)),hh=H?H[j*GX+i]||0:0,[x,y]=pos(i,j,hh);
+    h+=`<button class="mk${a.lvl==="danger"?" pulse":""}" style="left:${x.toFixed(0)}px;top:${y.toFixed(0)}px" data-a="${A.indexOf(a)}">${ICO[a.lvl]()}</button>`});
+  box.innerHTML=h}
+let popT;
+$("#marks").addEventListener("click",e=>{const b=e.target.closest("[data-a]");if(!b)return;const a=A[+b.dataset.a],p=$("#pop");
+  p.innerHTML=`${ICO[a.lvl]()}<span>${esc(a.t)}<small>${esc(a.s||"")} · ${APPS[a.app].n}</small></span>`;
+  const x=parseFloat(b.style.left),y=parseFloat(b.style.top);p.style.left=Math.max(8,Math.min(CW-248,x-120))+"px";p.style.top=(y>90?y-64:y+22)+"px";p.classList.add("on");clearTimeout(popT);popT=setTimeout(()=>p.classList.remove("on"),3200)});
+function tbar(){const L=[["all",svgI('<circle cx="12" cy="12" r="8"/><path d="M12 4v16M4 12h16"/>')],["danger",ICO.danger("currentColor")],["alert",ICO.alert("currentColor")],["ok",ICO.ok("currentColor")]];
+  $("#tbar").innerHTML=L.map(([k,i])=>`<button data-l="${k}" class="${ST.lvl===k?"on":""}" aria-label="${k==="all"?"Todas":LV[k].n}">${i}</button>`).join("")}
+$("#tbar").addEventListener("click",e=>{const b=e.target.closest("[data-l]");if(!b)return;ST.lvl=b.dataset.l;tbar();placeMarks();kpis()});
+
+/* ======================= Paneles ======================= */
+function gauge(val,max,label,warn){const f=Math.max(0,Math.min(1,val/max)),a0=-220,a1=40,ang=a0+(a1-a0)*f,R=34,rad=d=>d*Math.PI/180;
+  const P=d=>[42+R*Math.cos(rad(d)),42+R*Math.sin(rad(d))],arc=(s,e)=>{const [x1,y1]=P(s),[x2,y2]=P(e);return `M${x1.toFixed(1)} ${y1.toFixed(1)}A${R} ${R} 0 ${e-s>180?1:0} 1 ${x2.toFixed(1)} ${y2.toFixed(1)}`};
+  const [nx,ny]=[42+(R-6)*Math.cos(rad(ang)),42+(R-6)*Math.sin(rad(ang))],c=warn?"var(--al)":"var(--ok)";
+  return `<div class="card gauge"><svg viewBox="0 0 84 84"><path d="${arc(a0,a1)}" stroke="rgba(255,255,255,.08)" stroke-width="2" fill="none"/><path d="${arc(a0,Math.max(a0+1,ang))}" stroke="${c}" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+    <path d="${arc(Math.max(a0+1,ang),a1)}" stroke="rgba(242,140,56,.35)" stroke-width="1.2" fill="none"/><line x1="42" y1="42" x2="${nx.toFixed(1)}" y2="${ny.toFixed(1)}" stroke="#E9EDEB" stroke-width="1.4" stroke-linecap="round"/><circle cx="42" cy="42" r="2.4" fill="#E9EDEB"/>
+    ${[...Array(9)].map((_,k)=>{const d=a0+(a1-a0)*k/8,[x1,y1]=[42+(R+4)*Math.cos(rad(d)),42+(R+4)*Math.sin(rad(d))],[x2,y2]=[42+(R+6.5)*Math.cos(rad(d)),42+(R+6.5)*Math.sin(rad(d))];return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="rgba(255,255,255,.18)" stroke-width="1"/>`}).join("")}</svg>
+    <small>${label}</small><b>${val}<i>/ ${max}</i></b></div>`}
+function sparks(){const n=S.days.length,act=S.days.map((_,i)=>S.hab[i]+S.mov[i]+S.gas[i]*.15+S.riff[i]),last=act.slice(-Math.min(60,n)),mx=Math.max(1,...last),sorted=[...last].sort((a,b)=>b-a),hi=sorted[Math.floor(last.length*.1)]||mx;
+  const tot=last.reduce((s,x)=>s+x,0);
+  $("#cSpark").innerHTML=`<h4>Intensidad por día<em>${last.length} días</em></h4><div class="spark">${last.map(v=>`<i class="${v>=hi&&v>0?"hi":v>mx*.4?"mid":""}" style="height:${Math.max(3,v/mx*100)}%"></i>`).join("")}</div>
+    <div class="axis"><span>${fdate(S.days[n-last.length])}</span><span>${Math.round(tot)} movimientos</span><span>hoy</span></div>`;
+  const wk=[];for(let w=11;w>=0;w--){let s=0;for(let d=0;d<7;d++){const i=n-1-w*7-d;if(i>=0)s+=S.gasto[i]}wk.push(s)}
+  const wmx=Math.max(1,...wk),wmn=Math.min(...wk),W=300,Hh=64,pts=wk.map((v,i)=>[10+i*(W-20)/11,Hh-8-v/wmx*(Hh-22)]);
+  let d=`M0 ${Hh-8}`;pts.forEach(([x,y])=>{d+=`L${(x-9).toFixed(1)} ${Hh-8}L${x.toFixed(1)} ${y.toFixed(1)}L${(x+9).toFixed(1)} ${Hh-8}`});d+=`L${W} ${Hh-8}`;
+  const im=wk.indexOf(wmx);
+  $("#cPeaks").innerHTML=`<h4>Gasto por semana<em>12 semanas</em></h4><svg class="peaks" viewBox="0 0 ${W} ${Hh}" preserveAspectRatio="none"><path d="${d}" fill="rgba(233,237,235,.75)"/><line x1="0" y1="${Hh-8}" x2="${W}" y2="${Hh-8}" stroke="rgba(255,255,255,.15)" stroke-dasharray="2 3"/>
+    <line x1="${pts[im][0]}" y1="${pts[im][1]-4}" x2="${pts[im][0]}" y2="2" stroke="rgba(255,255,255,.35)" stroke-dasharray="2 2"/></svg>
+    <div class="axis"><span>mín ${money(wmn)}</span><span>máx ${money(wmx)}</span><span>esta ${money(wk[11])}</span></div>`}
+function apps(){const keys=["fin","rut","jet","riff","caj","nube"];
+  $("#cApps").innerHTML=`<h4>Por app</h4>`+keys.map(k=>{const L=A.filter(a=>a.app===k),c=l=>L.filter(a=>a.lvl===l).length,open=ST.app===k;
+    return `<button class="app${open?" on":""}" data-app="${k}"><img src="${APPS[k].ic}" alt=""><span>${APPS[k].n}</span><span class="cn">${["danger","alert","ok"].filter(l=>c(l)).map(l=>`<i style="color:${LV[l].c}">${c(l)}</i>`).join("")||`<i style="color:var(--unk)">—</i>`}</span><svg class="ch" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 4.5l3 3 3-3"/></svg></button>
+      ${open?`<div class="al">${L.map(a=>`<div>${ICO[a.lvl]()}<span>${esc(a.t)}<small>${esc(a.s||"")}</small></span></div>`).join("")}<div style="border:0"><a href="${APPS[k].href}" style="color:var(--teal);text-decoration:none">Abrir ${APPS[k].n} ›</a></div></div>`:""}`}).join("")}
+$("#cApps").addEventListener("click",e=>{const b=e.target.closest("[data-app]");if(!b)return;const k=b.dataset.app;ST.app=ST.app===k?"all":k;if(!BV[k]&&ST.app!=="all"){apps();return}render(false)});
+function b360(){const keys=["fin","rut","jet","riff"],N=21,n=S.days.length,f={fin:"mov",rut:"hab",jet:"gas",riff:"riff"};
+  let h=`<h4>Vista por bloques<em>últimos ${N} días</em></h4><div class="b360" id="b3">`;
+  keys.forEach(k=>{const a=S[f[k]].slice(-N),mx=Math.max(1,...a);h+=`<span class="lb">${APPS[k].n}</span><div class="dots" style="grid-template-columns:repeat(${N},1fr)">${a.map(v=>{const r=v?2.5+v/mx*3.5:1.6;return `<i style="width:${r*2}px;height:${r*2}px;${v?"background:#B9C4BE":""}"></i>`}).join("")}</div>`});
+  h+=`</div>`;$("#c360").innerHTML=h;
+  // recuadro de la última semana con las alertas de cada app en sus esquinas
+  requestAnimationFrame(()=>{const g=$("#b3");if(!g)return;const rows=[...g.querySelectorAll(".dots")],r0=g.getBoundingClientRect(),a=rows[0].getBoundingClientRect(),z=rows[rows.length-1].getBoundingClientRect(),cw=a.width/N;
+    const x0=a.right-r0.left-cw*7,y0=a.top-r0.top-8,w=cw*7,hh=z.bottom-a.top+16;let s=`<div class="sel" style="left:${x0}px;top:${y0}px;width:${w}px;height:${hh}px"></div>`;
+    const top=A.filter(x=>x.lvl==="danger")[0]||A.filter(x=>x.lvl==="alert")[0];
+    rows.forEach((row,ri)=>{const k=keys[ri],L=A.filter(x=>x.app===k&&x.lvl!=="unk").sort((p,q)=>({danger:0,alert:1,ok:2}[p.lvl]-{danger:0,alert:1,ok:2}[q.lvl]));if(!L.length)return;const rr=row.getBoundingClientRect();
+      s+=`<span class="mk" style="left:${x0+(ri%2?w:0)}px;top:${rr.top-r0.top+rr.height/2}px">${ICO[L[0].lvl]()}</span>`});
+    if(top)s+=`<span class="selpill" style="right:0;top:${y0+hh/2}px;transform:translateY(-50%)">${ICO[top.lvl]()}${esc(top.t)}</span>`;
+    g.insertAdjacentHTML("beforeend",s)})}
+function kpis(){const tot=A.length;
+  $("#cKpi").innerHTML=`<h4>Total por estado<em>${tot} elementos revisados</em></h4><div class="kc">${["ok","danger","alert","unk"].map(l=>{const c=A.filter(a=>a.lvl===l).length;
+    return `<button class="k${ST.lvl===l?" on":""}" data-k="${l}"><h5>${ICO[l]()}${LV[l].n}</h5><small>Elementos</small><b>${c}<i>/ ${tot}</i></b></button>`}).join("")}</div>`}
+$("#cKpi").addEventListener("click",e=>{const b=e.target.closest("[data-k]");if(!b)return;const l=b.dataset.k;ST.lvl=ST.lvl===l||l==="unk"?"all":l;
+  if(l==="unk"){const L=A.filter(a=>a.lvl==="unk");toast(L.length?L.map(a=>a.t).join(" · "):"Todo tiene datos");}tbar();placeMarks();kpis()});
+function pills(){$("#pPer span").textContent=ST.per+" días";$("#pApp span").textContent=ST.app==="all"?"Todas":APPS[ST.app].n}
+$("#pPer").onclick=()=>{ST.per=PERS[(PERS.indexOf(ST.per)+1)%PERS.length];render(true)};
+$("#pApp").onclick=()=>{ST.app=APPL[(Math.max(0,APPL.indexOf(ST.app))+1)%APPL.length];render(false)};
+
+function render(full=true){M=Vida.model();A=Vida.alerts(M);if(full||!S||S.days.length!==ST.per)S=Vida.series(ST.per);
+  // sin actividad todavía: relieve de ejemplo para que se entienda cómo se ve
+  S.demo=!["gasto","hab","gas","riff"].some(k=>S[k].some(v=>v>0));
+  if(S.demo){let sd=3;const r=()=>(sd=(sd*16807)%2147483647)/2147483647;S.days.forEach((_,i)=>{const w=(new Date(S.days[i]+"T12:00").getDay()+6)%7;
+    const wv=.5+.5*Math.sin(i/7.5),wv2=.5+.5*Math.cos(i/11+1);S.hab[i]=Math.round((1+r()*6)*wv);S.mov[i]=Math.round((r()*4+(w>4?3:0))*wv2);S.gasto[i]=r()<.7?Math.round((80+r()*500+(w>4?400:0))*wv2):0;S.gas[i]=r()<.09?35:0;S.riff[i]=r()<.05?1:0})}
+  const now=new Date();$("#asof").innerHTML=`Datos al ${now.toLocaleDateString("es-MX",{day:"numeric",month:"numeric"})} · ${now.toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"})}${S.demo?'<span class="tag">ejemplo</span>':""}`;
+  const act=A.filter(a=>a.lvl==="danger"||a.lvl==="alert").length;
+  $("#gauges").innerHTML=gauge(M.score,100,"Energía del día",M.score<50)+gauge(act,A.length,"Alertas activas",act>0);
+  pills();tbar();heights();sparks();apps();b360();kpis();$("#tip").innerHTML=tipDefault()}
+
+/* cuenta y actualización */
+function openSheet(h){$("#sheetIn").innerHTML=h;$("#sheet").classList.add("on");$("#scrim").classList.add("on")}
+function closeSheet(){$("#sheet").classList.remove("on");$("#scrim").classList.remove("on")}
+$("#scrim").onclick=closeSheet;
+let tT;function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("on");clearTimeout(tT);tT=setTimeout(()=>t.classList.remove("on"),2400)}
+$("#acct").onclick=()=>{if(!window.Nube){toast("Sin conexión con la cuenta");return}Nube.accountSheet({sync:null,open:openSheet,close:()=>{closeSheet();cloud()},toast})};
+async function cloud(){if(await Vida.loadCloud()){render();toast("Datos actualizados desde tu cuenta")}}
+$("#refresh").onclick=async()=>{Vida.refresh();render();toast(window.Nube&&Nube.user()?"Revisando tu cuenta…":"Actualizado");await cloud()};
+let rz;addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(()=>{heights()},150)});
+addEventListener("storage",()=>{if(Vida.refresh())render()});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden){Vida.refresh();render()}});
+render();requestAnimationFrame(draw);cloud();
+if("serviceWorker" in navigator&&location.protocol!=="file:")addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+</script>
+</body>
+</html>
