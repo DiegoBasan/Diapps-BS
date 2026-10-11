@@ -14,6 +14,7 @@ https://diegobasan.github.io/Diapps-BS/
 | `/control/` | Control: tablero de rendimiento con relieve de actividad, alertas y estado de todas tus apps. |
 | `/compa/` | Compa: robot 3D en una isla flotante con un objeto por app; reacciona a tus datos, camina a cada objeto y permite check-in de hábitos. |
 | `/linea/` | Línea: tablero de la línea de ensamble de tractores con escena 3D (PBR, sombras y oclusión ambiental), estaciones con andon, órdenes, OEE y alarmas simuladas. |
+| `/ruta/` | Ruta: navegación en tiempo real con tu ubicación (búsqueda, rutas alternativas, indicaciones por voz, recálculo, gasolineras, costo del viaje y km al Jetta). |
 | `/papeles/` | Papeles: carpetas de documentos en un carrusel 3D, con fotos/PDF guardados en el dispositivo y fechas de vencimiento. |
 | `/finanzas/` | Mis Finanzas: gastos, presupuesto, regla 50/30/20, mapa de gasto y asistente local. |
 
@@ -62,4 +63,5 @@ En pantallas de 1100px o más: el inicio se vuelve un mega dashboard que resume 
 - `compa/models/robot.glb`: "RobotExpressive" de Tomás Laulhé (Quaternius), CC0, con modificaciones de Don McCurdy.
 - `compa/models/sedan.glb` y `box.glb`: Car Kit de Kenney, CC0.
 - `linea/models/tractor.glb`: Car Kit de Kenney, CC0.
+- `shared/vendor/maplibre`: MapLibre GL JS 4.7.1 (BSD-3). Mapas: © colaboradores de OpenStreetMap (ODbL), estilos de OpenFreeMap y CARTO. Búsqueda: Photon (komoot). Rutas: servidor de demostración de OSRM. Gasolineras: Overpass API.
 - `shared/vendor/three`: Three.js r160 (MIT), con addons de posprocesado (GTAO) y RoomEnvironment.
