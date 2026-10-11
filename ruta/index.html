@@ -8,11 +8,15 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Ruta">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="format-detection" content="telephone=no">
-<meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#F2F2F3">
-<script>(function(){var t="light";try{t=localStorage.getItem("diapps-theme")||"light"}catch(e){}document.documentElement.dataset.theme=t})();</script>
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#0F0F0F">
+<script>
+/* Tema de Ruta: automático (sigue a Diapps y la hora), claro u oscuro */
+(function(){var m="auto",t="light";try{m=(JSON.parse(localStorage.getItem("ruta1"))||{}).theme||"auto";t=localStorage.getItem("diapps-theme")||"light"}catch(e){}
+  var h=new Date().getHours(),d=m==="dark"||(m==="auto"&&(t==="dark"||h>=19||h<7));document.documentElement.dataset.mode=d?"dark":"light"})();
+</script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icons/icon-192.png">
@@ -21,135 +25,157 @@
 <script src="../shared/nube.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Urbanist:wght@500;600;700&display=swap">
 <style>
-/* Ruta: navegación con tu ubicación en tiempo real.
-   Mapa: MapLibre + OpenFreeMap / CARTO (datos de OpenStreetMap). Búsqueda: Photon. Rutas: OSRM. Gasolineras: Overpass.
-   Todo es gratuito y sin llaves; las rutas no incluyen tráfico en vivo. */
-:root{--bg:#F2F2F3;--card:#FFFFFF;--card2:#F2F2F5;--tx:#141416;--tx2:#6C6C72;--line:rgba(0,0,0,.08);--glass:rgba(255,255,255,.82);--blue:#1A73E8;--blue2:#0B57D0;--green:#188038;--nav:#0F7B4E;--red:#E5484D}
-:root[data-theme="dark"]{--bg:#0F1012;--card:#1C1C1F;--card2:#26262A;--tx:#F2F2F4;--tx2:#9A9AA2;--line:rgba(255,255,255,.08);--glass:rgba(28,28,31,.82);--blue:#4C8DF6;--nav:#137A50}
+/* Ruta · concepto "grafito y volt": mapa monocromo propio (sin azules), un solo acento verde-lima eléctrico para
+   la ruta, tu posición y la acción principal; números en Space Grotesk; controles abajo, al alcance del pulgar. */
+:root{--volt:#C8FF2E;--volt2:#A6E000;--ink:#0F0F0F;
+  --bg:#F2F0EB;--panel:rgba(250,249,246,.9);--panel2:#E9E6DF;--tx:#121212;--tx2:#6B6862;--tx3:#9A968E;--line:rgba(0,0,0,.08);--shadow:0 18px 50px rgba(30,25,15,.18);--onvolt:#0F0F0F;--hl:#121212}
+:root[data-mode="dark"]{--bg:#0F0F0F;--panel:rgba(22,22,21,.9);--panel2:#232321;--tx:#EFEDE8;--tx2:#8E8B84;--tx3:#5F5C56;--line:rgba(255,255,255,.07);--shadow:0 18px 50px rgba(0,0,0,.55);--hl:var(--volt)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--tx);font-family:Urbanist,system-ui,sans-serif}
 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0}
-a{color:inherit}
+a{color:inherit;text-decoration:none}
+.num,h2,.big{font-family:"Space Grotesk",Urbanist,sans-serif}
 #map{position:fixed;inset:0}
-.glass{background:var(--glass);backdrop-filter:blur(20px) saturate(170%);-webkit-backdrop-filter:blur(20px) saturate(170%);box-shadow:0 6px 24px rgba(0,0,0,.12),0 0 0 .5px var(--line)}
-.ib{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;flex:none}
-.ib svg{width:20px;height:20px}
-.ib.on{color:var(--blue)}
-/* buscador */
-.top{position:fixed;left:0;right:0;top:0;z-index:5;padding:calc(env(safe-area-inset-top) + 10px) 12px 0;display:flex;gap:8px;align-items:center}
-.search{flex:1;height:50px;border-radius:25px;display:flex;align-items:center;gap:10px;padding:0 8px 0 16px;font-size:16.5px;font-weight:600;color:var(--tx2);text-align:left}
-.search svg{width:19px;height:19px;flex:none}
-.search span{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.search .av{width:34px;height:34px;border-radius:50%;background:var(--blue);color:#fff;display:grid;place-items:center;font-weight:800;font-size:14px}
-.chips{position:fixed;left:0;right:0;top:calc(env(safe-area-inset-top) + 68px);z-index:4;display:flex;gap:8px;overflow-x:auto;padding:0 12px;scrollbar-width:none}
-.chips::-webkit-scrollbar{display:none}
-.chip{flex:none;height:36px;padding:0 14px;border-radius:18px;font-weight:700;font-size:14px;display:flex;align-items:center;gap:7px}
-.chip svg{width:16px;height:16px}
-/* botones flotantes del mapa */
-.fabs{position:fixed;right:12px;bottom:calc(env(safe-area-inset-bottom) + 24px);z-index:4;display:flex;flex-direction:column;gap:10px;transition:bottom .3s}
-.speed{position:fixed;left:12px;bottom:calc(env(safe-area-inset-bottom) + 24px);z-index:4;width:64px;height:64px;border-radius:50%;display:none;place-items:center;text-align:center;line-height:1;transition:bottom .3s}
-.speed b{display:block;font-size:22px;font-weight:800}.speed small{font-size:10px;color:var(--tx2);font-weight:700}
-body.nav .speed{display:grid}
-/* hoja inferior */
-.sheet{position:fixed;left:0;right:0;bottom:0;z-index:6;max-width:560px;margin:0 auto;background:var(--card);border-radius:26px 26px 0 0;padding:8px 16px calc(env(safe-area-inset-bottom) + 16px);
-  box-shadow:0 -8px 40px rgba(0,0,0,.18);transform:translateY(105%);transition:transform .35s cubic-bezier(.2,.9,.25,1);max-height:82vh;overflow:auto}
+.pn{background:var(--panel);backdrop-filter:blur(22px) saturate(140%);-webkit-backdrop-filter:blur(22px) saturate(140%);box-shadow:var(--shadow),0 0 0 1px var(--line)}
+.sq{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;flex:none}
+.sq svg{width:20px;height:20px}
+.sq.on{background:var(--volt);color:var(--onvolt)}
+/* barra lateral derecha */
+.rail{position:fixed;right:12px;top:calc(env(safe-area-inset-top) + 12px);z-index:5;display:flex;flex-direction:column;gap:8px;transition:opacity .3s}
+.back{position:fixed;left:12px;top:calc(env(safe-area-inset-top) + 12px);z-index:5}
+.compass{position:fixed;left:12px;top:calc(env(safe-area-inset-top) + 70px);z-index:5;width:48px;height:48px;border-radius:16px;display:grid;place-items:center}
+.compass svg{width:26px;height:26px;transition:transform .2s}
+/* base inferior: buscar y destinos */
+#dock{position:fixed;left:0;right:0;bottom:0;z-index:6;padding:0 10px calc(env(safe-area-inset-bottom) + 10px);max-width:560px;margin:0 auto;transition:transform .35s cubic-bezier(.2,.9,.25,1)}
+body.nav #dock,body.sheeton #dock{transform:translateY(130%)}
+.dockin{border-radius:28px;padding:12px}
+.stat{display:flex;align-items:center;gap:10px;padding:2px 6px 10px;font-size:12px;font-weight:700;color:var(--tx2);letter-spacing:.04em;text-transform:uppercase}
+.stat .dot{width:8px;height:8px;border-radius:50%;background:var(--volt);box-shadow:0 0 10px var(--volt)}
+.stat .sp{flex:1}
+.stat b{color:var(--tx);font-family:"Space Grotesk";font-size:13px}
+.go{display:flex;align-items:center;gap:10px;height:58px;border-radius:20px;background:var(--panel2);padding:0 8px 0 18px;width:100%;text-align:left}
+.go span{flex:1;font-size:19px;font-weight:700;color:var(--tx2);font-family:"Space Grotesk"}
+.go i{width:44px;height:44px;border-radius:14px;background:var(--volt);color:var(--onvolt);display:grid;place-items:center}
+.go i svg{width:20px;height:20px}
+.tiles{display:flex;gap:8px;overflow-x:auto;margin-top:10px;scrollbar-width:none}
+.tiles::-webkit-scrollbar{display:none}
+.tile{flex:none;width:96px;height:88px;border-radius:18px;background:var(--panel2);padding:11px;display:flex;flex-direction:column;justify-content:space-between;text-align:left}
+.tile svg{width:20px;height:20px;color:var(--tx2)}
+.tile b{font-size:14px;font-weight:700;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile small{display:block;font-size:11.5px;color:var(--tx2);font-family:"Space Grotesk";font-weight:500}
+.tile.empty b{color:var(--tx2)}
+/* hoja de ruta */
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:7;max-width:560px;margin:0 auto;padding:0 10px calc(env(safe-area-inset-bottom) + 10px);transform:translateY(110%);transition:transform .35s cubic-bezier(.2,.9,.25,1)}
 .sheet.on{transform:none}
-.grab{width:38px;height:5px;border-radius:3px;background:var(--card2);margin:0 auto 10px}
-.sheet h2{margin:2px 0 2px;font-size:22px;font-weight:800;letter-spacing:-.01em}
-.sub{color:var(--tx2);font-size:14px;font-weight:500}
-.opts{display:flex;flex-direction:column;gap:8px;margin:14px 0}
-.opt{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:16px;background:var(--card2);text-align:left;width:100%}
-.opt.on{box-shadow:inset 0 0 0 2px var(--blue)}
-.opt b{font-size:20px;font-weight:800}.opt b.g{color:var(--green)}
-.opt span{flex:1;min-width:0}
-.opt small{display:block;color:var(--tx2);font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.opt em{font-style:normal;font-weight:700;color:var(--tx2);font-size:14px}
-.jet{display:flex;gap:10px;align-items:center;padding:11px 13px;border-radius:14px;background:color-mix(in srgb,var(--green) 10%,transparent);font-size:13.5px;font-weight:600;margin-bottom:12px}
-.jet.warn{background:color-mix(in srgb,var(--red) 12%,transparent)}
-.jet img{width:28px;height:28px;border-radius:8px}
-.btns{display:flex;gap:8px}
-.btn{flex:1;height:50px;border-radius:25px;font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--card2)}
-.btn.blue{background:var(--blue);color:#fff}
-.btn.green{background:var(--green);color:#fff}
-.btn svg{width:18px;height:18px}
-.btn.sm{flex:none;width:50px}
-.mini{display:flex;gap:8px;margin-top:8px}
-.mini button{flex:1;height:38px;border-radius:19px;background:var(--card2);font-weight:700;font-size:13px}
+.sheetin{border-radius:28px;padding:16px;max-height:76vh;overflow:auto}
+.sheet h2{margin:0;font-size:24px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.sub{color:var(--tx2);font-size:14px;font-weight:600;margin-top:3px}
+.kick{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--tx3);margin-bottom:6px}
+.opts{display:flex;gap:8px;overflow-x:auto;margin:14px -2px;padding:2px;scrollbar-width:none}
+.opts::-webkit-scrollbar{display:none}
+.opt{flex:none;min-width:150px;border-radius:20px;background:var(--panel2);padding:12px 14px;text-align:left;position:relative}
+.opt.on{box-shadow:inset 0 0 0 2px var(--hl)}
+.opt .big{font-size:30px;font-weight:700;letter-spacing:-.03em;line-height:1}
+.opt .big small{font-size:14px;font-weight:600;margin-left:3px;color:var(--tx2)}
+.opt em{display:block;font-style:normal;font-size:12px;color:var(--tx2);font-weight:600;margin-top:6px;white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis}
+.opt .tag{position:absolute;right:10px;top:10px;font-size:10px;font-weight:800;letter-spacing:.06em;background:var(--volt);color:var(--onvolt);border-radius:8px;padding:3px 7px}
+.fuel{display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:18px;background:var(--panel2);margin-bottom:12px}
+.fuel .big{font-size:22px;font-weight:700}
+.fuel small{display:block;color:var(--tx2);font-size:12px;font-weight:600}
+.fuel.warn{box-shadow:inset 0 0 0 2px #FF6A3D}
+.row{display:flex;gap:8px}
+.btn{height:56px;border-radius:18px;font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--panel2);flex:1;font-family:"Space Grotesk"}
+.btn.prim{background:var(--volt);color:var(--onvolt);flex:2}
+.btn.sq2{flex:none;width:56px}
+.btn svg{width:19px;height:19px}
+.mini{display:flex;gap:6px;margin-top:8px;overflow-x:auto;scrollbar-width:none}
+.mini button{flex:none;height:36px;padding:0 13px;border-radius:12px;background:var(--panel2);font-weight:700;font-size:12.5px;color:var(--tx2)}
 /* búsqueda */
-#find{position:fixed;inset:0;z-index:10;background:var(--bg);display:none;flex-direction:column;padding:calc(env(safe-area-inset-top) + 10px) 12px 0}
+#find{position:fixed;inset:0;z-index:10;background:var(--bg);display:none;flex-direction:column;padding:calc(env(safe-area-inset-top) + 12px) 12px 0}
 #find.on{display:flex}
 .frow{display:flex;gap:8px;align-items:center}
-.inp{flex:1;height:50px;border-radius:25px;border:0;background:var(--card);color:var(--tx);padding:0 18px;font:inherit;font-size:16.5px;font-weight:600;box-shadow:0 0 0 .5px var(--line)}
-.inp:focus{outline:2px solid var(--blue)}
+.inp{flex:1;height:56px;border-radius:18px;border:0;background:var(--panel2);color:var(--tx);padding:0 18px;font:inherit;font-size:18px;font-weight:600;font-family:"Space Grotesk"}
+.inp:focus{outline:2px solid var(--hl)}
 .list{flex:1;overflow:auto;padding:10px 0 30px}
-.list h4{margin:14px 6px 6px;font-size:13px;color:var(--tx2);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
-.it{display:flex;align-items:center;gap:12px;padding:11px 8px;width:100%;text-align:left;border-radius:14px}
-.it:active{background:var(--card2)}
-.it i{width:40px;height:40px;border-radius:50%;background:var(--card2);display:grid;place-items:center;flex:none;color:var(--tx2)}
+.list h4{margin:16px 6px 6px;font-size:11px;color:var(--tx3);font-weight:800;text-transform:uppercase;letter-spacing:.12em}
+.it{display:flex;align-items:center;gap:12px;padding:10px 6px;width:100%;text-align:left;border-radius:16px}
+.it:active{background:var(--panel2)}
+.it i{width:42px;height:42px;border-radius:14px;background:var(--panel2);display:grid;place-items:center;flex:none;color:var(--tx2)}
 .it i svg{width:18px;height:18px}
-.it i.home{background:var(--blue);color:#fff}.it i.work{background:#8E5CF6;color:#fff}.it i.fuel{background:#F29900;color:#fff}
+.it i.acc{background:var(--volt);color:var(--onvolt)}
 .it span{flex:1;min-width:0}
 .it b{display:block;font-weight:700;font-size:15.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .it small{display:block;color:var(--tx2);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.it em{font-style:normal;color:var(--tx2);font-size:12.5px;font-weight:600}
+.it em{font-style:normal;color:var(--tx2);font-size:12.5px;font-weight:600;font-family:"Space Grotesk"}
 /* navegación */
-#banner{position:fixed;left:10px;right:10px;top:calc(env(safe-area-inset-top) + 10px);z-index:7;border-radius:22px;background:var(--nav);color:#fff;padding:14px 16px;display:none;box-shadow:0 10px 30px rgba(0,0,0,.25);max-width:560px;margin:0 auto}
+#banner{position:fixed;left:10px;right:10px;top:calc(env(safe-area-inset-top) + 10px);z-index:8;max-width:560px;margin:0 auto;display:none;border-radius:26px;background:#0F0F0F;color:#EFEDE8;padding:14px;box-shadow:0 18px 50px rgba(0,0,0,.45);overflow:hidden}
 body.nav #banner{display:block}
-body.nav .top,body.nav .chips{display:none}
 .mv{display:flex;gap:14px;align-items:center}
-.mv .ar{width:52px;height:52px;flex:none;display:grid;place-items:center}
-.mv .ar svg{width:46px;height:46px}
-.mv b{display:block;font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1}
-.mv span{display:block;font-size:17px;font-weight:700;margin-top:4px;line-height:1.2}
-.then{margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,255,255,.2);font-size:14px;font-weight:600;display:flex;gap:8px;align-items:center;opacity:.92}
-.then svg{width:18px;height:18px}
-#navbar{position:fixed;left:0;right:0;bottom:0;z-index:7;background:var(--card);border-radius:26px 26px 0 0;padding:14px 16px calc(env(safe-area-inset-bottom) + 14px);display:none;align-items:center;gap:12px;box-shadow:0 -8px 30px rgba(0,0,0,.15);max-width:560px;margin:0 auto}
+.mv .ar{width:64px;height:64px;border-radius:20px;background:var(--volt);color:#0F0F0F;display:grid;place-items:center;flex:none}
+.mv .ar svg{width:40px;height:40px}
+.mv .big{font-size:38px;font-weight:700;letter-spacing:-.03em;line-height:1;color:var(--volt)}
+.mv .big small{font-size:18px;margin-left:2px}
+.mv p{margin:5px 0 0;font-size:16.5px;font-weight:600;line-height:1.25}
+.prog{height:4px;border-radius:2px;background:rgba(255,255,255,.1);margin-top:12px;overflow:hidden}
+.prog i{display:block;height:100%;background:var(--volt);transition:width .8s linear}
+.then{margin-top:10px;font-size:13px;font-weight:700;display:flex;gap:8px;align-items:center;color:#8E8B84}
+.then svg{width:16px;height:16px;color:#EFEDE8}
+#navbar{position:fixed;left:10px;right:10px;bottom:calc(env(safe-area-inset-bottom) + 10px);z-index:8;max-width:560px;margin:0 auto;display:none;border-radius:24px;padding:10px 10px 10px 16px;align-items:center;gap:6px}
 body.nav #navbar{display:flex}
-#navbar .eta{flex:1}
-#navbar .eta b{display:block;font-size:26px;font-weight:800;color:var(--green);line-height:1.05}
-#navbar .eta small{color:var(--tx2);font-size:14px;font-weight:700}
-.endb{width:56px;height:56px;border-radius:50%;background:var(--red);color:#fff;display:grid;place-items:center}
-.endb svg{width:22px;height:22px}
-.recenter{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 104px);z-index:7;height:42px;padding:0 18px;border-radius:21px;font-weight:800;display:none;align-items:center;gap:8px}
+.col{flex:1;min-width:0}
+.col small{display:block;font-size:10.5px;font-weight:800;letter-spacing:.12em;color:var(--tx3)}
+.col b{display:block;font-family:"Space Grotesk";font-size:21px;font-weight:700;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.col em{display:block;font-style:normal;font-size:11.5px;font-weight:700;color:var(--tx2);font-family:"Space Grotesk";white-space:nowrap}
+.col b.acc{color:var(--hl)}
+.col+.col{border-left:1px solid var(--line);padding-left:12px}
+.endb{width:52px;height:52px;border-radius:16px;background:#FF5A36;color:#fff;display:grid;place-items:center;flex:none}
+.endb svg{width:20px;height:20px}
+#mute{width:44px;height:52px;display:grid;place-items:center;color:var(--tx2)}
+#mute svg{width:20px;height:20px}
+body.nav .rail{top:auto;bottom:calc(env(safe-area-inset-bottom) + 96px)}
+body.nav .back,body.nav .compass{display:none}
+.recenter{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 96px);z-index:8;height:46px;padding:0 18px;border-radius:16px;font-weight:800;display:none;align-items:center;gap:8px;font-family:"Space Grotesk"}
 .recenter.on{display:flex}
-.recenter svg{width:16px;height:16px}
-/* marcador de ubicación */
-.me{width:26px;height:26px}
-.me i{position:absolute;inset:4px;border-radius:50%;background:#1A73E8;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.35)}
-.me .cone{position:absolute;left:50%;top:50%;width:70px;height:70px;margin:-35px 0 0 -35px;background:conic-gradient(from -30deg,rgba(26,115,232,.35),rgba(26,115,232,0) 60deg,transparent 300deg,rgba(26,115,232,.35));border-radius:50%;-webkit-mask:radial-gradient(circle,#000 30%,transparent 70%);mask:radial-gradient(circle,#000 30%,transparent 70%);display:none}
+.recenter svg{width:16px;height:16px;color:var(--hl)}
+/* marcadores */
+.me{width:30px;height:30px}
+.me i{position:absolute;inset:6px;border-radius:50%;background:var(--volt);border:3px solid #0F0F0F;box-shadow:0 0 0 6px rgba(200,255,46,.22),0 0 18px rgba(200,255,46,.6)}
+.me .cone{position:absolute;left:50%;top:50%;width:80px;height:80px;margin:-40px 0 0 -40px;border-radius:50%;background:conic-gradient(from -28deg,rgba(200,255,46,.35),rgba(200,255,46,0) 56deg,transparent 304deg,rgba(200,255,46,.35));-webkit-mask:radial-gradient(circle,#000 25%,transparent 70%);mask:radial-gradient(circle,#000 25%,transparent 70%);display:none}
 .me.dir .cone{display:block}
-.me.nav{width:46px;height:46px}
-body.nav .speed{bottom:calc(env(safe-area-inset-bottom) + 110px)}
-body.nav .fabs{bottom:calc(env(safe-area-inset-bottom) + 110px)!important}
-.me.nav i{inset:0;border-radius:50% 50% 50% 50%;background:#1A73E8;clip-path:polygon(50% 0,100% 100%,50% 75%,0 100%);border:0;box-shadow:none}
-.pin{width:30px;height:40px}
-.fuelpin{width:32px;height:32px;border-radius:50%;background:#F29900;color:#fff;display:grid;place-items:center;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);cursor:pointer}
-.fuelpin svg{width:16px;height:16px}
-.toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 74px);transform:translate(-50%,-10px);opacity:0;z-index:30;background:var(--tx);color:var(--bg);padding:11px 18px;border-radius:20px;font-weight:700;font-size:14px;transition:all .3s;pointer-events:none;white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis}
+.me.nav{width:52px;height:52px}
+.me.nav i{inset:0;background:var(--volt);border:0;border-radius:0;clip-path:polygon(50% 0,100% 100%,50% 76%,0 100%);box-shadow:none;filter:drop-shadow(0 0 6px rgba(0,0,0,.6))}
+.pin{width:34px;height:44px}
+.fuelpin{width:34px;height:34px;border-radius:12px;background:#0F0F0F;color:var(--volt);display:grid;place-items:center;box-shadow:0 4px 12px rgba(0,0,0,.35);cursor:pointer}
+.fuelpin svg{width:17px;height:17px}
+.toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 74px);transform:translate(-50%,-10px);opacity:0;z-index:30;background:#0F0F0F;color:var(--volt);padding:12px 18px;border-radius:16px;font-weight:700;font-size:14px;transition:all .3s;pointer-events:none;white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis;font-family:"Space Grotesk"}
 .toast.on{opacity:1;transform:translate(-50%,0)}
 .maplibregl-ctrl-attrib{font-size:10px}
-.maplibregl-ctrl-bottom-left,.maplibregl-ctrl-bottom-right{bottom:calc(env(safe-area-inset-bottom) + 2px)}
+.maplibregl-ctrl-attrib.maplibregl-compact{background:var(--panel)!important;color:var(--tx2)}
+.maplibregl-ctrl-bottom-left{left:auto;right:0;bottom:calc(env(safe-area-inset-bottom) + 2px)}
+@media (min-width:900px){#dock,.sheet{left:20px;right:auto;width:420px;margin:0}#banner{left:20px;right:auto;width:440px;margin:0}#navbar{left:20px;right:auto;width:440px;margin:0}}
 </style>
 </head>
 <body>
 <div id="map"></div>
-<div class="top">
-  <a class="ib glass" href="../" aria-label="Volver a Diapps"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></a>
-  <button class="search glass" id="openFind"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg><span id="where">¿A dónde vas?</span><b class="av">D</b></button>
+<a class="back sq pn" href="../" aria-label="Volver a Diapps"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></a>
+<button class="compass pn" id="compass" aria-label="Norte arriba"><svg viewBox="0 0 24 24"><path d="M12 3l4 9h-8z" fill="#FF5A36"/><path d="M12 21l-4-9h8z" fill="currentColor" opacity=".55"/></svg></button>
+<div class="rail" id="rail">
+  <button class="sq pn" id="bTheme" aria-label="Tema"></button>
+  <button class="sq pn" id="b3d" aria-label="Vista 3D"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg></button>
+  <button class="sq pn" id="bLoc" aria-label="Mi ubicación"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2" fill="currentColor"/></svg></button>
 </div>
-<div class="chips" id="chips"></div>
-<div class="fabs" id="fabs">
-  <button class="ib glass" id="b3d" aria-label="Vista 3D"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg></button>
-  <button class="ib glass" id="bLoc" aria-label="Mi ubicación"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2" fill="currentColor"/></svg></button>
-</div>
-<div class="speed glass" id="speed"><span><b id="spd">0</b><small>km/h</small></span></div>
+<div id="dock"><div class="dockin pn">
+  <div class="stat"><span class="dot"></span><span id="here">Ubicando…</span><span class="sp"></span><b id="jstat"></b></div>
+  <button class="go" id="openFind"><span>¿A dónde vamos?</span><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></i></button>
+  <div class="tiles" id="chips"></div>
+</div></div>
 <div id="banner"></div>
-<button class="recenter glass" id="recenter"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l7 19-7-4-7 4z"/></svg>Recentrar</button>
-<div id="navbar"><div class="eta"><b id="eta"></b><small id="rem"></small></div><button class="ib" id="mute" aria-label="Voz"></button><button class="endb" id="end" aria-label="Terminar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
-<div class="sheet" id="sheet"><div class="grab"></div><div id="sheetIn"></div></div>
-<div id="find"><div class="frow"><button class="ib" id="closeFind" aria-label="Cerrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><input class="inp" id="q" placeholder="Buscar lugar o dirección" autocomplete="off" enterkeyhint="search"></div><div class="list" id="res"></div></div>
+<button class="recenter pn" id="recenter"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l7 19-7-4-7 4z"/></svg>Recentrar</button>
+<div id="navbar" class="pn"><div class="col"><small>LLEGADA</small><b class="acc" id="eta"></b><em id="etaP"></em></div><div class="col"><small>FALTA</small><b id="rem"></b><em id="remK"></em></div><div class="col" style="flex:.7"><small>KM/H</small><b id="spd">0</b><em>&nbsp;</em></div><button id="mute" aria-label="Voz"></button><button class="endb" id="end" aria-label="Terminar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+<div class="sheet" id="sheet"><div class="sheetin pn" id="sheetIn"></div></div>
+<div id="find"><div class="frow"><button class="sq" id="closeFind" aria-label="Cerrar" style="background:var(--panel2)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><input class="inp" id="q" placeholder="Lugar o dirección" autocomplete="off" enterkeyhint="search"></div><div class="list" id="res"></div></div>
 <div class="toast" id="toast"></div>
 <script>
 const $=s=>document.querySelector(s);
@@ -181,25 +207,59 @@ const fmtT=s=>{const m=Math.round(s/60);return m<60?m+" min":Math.floor(m/60)+" 
 const clockAt=s=>new Date(Date.now()+s*1000).toLocaleTimeString("es-MX",{hour:"numeric",minute:"2-digit"});
 
 /* ======================= Mapa ======================= */
-const dark=()=>document.documentElement.dataset.theme==="dark"||(()=>{const h=new Date().getHours();return h>=20||h<6})();
-const STYLE={light:"https://tiles.openfreemap.org/styles/liberty",dark:"https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"};
+/* ======================= Estilo propio del mapa (grafito / papel, sin azules) =======================
+   Usa los mosaicos vectoriales de OpenFreeMap (esquema OpenMapTiles) con una paleta monocroma hecha para Ruta. */
+const isDark=()=>document.documentElement.dataset.mode==="dark";
+function themeMode(){const m=S.theme||"auto";if(m!=="auto")return m;let t="light";try{t=localStorage.getItem("diapps-theme")||"light"}catch(e){}const h=new Date().getHours();return t==="dark"||h>=19||h<7?"dark":"light"}
+function mapStyle(d){
+  const C=d?{bg:"#121212",res:"#151515",park:"#161915",wood:"#141713",water:"#090909",bld:"#1B1B1A",bldLine:"#232322",minor:"#232322",sec:"#2C2C2A",prim:"#383733",mot:"#4A4842",cas:"#0A0A0A",rail:"#2A2A28",lbl:"#7E7B74",lblHi:"#D9D6CF",halo:"#121212",path:"#1E1E1D",bnd:"#3A3936"}
+           :{bg:"#F2F0EB",res:"#ECE9E3",park:"#E2E5DA",wood:"#DCE0D3",water:"#D6D3CC",bld:"#E4E1DA",bldLine:"#D8D4CC",minor:"#FFFFFF",sec:"#FFFFFF",prim:"#FFFFFF",mot:"#FFFDF5",cas:"#D2CEC6",rail:"#C9C5BD",lbl:"#7A766E",lblHi:"#2A2825",halo:"#F2F0EB",path:"#E6E3DC",bnd:"#BDB8AE"};
+  const W=(a,b,c)=>["interpolate",["exponential",1.5],["zoom"],...a.flatMap((z,i)=>[z,b[i]])];
+  const cls=c=>["match",["get","class"],c,true,false];
+  const road=(id,c,minz,wz,ww,col,cas)=>[
+    {id:id+"-cas",type:"line",source:"om","source-layer":"transportation",minzoom:minz,filter:cls(c),layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":C.cas,"line-width":W(wz,ww.map(v=>v*1.35+1))}},
+    {id,type:"line",source:"om","source-layer":"transportation",minzoom:minz,filter:cls(c),layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":col,"line-width":W(wz,ww)}}];
+  const name=["coalesce",["get","name:es"],["get","name"]];
+  return {version:8,glyphs:"https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
+    sources:{om:{type:"vector",url:"https://tiles.openfreemap.org/planet"}},
+    layers:[
+      {id:"bg",type:"background",paint:{"background-color":C.bg}},
+      {id:"res",type:"fill",source:"om","source-layer":"landuse",filter:cls(["residential","suburb","neighbourhood"]),paint:{"fill-color":C.res}},
+      {id:"park",type:"fill",source:"om","source-layer":"park",paint:{"fill-color":C.park}},
+      {id:"wood",type:"fill",source:"om","source-layer":"landcover",filter:cls(["wood","grass","farmland"]),paint:{"fill-color":C.wood,"fill-opacity":.7}},
+      {id:"water",type:"fill",source:"om","source-layer":"water",paint:{"fill-color":C.water}},
+      {id:"waterway",type:"line",source:"om","source-layer":"waterway",paint:{"line-color":C.water,"line-width":W([10,16],[.5,3])}},
+      {id:"building",type:"fill",source:"om","source-layer":"building",minzoom:13,paint:{"fill-color":C.bld,"fill-outline-color":C.bldLine}},
+      {id:"path",type:"line",source:"om","source-layer":"transportation",minzoom:15,filter:cls(["path","track"]),paint:{"line-color":C.path,"line-width":1.2,"line-dasharray":[2,2]}},
+      ...road("service",["service"],14,[14,18],[.5,6],C.minor),
+      ...road("minor",["minor"],12,[12,18],[.4,11],C.minor),
+      ...road("sec",["secondary","tertiary"],10,[9,18],[.5,15],C.sec),
+      ...road("prim",["primary","trunk"],7,[7,18],[.6,19],C.prim),
+      ...road("mot",["motorway"],5,[5,18],[.8,23],C.mot),
+      {id:"rail",type:"line",source:"om","source-layer":"transportation",minzoom:11,filter:cls(["rail","transit"]),paint:{"line-color":C.rail,"line-width":1.5,"line-dasharray":[3,3]}},
+      {id:"bnd",type:"line",source:"om","source-layer":"boundary",filter:["<=",["get","admin_level"],4],paint:{"line-color":C.bnd,"line-width":1,"line-dasharray":[4,3]}},
+      {id:"road-lbl",type:"symbol",source:"om","source-layer":"transportation_name",minzoom:13,layout:{"symbol-placement":"line","text-field":name,"text-font":["Noto Sans Regular"],"text-size":W([13,18],[10,14]),"text-letter-spacing":.03},paint:{"text-color":C.lbl,"text-halo-color":C.halo,"text-halo-width":1.4}},
+      {id:"poi",type:"symbol",source:"om","source-layer":"poi",minzoom:16,filter:["<=",["get","rank"],12],layout:{"text-field":name,"text-font":["Noto Sans Regular"],"text-size":11,"text-max-width":8},paint:{"text-color":C.lbl,"text-halo-color":C.halo,"text-halo-width":1.2,"text-opacity":.85}},
+      {id:"hood",type:"symbol",source:"om","source-layer":"place",minzoom:12,filter:cls(["suburb","neighbourhood","quarter"]),layout:{"text-field":["upcase",name],"text-font":["Noto Sans Bold"],"text-size":W([12,16],[10,13]),"text-letter-spacing":.18,"text-max-width":7},paint:{"text-color":C.lbl,"text-halo-color":C.halo,"text-halo-width":1.4}},
+      {id:"town",type:"symbol",source:"om","source-layer":"place",filter:cls(["city","town","village"]),layout:{"text-field":name,"text-font":["Noto Sans Bold"],"text-size":W([5,12],[11,19])},paint:{"text-color":C.lblHi,"text-halo-color":C.halo,"text-halo-width":1.6}}]}}
+
 let LAST=null;try{LAST=JSON.parse(localStorage.getItem("ruta-last"))}catch(e){}
-const map=new maplibregl.Map({container:"map",style:dark()?STYLE.dark:STYLE.light,center:LAST||[-100.3161,25.6866],zoom:LAST?15:11,pitch:0,attributionControl:false,maxPitch:70});
+const map=new maplibregl.Map({container:"map",style:mapStyle(isDark()),center:LAST||[-100.3161,25.6866],zoom:LAST?15:11,pitch:0,attributionControl:false,maxPitch:70});
 map.addControl(new maplibregl.AttributionControl({compact:true,customAttribution:"Rutas: OSRM · Búsqueda: Photon"}),"bottom-left");
 map.on("load",setupLayers);map.on("style.load",setupLayers);
 const EMPTY={type:"FeatureCollection",features:[]};
 function src(id,data){if(map.getSource(id))map.getSource(id).setData(data);else map.addSource(id,{type:"geojson",data})}
 function setupLayers(){if(map.getSource("route"))return;
   src("acc",EMPTY);src("alts",EMPTY);src("route",EMPTY);src("done",EMPTY);
-  map.addLayer({id:"acc",type:"fill",source:"acc",paint:{"fill-color":"#1A73E8","fill-opacity":.12}});
-  map.addLayer({id:"alts-casing",type:"line",source:"alts",layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":"#7d8796","line-width":9}});
-  map.addLayer({id:"alts",type:"line",source:"alts",layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":"#B6C2D2","line-width":6}});
-  map.addLayer({id:"route-casing",type:"line",source:"route",layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":"#0B4FB3","line-width":["interpolate",["linear"],["zoom"],10,6,16,13]}});
-  map.addLayer({id:"route",type:"line",source:"route",layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":"#3D8BFF","line-width":["interpolate",["linear"],["zoom"],10,4,16,9]}});
-  map.addLayer({id:"done",type:"line",source:"done",layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":"#9AA0A6","line-width":["interpolate",["linear"],["zoom"],10,4,16,9]}});
+  const dk=isDark();map.addLayer({id:"acc",type:"fill",source:"acc",paint:{"fill-color":"#C8FF2E","fill-opacity":dk?.1:.25}});
+  map.addLayer({id:"alts-casing",type:"line",source:"alts",layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":dk?"#000000":"#B9B4AA","line-width":9}});
+  map.addLayer({id:"alts",type:"line",source:"alts",layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":dk?"#4A4842":"#E9E6DF","line-width":6}});
+  map.addLayer({id:"route-casing",type:"line",source:"route",layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":dk?"#000000":"#0F0F0F","line-width":["interpolate",["linear"],["zoom"],10,7,16,15]}});
+  map.addLayer({id:"route",type:"line",source:"route",layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":"#C8FF2E","line-width":["interpolate",["linear"],["zoom"],10,4,16,9]}});
+  map.addLayer({id:"done",type:"line",source:"done",layout:{"line-cap":"round","line-join":"round"},paint:{"line-color":dk?"#3A3936":"#B9B4AA","line-width":["interpolate",["linear"],["zoom"],10,4,16,9]}});
   // edificios en 3D cuando el estilo los trae
   const b=map.getStyle().layers.find(l=>/building/.test(l.id)&&l.type==="fill");
-  if(b&&!map.getLayer("b3d"))try{map.addLayer({id:"b3d",type:"fill-extrusion",source:b.source,"source-layer":b["source-layer"],minzoom:15,paint:{"fill-extrusion-color":dark()?"#2a2d33":"#e3e1dc","fill-extrusion-height":["coalesce",["get","render_height"],["get","height"],8],"fill-extrusion-base":["coalesce",["get","render_min_height"],0],"fill-extrusion-opacity":.75}})}catch(e){}
+  if(b&&!map.getLayer("b3d"))try{map.addLayer({id:"b3d",type:"fill-extrusion",source:b.source,"source-layer":b["source-layer"],minzoom:15,paint:{"fill-extrusion-color":dk?"#1F1F1E":"#E6E3DC","fill-extrusion-height":["coalesce",["get","render_height"],["get","height"],8],"fill-extrusion-base":["coalesce",["get","render_min_height"],0],"fill-extrusion-opacity":.75}})}catch(e){}
   if(ROUTE)drawRoute()}
 map.on("click","alts",e=>{const i=e.features[0].properties.i;if(i!=null){RI=i;showPreview()}});
 map.on("dragstart",()=>{if(MODE==="nav"){FOLLOW=false;$("#recenter").classList.add("on")}});
@@ -224,14 +284,15 @@ $("#bLoc").onclick=()=>{startWatch();if(ME){map.easeTo({center:ME.c,zoom:Math.ma
 
 /* ======================= Búsqueda (Photon / OpenStreetMap) ======================= */
 function openFind(){$("#find").classList.add("on");$("#q").value="";renderFind();setTimeout(()=>$("#q").focus(),60)}
-$("#openFind").onclick=openFind;$("#closeFind").onclick=()=>$("#find").classList.remove("on");
+function closeFind(){$("#find").classList.remove("on");try{document.activeElement&&document.activeElement.blur()}catch(e){}scrollTo(0,0);setTimeout(()=>{scrollTo(0,0);map.resize()},350)}
+$("#openFind").onclick=openFind;$("#closeFind").onclick=closeFind;
 const distTxt=p=>ME?fmtD(hav(ME.c,[p.lon,p.lat])):"";
 const itemHTML=(p,ic="pin",cls="")=>`<button class="it" data-p='${esc(JSON.stringify(p))}'><i class="${cls}">${svg(IC[ic])}</i><span><b>${esc(p.name)}</b><small>${esc(p.addr||"")}</small></span><em>${distTxt(p)}</em></button>`;
 function renderFind(results){const q=$("#q").value.trim();let h="";
-  if(results){h=results.length?results.map(p=>itemHTML(p,p.fuel?"fuel":"pin",p.fuel?"fuel":"")).join(""):`<p class="sub" style="padding:14px 8px">Sin resultados para “${esc(q)}”.</p>`}
-  else{h+=`<h4>Lugares</h4>`+[["casa","home","Casa"],["trabajo","work","Trabajo"]].map(([k,ic,n])=>S.fav[k]?itemHTML({...S.fav[k],name:n,addr:S.fav[k].addr||S.fav[k].name},ic,ic):`<button class="it" data-setfav="${k}"><i class="${ic}">${svg(IC[ic])}</i><span><b>${n}</b><small>Toca para elegir en el mapa o búscalo y guárdalo</small></span></button>`).join("");
+  if(results){h=results.length?results.map(p=>itemHTML(p,p.fuel?"fuel":"pin",p.fuel?"acc":"")).join(""):`<p class="sub" style="padding:14px 8px">Sin resultados para “${esc(q)}”.</p>`}
+  else{h+=`<h4>Lugares</h4>`+[["casa","home","Casa"],["trabajo","work","Trabajo"]].map(([k,ic,n])=>S.fav[k]?itemHTML({...S.fav[k],name:n,addr:S.fav[k].addr||S.fav[k].name},ic,"acc"):`<button class="it" data-setfav="${k}"><i>${svg(IC[ic])}</i><span><b>${n}</b><small>Toca para elegir en el mapa o búscalo y guárdalo</small></span></button>`).join("");
     if(S.saved.length)h+=`<h4>Guardados</h4>`+S.saved.map(p=>itemHTML(p,"star")).join("");
-    h+=`<button class="it" data-fuel><i class="fuel">${svg(IC.fuel)}</i><span><b>Gasolineras cerca</b><small>Dentro de 5 km de ti</small></span></button>`;
+    h+=`<button class="it" data-fuel><i class="acc">${svg(IC.fuel)}</i><span><b>Gasolineras cerca</b><small>Dentro de 5 km de ti</small></span></button>`;
     if(S.recent.length)h+=`<h4>Recientes</h4>`+S.recent.map(p=>itemHTML(p,"clock")).join("")}
   $("#res").innerHTML=h}
 let qT,qId=0;$("#q").oninput=()=>{clearTimeout(qT);const q=$("#q").value.trim();if(q.length<3){renderFind();return}qT=setTimeout(()=>search(q),350)};
@@ -240,9 +301,9 @@ async function search(q){const id=++qId;const c=ME?ME.c:map.getCenter().toArray(
   try{const r=await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&lat=${c[1]}&lon=${c[0]}&limit=10`);const j=await r.json();if(id!==qId)return;
     renderFind(j.features.map(f=>{const p=f.properties,co=f.geometry.coordinates;return {name:p.name||[p.street,p.housenumber].filter(Boolean).join(" ")||p.city||"Lugar",addr:[p.street&&p.name?p.street+(p.housenumber?" "+p.housenumber:""):"",p.district||p.locality,p.city,p.state].filter(Boolean).join(", "),lat:co[1],lon:co[0]}}))}
   catch(e){if(id===qId)$("#res").innerHTML=`<p class="sub" style="padding:14px 8px">No se pudo buscar. Revisa tu conexión.</p>`}}
-$("#res").addEventListener("click",e=>{let b;if(b=e.target.closest("[data-p]")){const p=JSON.parse(b.dataset.p);$("#find").classList.remove("on");goTo(p);return}
-  if(b=e.target.closest("[data-setfav]")){const k=b.dataset.setfav;$("#find").classList.remove("on");PICK=k;toast(`Mantén presionado o toca en el mapa para elegir ${k==="casa"?"Casa":"Trabajo"}`,4000);return}
-  if(e.target.closest("[data-fuel]")){$("#find").classList.remove("on");fuelNear()}});
+$("#res").addEventListener("click",e=>{let b;if(b=e.target.closest("[data-p]")){const p=JSON.parse(b.dataset.p);closeFind();goTo(p);return}
+  if(b=e.target.closest("[data-setfav]")){const k=b.dataset.setfav;closeFind();PICK=k;toast(`Mantén presionado o toca en el mapa para elegir ${k==="casa"?"Casa":"Trabajo"}`,4000);return}
+  if(e.target.closest("[data-fuel]")){closeFind();fuelNear()}});
 /* elegir punto en el mapa (mantener presionado) */
 let PICK=null;
 async function reverse(c){try{const r=await fetch(`https://photon.komoot.io/reverse?lat=${c[1]}&lon=${c[0]}`);const j=await r.json();const p=(j.features[0]||{}).properties||{};
@@ -268,11 +329,11 @@ let MODE="browse",DEST=null,ROUTES=[],RI=0,ROUTE=null,destMarker=null;
 function pinEl(){const d=document.createElement("div");d.className="pin";d.innerHTML='<svg viewBox="0 0 30 40"><path d="M15 39s13-12.5 13-23A13 13 0 0 0 2 16c0 10.5 13 23 13 23z" fill="#E5484D" stroke="#fff" stroke-width="2"/><circle cx="15" cy="15.5" r="5" fill="#fff"/></svg>';return d}
 async function goTo(p){DEST=p;addRecent(p);startWatch();
   if(destMarker)destMarker.remove();destMarker=new maplibregl.Marker({element:pinEl(),anchor:"bottom"}).setLngLat([p.lon,p.lat]).addTo(map);
-  $("#where").textContent=p.name;
-  if(!ME){map.easeTo({center:[p.lon,p.lat],zoom:15});openSheet(`<h2>${esc(p.name)}</h2><div class="sub">${esc(p.addr||"")}</div><p class="sub" style="margin:14px 0">Esperando tu ubicación para trazar la ruta… Permite el acceso a la ubicación.</p><div class="btns"><button class="btn" data-a="close">Cerrar</button></div>`);
+  $("#openFind span").textContent=p.name;
+  if(!ME){map.easeTo({center:[p.lon,p.lat],zoom:15});openSheet(`<div class="kick">Destino</div><h2>${esc(p.name)}</h2><div class="sub">${esc(p.addr||"")}</div><p class="sub" style="margin:14px 0">Esperando tu ubicación para trazar la ruta… Permite el acceso a la ubicación.</p><div class="row"><button class="btn" data-a="close">Cerrar</button></div>`);
     const w=setInterval(()=>{if(ME){clearInterval(w);goTo(p)}},800);setTimeout(()=>clearInterval(w),30000);return}
   openSheet(`<h2>${esc(p.name)}</h2><div class="sub">${esc(p.addr||"")}</div><p class="sub" style="margin:14px 0">Calculando ruta…</p>`);
-  try{ROUTES=await route(ME.c,[p.lon,p.lat],true);RI=0;showPreview()}catch(e){openSheet(`<h2>${esc(p.name)}</h2><p class="sub" style="margin:12px 0">No se pudo calcular la ruta. ${esc(e.message||"")}</p><div class="btns"><button class="btn" data-a="close">Cerrar</button><button class="btn blue" data-a="retry">Reintentar</button></div>`)}}
+  try{ROUTES=await route(ME.c,[p.lon,p.lat],true);RI=0;showPreview()}catch(e){openSheet(`<h2>${esc(p.name)}</h2><p class="sub" style="margin:12px 0">No se pudo calcular la ruta. ${esc(e.message||"")}</p><div class="row"><button class="btn" data-a="close">Cerrar</button><button class="btn prim" data-a="retry">Reintentar</button></div>`)}}
 async function route(a,b,alts){const u=`https://router.project-osrm.org/route/v1/driving/${a[0]},${a[1]};${b[0]},${b[1]}?overview=full&geometries=geojson&steps=true&alternatives=${alts?"true":"false"}`;
   const r=await fetch(u);if(!r.ok)throw new Error("Servidor de rutas ocupado");const j=await r.json();if(j.code!=="Ok"||!j.routes.length)throw new Error("No hay ruta en auto");
   return j.routes.map(prep)}
@@ -286,15 +347,16 @@ function drawRoute(){if(!map.getSource("route"))return;ROUTE=ROUTES[RI];
   map.getSource("alts").setData(MODE==="nav"?EMPTY:{type:"FeatureCollection",features:ROUTES.map((r,i)=>i===RI?null:{type:"Feature",properties:{i},geometry:{type:"LineString",coordinates:r.co}}).filter(Boolean)});
   map.getSource("done").setData(EMPTY)}
 function showPreview(){MODE="preview";drawRoute();const r=ROUTE,j=jetta();
-  const bb=new maplibregl.LngLatBounds();r.co.forEach(c=>bb.extend(c));map.fitBounds(bb,{padding:{top:120,bottom:Math.min(innerHeight*.55,420),left:40,right:40},maxZoom:16,duration:700});
-  let jt="";if(j){const L=r.dist/1000/j.kmpl,cost=L*j.price,warn=j.range<r.dist/1000*1.1;
-    jt=`<div class="jet${warn?" warn":""}"><img src="../jetta/icons/icon.svg" alt=""><span>${warn?`Tu Jetta tiene ≈ ${Math.round(j.range)} km de autonomía: carga gasolina antes.`:`≈ ${L.toFixed(1)} L de gasolina · <b>$${Math.round(cost)}</b> con tu rendimiento de ${j.kmpl.toFixed(1)} km/L`}</span></div>`}
-  openSheet(`<h2>${esc(DEST.name)}</h2><div class="sub">${esc(DEST.addr||"")}</div>
-    <div class="opts">${ROUTES.map((x,i)=>`<button class="opt${i===RI?" on":""}" data-r="${i}"><span><b class="${i===0?"g":""}">${fmtT(x.dur)}</b><small>${x.via?"Por "+esc(x.via)+" · ":""}${fmtD(x.dist)}</small></span><em>${clockAt(x.dur)}</em></button>`).join("")}</div>
-    ${jt}<div class="btns"><button class="btn sm" data-a="close" aria-label="Cerrar">${svg('<path d="M6 6l12 12M18 6L6 18"/>')}</button><button class="btn" data-a="sim">${svg('<path d="M7 5l12 7-12 7z"/>')}Simular</button><button class="btn blue" data-a="go">${svg('<path d="M12 2l7 19-7-4-7 4z"/>',"currentColor")}Iniciar</button></div>
-    <div class="mini"><button data-a="fav">★ Guardar</button><button data-a="home">Poner como Casa</button><button data-a="work">Como Trabajo</button><button data-a="share">Compartir</button></div>`)}
-function openSheet(h){$("#sheetIn").innerHTML=h;$("#sheet").classList.add("on");$("#fabs").style.bottom=$("#sheet").offsetHeight+16+"px"}
-function closeSheet(){$("#sheet").classList.remove("on");$("#fabs").style.bottom="";$(".speed").style.bottom=""}
+  const bb=new maplibregl.LngLatBounds();r.co.forEach(c=>bb.extend(c));map.fitBounds(bb,{padding:{top:90,bottom:Math.min(innerHeight*.55,430),left:40,right:70},maxZoom:16,duration:700});
+  const mm=s=>Math.max(1,Math.round(s/60));let jt="";
+  if(j){const L=r.dist/1000/j.kmpl,cost=L*j.price,warn=j.range<r.dist/1000*1.1;
+    jt=`<div class="fuel${warn?" warn":""}"><span class="big">$${Math.round(cost)}</span><span style="flex:1"><small>${warn?"No te alcanza: carga gasolina antes":"Gasolina estimada del viaje"}</small><b style="font-size:13.5px">${L.toFixed(1)} L · ${j.kmpl.toFixed(1)} km/L · Jetta ≈ ${Math.round(j.range)} km</b></span></div>`}
+  openSheet(`<div class="kick">Ruta a</div><h2>${esc(DEST.name)}</h2><div class="sub">${esc(DEST.addr||"")}</div>
+    <div class="opts">${ROUTES.map((x,i)=>`<button class="opt${i===RI?" on":""}" data-r="${i}">${i===0?'<span class="tag">MÁS RÁPIDA</span>':""}<div class="big">${mm(x.dur)}<small>min</small></div><em>${fmtD(x.dist)} · llega ${clockAt(x.dur)}</em><em>${x.via?"Por "+esc(x.via):""}</em></button>`).join("")}</div>
+    ${jt}<div class="row"><button class="btn sq2" data-a="close" aria-label="Cerrar">${svg('<path d="M6 6l12 12M18 6L6 18"/>')}</button><button class="btn" data-a="sim">${svg('<path d="M7 5l12 7-12 7z"/>')}Simular</button><button class="btn prim" data-a="go">${svg('<path d="M12 2l7 19-7-4-7 4z"/>',"currentColor")}Iniciar</button></div>
+    <div class="mini"><button data-a="fav">★ Guardar</button><button data-a="home">Es mi casa</button><button data-a="work">Es mi trabajo</button><button data-a="share">Compartir llegada</button></div>`)}
+function openSheet(h){$("#sheetIn").innerHTML=h;$("#sheet").classList.add("on");document.body.classList.add("sheeton")}
+function closeSheet(){$("#sheet").classList.remove("on");document.body.classList.remove("sheeton")}
 $("#sheetIn").addEventListener("click",async e=>{let b;if(b=e.target.closest("[data-r]")){RI=+b.dataset.r;showPreview();return}
   b=e.target.closest("[data-a]");if(!b)return;const a=b.dataset.a;
   if(a==="close"){clearRoute();return}if(a==="retry"){goTo(DEST);return}
@@ -303,7 +365,7 @@ $("#sheetIn").addEventListener("click",async e=>{let b;if(b=e.target.closest("[d
   if(a==="home")setFav("casa",DEST);if(a==="work")setFav("trabajo",DEST);
   if(a==="share"){const t=`Voy a ${DEST.name}, llego ≈ ${clockAt(ROUTE.dur)}. https://www.openstreetmap.org/?mlat=${DEST.lat}&mlon=${DEST.lon}#map=17/${DEST.lat}/${DEST.lon}`;if(navigator.share)navigator.share({text:t}).catch(()=>{});else{navigator.clipboard&&navigator.clipboard.writeText(t);toast("Copiado")}}
   if(a==="addkm")addKm();if(a==="done")clearRoute()});
-function clearRoute(){MODE="browse";ROUTES=[];ROUTE=null;DEST=null;closeSheet();if(destMarker)destMarker.remove();destMarker=null;$("#where").textContent="¿A dónde vas?";
+function clearRoute(){MODE="browse";ROUTES=[];ROUTE=null;DEST=null;closeSheet();if(destMarker)destMarker.remove();destMarker=null;$("#openFind span").textContent="¿A dónde vamos?";
   ["route","alts","done"].forEach(s=>map.getSource(s)&&map.getSource(s).setData(EMPTY));}
 
 /* ======================= Navegación vuelta por vuelta ======================= */
@@ -332,8 +394,8 @@ async function startNav(sim){MODE="nav";closeSheet();document.body.classList.add
 function endNav(arrived){if(SIM){clearInterval(SIM.iv);SIM=null}MODE=arrived?"arrived":"browse";document.body.classList.remove("nav");$("#recenter").classList.remove("on");
   try{wake&&wake.release()}catch(e){}wake=null;if(meMarker)meMarker.getElement().classList.remove("nav");map.easeTo({pitch:pitched?60:0,bearing:0,duration:800});
   if(arrived){const km=NAV.driven/1000,mins=Math.round((Date.now()-NAV.start)/60000),j=jetta();
-    openSheet(`<h2>Llegaste a ${esc(DEST.name)}</h2><div class="sub">${fmtD(NAV.driven)} en ${mins} min</div><div style="height:12px"></div>
-      <div class="btns">${j&&km>.3?`<button class="btn" data-a="addkm">Sumar ${km.toFixed(1)} km al Jetta</button>`:""}<button class="btn blue" data-a="done">Listo</button></div>`)}
+    openSheet(`<div class="kick">Llegaste</div><h2>${esc(DEST.name)}</h2><div class="sub">${fmtD(NAV.driven)} recorridos en ${mins} min</div><div style="height:14px"></div>
+      <div class="row">${j&&km>.3?`<button class="btn" data-a="addkm">Sumar ${km.toFixed(1)} km al Jetta</button>`:""}<button class="btn prim" data-a="done">Listo</button></div>`)}
   else clearRoute()}
 $("#end").onclick=()=>endNav(false);
 $("#recenter").onclick=()=>{FOLLOW=true;$("#recenter").classList.remove("on");navTick()};
@@ -351,8 +413,9 @@ function navTick(){if(MODE!=="nav"||!ME||!ROUTE)return;const c=ME.c,s=snap(c);NA
   if(remain<25){speak("Llegaste a tu destino");endNav(true);return}
   // siguiente maniobra
   let k=ROUTE.steps.findIndex(st=>st.at>NAV.prog+5);if(k<0)k=ROUTE.steps.length-1;const st=ROUTE.steps[k],toM=Math.max(0,st.at-NAV.prog),nx=ROUTE.steps[k+1];
-  $("#banner").innerHTML=`<div class="mv"><span class="ar">${arrow(st)}</span><span style="flex:1;min-width:0"><b>${fmtD(toM)}</b><span>${esc(say(st))}</span></span></div>${nx&&nx.maneuver.type!=="arrive"&&toM<600?`<div class="then">Después ${arrow(nx)} ${esc(say(nx))}</div>`:""}`;
-  const remT=ROUTE.dur*remain/ROUTE.total;$("#eta").textContent=clockAt(remT);$("#rem").textContent=fmtT(remT)+" · "+fmtD(remain);
+  const dTxt=fmtD(toM),dNum=dTxt.replace(/ (m|km)$/,""),dU=dTxt.endsWith("km")?"km":"m",segLen=Math.max(1,st.at-(ROUTE.steps[k-1]?ROUTE.steps[k-1].at:0)),pg=Math.max(0,Math.min(100,100-toM/segLen*100));
+  $("#banner").innerHTML=`<div class="mv"><span class="ar">${arrow(st)}</span><span style="flex:1;min-width:0"><span class="big">${dNum}<small>${dU}</small></span><p>${esc(say(st))}</p></span></div><div class="prog"><i style="width:${pg}%"></i></div>${nx&&nx.maneuver.type!=="arrive"&&toM<600?`<div class="then">LUEGO ${arrow(nx)} ${esc(say(nx))}</div>`:""}`;
+  const remT=ROUTE.dur*remain/ROUTE.total;{const t=new Date(Date.now()+remT*1000);$("#eta").textContent=t.getHours()%12||12;$("#eta").textContent+=":"+String(t.getMinutes()).padStart(2,"0");$("#etaP").textContent=t.getHours()<12?"a.m.":"p.m."}$("#rem").textContent=remT<3600?Math.max(1,Math.round(remT/60))+" min":fmtT(remT);$("#remK").textContent=fmtD(remain);
   // voz: avisos a 800 m (si vas rápido), 300 m y al llegar a la maniobra
   const sp=NAV.spoken[k]=NAV.spoken[k]||{},v=(ME.speed||0)*3.6;
   if(toM<900&&toM>500&&v>60&&!sp.a){sp.a=1;speak(`En ${fmtD(toM)}, ${say(st)}`)}
@@ -375,12 +438,23 @@ function addKm(){const j=jetta();if(!j)return;const km=NAV.driven/1000,J=j.J;J.o
   try{localStorage.setItem("jetta6v3",JSON.stringify(J))}catch(e){}if(window.Nube&&Nube.user())Nube.save("jetta",J,J._u).catch(()=>{});toast(`Jetta: ${Math.round(J.odo).toLocaleString("es-MX")} km · gasolina ${Math.round(J.fuel)}%`);clearRoute()}
 
 /* ======================= Accesos rápidos ======================= */
-function chips(){const j=jetta();$("#chips").innerHTML=[["casa","home","Casa"],["trabajo","work","Trabajo"]].map(([k,ic,n])=>`<button class="chip glass" data-fav="${k}">${svg(IC[ic])}${n}</button>`).join("")+
-  `<button class="chip glass" data-fuel>${svg(IC.fuel)}Gasolineras</button>`+(j?`<span class="chip glass" style="color:var(--tx2)">Jetta ≈ ${Math.round(j.range)} km</span>`:"")}
-$("#chips").addEventListener("click",e=>{let b;if(b=e.target.closest("[data-fav]")){const k=b.dataset.fav;if(S.fav[k])goTo({...S.fav[k],name:k==="casa"?"Casa":"Trabajo"});else{PICK=k;toast(`Toca en el mapa para elegir ${k==="casa"?"Casa":"Trabajo"}`,4000)}return}
+function chips(){const j=jetta(),t=(k,ic,n,sub,cls="")=>`<button class="tile${cls}" ${k}>${svg(IC[ic])}<span><b>${n}</b><small>${sub}</small></span></button>`;
+  const fd=k=>S.fav[k]?(ME?fmtD(hav(ME.c,[S.fav[k].lon,S.fav[k].lat])):"Guardado"):"Elegir";
+  $("#chips").innerHTML=t('data-fav="casa"',"home","Casa",fd("casa"),S.fav.casa?"":" empty")+t('data-fav="trabajo"',"work","Trabajo",fd("trabajo"),S.fav.trabajo?"":" empty")+t("data-fuel","fuel","Gasolina","Cerca de ti")+
+    S.saved.slice(0,6).map(p=>`<button class="tile" data-p='${esc(JSON.stringify(p))}'>${svg(IC.star)}<span><b>${esc(p.name)}</b><small>${ME?fmtD(hav(ME.c,[p.lon,p.lat])):""}</small></span></button>`).join("");
+  $("#jstat").textContent=j?`JETTA ${Math.round(j.J.fuel||0)}% · ${Math.round(j.range)} KM`:""}
+$("#chips").addEventListener("click",e=>{let b;if(b=e.target.closest("[data-p]")){goTo(JSON.parse(b.dataset.p));return}if(b=e.target.closest("[data-fav]")){const k=b.dataset.fav;if(S.fav[k])goTo({...S.fav[k],name:k==="casa"?"Casa":"Trabajo"});else{PICK=k;toast(`Toca en el mapa para elegir ${k==="casa"?"Casa":"Trabajo"}`,4000)}return}
   if(e.target.closest("[data-fuel]"))fuelNear()});
 window.SYNC=window.Nube?Nube.sync("ruta",{get:()=>S,set:d=>{S=d;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}chips()}}):null;
 chips();renderMute();startWatch();
+function applyTheme(){const d=themeMode()==="dark";document.documentElement.dataset.mode=d?"dark":"light";$('meta[name="theme-color"]').content=d?"#0F0F0F":"#F2F0EB";
+  const m=S.theme||"auto";$("#bTheme").innerHTML=svg(m==="auto"?'<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/>':m==="dark"?'<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>':'<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2.5 12h2M19.5 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>');
+  if(applyTheme.d!==d){if(applyTheme.d!==undefined)map.setStyle(mapStyle(d));applyTheme.d=d}}
+$("#bTheme").onclick=()=>{const order=["auto","light","dark"];S.theme=order[(order.indexOf(S.theme||"auto")+1)%3];save();applyTheme();toast(S.theme==="auto"?"Tema automático":S.theme==="dark"?"Modo oscuro":"Modo claro")};
+applyTheme();setInterval(applyTheme,60000);
+map.on("rotate",()=>{$("#compass svg").style.transform=`rotate(${-map.getBearing()}deg)`});
+$("#compass").onclick=()=>map.easeTo({bearing:0,pitch:pitched?60:0,duration:500});
+let hereT=0;setInterval(async()=>{if(!ME||MODE==="nav"||Date.now()-hereT<45000)return;hereT=Date.now();const p=await reverse(ME.c);$("#here").textContent=(p.addr||p.name).split(",").slice(0,2).join(" · ");chips()},4000);
 document.addEventListener("visibilitychange",async()=>{if(!document.hidden&&MODE==="nav"&&!wake)try{wake=await navigator.wakeLock.request("screen")}catch(e){}});
 if("serviceWorker" in navigator&&location.protocol!=="file:")addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 </script>
