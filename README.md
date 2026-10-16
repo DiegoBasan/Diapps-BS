@@ -16,6 +16,7 @@ https://diegobasan.github.io/Diapps-BS/
 | `/linea/` | Línea: tablero de la línea de ensamble de tractores con escena 3D (PBR, sombras y oclusión ambiental), estaciones con andon, órdenes, OEE y alarmas simuladas. |
 | `/ruta/` | Ruta: navegación en tiempo real con tu ubicación (búsqueda, rutas alternativas, indicaciones por voz, recálculo, gasolineras, costo del viaje y km al Jetta). |
 | `/papeles/` | Papeles: carpetas de documentos en un carrusel 3D, con fotos/PDF guardados en el dispositivo y fechas de vencimiento. |
+| `/neon/` | Neón: juego de mundo abierto. Vuelas una nave futurista por una ciudad procedural infinita (ventanas, neón y anuncios por shader, niebla de altura, lluvia, día/noche, bloom, GTAO, reflejos en vivo), con tráfico aéreo, drones patrulla y carreras de anillos. Modelos de Sketchfab. |
 | `/finanzas/` | Mis Finanzas: gastos, presupuesto, regla 50/30/20, mapa de gasto y asistente local. |
 
 ## Agregar un proyecto
@@ -64,4 +65,5 @@ En pantallas de 1100px o más: el inicio se vuelve un mega dashboard que resume 
 - `compa/models/sedan.glb` y `box.glb`: Car Kit de Kenney, CC0.
 - `linea/models/tractor.glb`: Car Kit de Kenney, CC0.
 - `shared/vendor/maplibre`: MapLibre GL JS 4.7.1 (BSD-3). Mapas: © colaboradores de OpenStreetMap (ODbL), estilos de OpenFreeMap y CARTO. Búsqueda: Photon (komoot). Rutas: OSRM (servidor de FOSSGIS routing.openstreetmap.de y demo de OSRM). Gasolineras: Overpass API.
-- `shared/vendor/three`: Three.js r160 (MIT), con addons de posprocesado (GTAO) y RoomEnvironment.
+- `neon/models/*.glb`: 11 modelos de Sketchfab con licencia CC BY 4.0 (naves, autos voladores, pirámide, rascacielos, letreros de neón y dron). Autores y enlaces en `neon/models/CREDITOS.md` y en el menú del juego → Créditos.
+- `shared/vendor/three`: Three.js r160 (MIT), con addons de posprocesado (GTAO, bloom) y RoomEnvironment.

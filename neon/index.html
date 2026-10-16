@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Neón</title>
+<meta name="description" content="Mundo abierto: vuela una nave futurista por una ciudad procedural infinita de noche, con neón, lluvia, tráfico aéreo y carreras de anillos">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Neón">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#07060C">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800;900&display=swap">
+<style>
+/* Neón: juego de mundo abierto. La escena es WebGL (Three.js) y la interfaz es HTML encima. */
+:root{--bg:#07060C;--pn:rgba(14,12,24,.72);--ln:rgba(255,255,255,.09);--tx:#EDEBF5;--tx2:#9C98B0;--tx3:#625E76;
+  --m:#FF2BD6;--c:#19E6FF;--o:#FF7A1A;--y:#FFD23F}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+html,body{margin:0;background:var(--bg);color:var(--tx);font-family:Urbanist,system-ui,sans-serif;font-size:13px;overscroll-behavior:none}
+body{overflow:hidden;height:100vh;height:100dvh;touch-action:none}
+button,select{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0}
+a{color:inherit}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+.pn{background:var(--pn);backdrop-filter:blur(16px) saturate(1.3);-webkit-backdrop-filter:blur(16px) saturate(1.3);border:1px solid var(--ln);border-radius:16px}
+.ib{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none}
+.ib svg{width:20px;height:20px}
+.ib:active{transform:scale(.94)}
+
+/* carga */
+#load{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:radial-gradient(120% 80% at 50% 110%,#3a0f3a 0%,#120a22 45%,#07060C 80%);transition:opacity .8s,visibility .8s}
+#load.gone{opacity:0;visibility:hidden}
+#load .in{width:min(360px,84vw);text-align:center}
+.logo{font-weight:900;font-size:64px;letter-spacing:.14em;line-height:1;margin:0 0 6px;background:linear-gradient(90deg,var(--m),var(--c));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 18px rgba(255,43,214,.45))}
+#load p{margin:0 0 26px;color:var(--tx2);font-size:14px}
+#load .bar{height:4px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden}
+#load .bar b{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--m),var(--c));transition:width .3s}
+#load small{display:block;margin-top:12px;color:var(--tx3);font-size:11.5px;min-height:1.3em}
+
+/* HUD */
+.hud{position:fixed;z-index:5;pointer-events:none}
+.hud .pe{pointer-events:auto}
+body[data-menu="garage"] .hud,body[data-menu="garage"] .tc,body.nohud .hud,body.nohud .tc{opacity:0;pointer-events:none}
+.hud{transition:opacity .4s}
+#tl{left:calc(env(safe-area-inset-left) + 14px);top:calc(env(safe-area-inset-top) + 12px);display:flex;gap:10px;align-items:center}
+#dist{font-weight:800;font-size:15px;letter-spacing:.02em;text-shadow:0 0 12px rgba(0,0,0,.8)}
+#dist.pop{animation:pop 1.2s ease}
+@keyframes pop{0%{opacity:0;transform:translateY(-6px);color:var(--c)}30%{opacity:1;transform:none}100%{color:var(--tx)}}
+#tl small{display:block;color:var(--tx2);font-size:11px;font-weight:600}
+#tr{right:calc(env(safe-area-inset-right) + 14px);top:calc(env(safe-area-inset-top) + 12px);display:flex;gap:8px}
+#gauge{left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 16px);padding:10px 18px 12px;display:flex;align-items:center;gap:18px}
+#gauge .sp{text-align:center;min-width:86px}
+#spd{display:block;font-size:34px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums}
+#gauge .sp small{color:var(--tx2);font-size:10.5px;font-weight:700;letter-spacing:.12em}
+#gauge .col{display:flex;flex-direction:column;gap:7px;min-width:120px}
+#gauge .row{display:flex;justify-content:space-between;color:var(--tx2);font-size:11px;font-weight:600}
+#gauge .row b{color:var(--tx);font-variant-numeric:tabular-nums}
+.meter{height:5px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden}
+.meter i{display:block;height:100%;width:100%;border-radius:4px;transition:width .1s}
+#boost i{background:linear-gradient(90deg,var(--c),#7af4ff)}
+#boost.on i{background:linear-gradient(90deg,var(--m),#ff8ff0);box-shadow:0 0 10px var(--m)}
+#hp i{background:linear-gradient(90deg,#ff3355,var(--o))}
+#map{left:calc(env(safe-area-inset-left) + 14px);bottom:calc(env(safe-area-inset-bottom) + 16px)}
+#mm{width:150px;height:150px;display:block;border-radius:50%}
+#fps{position:absolute;right:0;bottom:-2px;font-size:9.5px;color:var(--tx3)}
+#race{left:50%;top:calc(env(safe-area-inset-top) + 12px);transform:translateX(-50%);padding:8px 16px;text-align:center;display:none}
+#race.on{display:block}
+#race b{display:block;font-size:22px;font-weight:900;font-variant-numeric:tabular-nums;color:var(--y)}
+#race span,#race em{display:block;font-size:11px;color:var(--tx2);font-style:normal;font-weight:600}
+#arrow{position:fixed;left:50%;top:22%;width:44px;height:44px;margin:-22px;opacity:0;transition:opacity .3s;filter:drop-shadow(0 0 8px var(--y))}
+#race:not(.on)~#arrow{opacity:0!important}
+#toast{left:50%;top:30%;transform:translate(-50%,8px);padding:10px 16px;font-weight:700;font-size:13px;opacity:0;transition:.35s;text-align:center;max-width:86vw}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+
+/* controles táctiles */
+.tc{display:none;position:fixed;z-index:6;transition:opacity .4s}
+body.touch .tc{display:block}
+.stick{position:fixed;bottom:calc(env(safe-area-inset-bottom) + 22px);width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);touch-action:none}
+.stick i{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px;border-radius:50%;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);box-shadow:0 0 16px rgba(25,230,255,.25)}
+.stick span{position:absolute;left:0;right:0;top:-18px;text-align:center;font-size:10px;font-weight:700;color:var(--tx3);letter-spacing:.08em}
+.stick.l{left:calc(env(safe-area-inset-left) + 20px)}
+.stick.r{right:calc(env(safe-area-inset-right) + 20px)}
+.btns{position:fixed;right:calc(env(safe-area-inset-right) + 164px);bottom:calc(env(safe-area-inset-bottom) + 26px);display:flex;flex-direction:column;gap:10px}
+.btns button{width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);font-weight:800;font-size:15px;touch-action:none}
+.btns button.on{background:rgba(25,230,255,.3)}
+.btns .tb{background:rgba(255,43,214,.18);border-color:rgba(255,43,214,.45);font-size:10px;letter-spacing:.06em}
+.btns .tb.on{background:rgba(255,43,214,.55)}
+body.touch #map{left:50%;transform:translateX(-50%);bottom:auto;top:calc(env(safe-area-inset-top) + 58px)}
+body.touch #mm{width:96px;height:96px}
+body.touch #race{top:calc(env(safe-area-inset-top) + 162px);padding:6px 12px}body.touch #race b{font-size:18px}
+body.touch #gauge{bottom:calc(env(safe-area-inset-bottom) + 170px);padding:7px 12px;gap:10px}
+body.touch #spd{font-size:24px}
+body.touch #gauge .col{min-width:86px}
+@media (orientation:landscape) and (max-height:500px){body.touch #race{top:calc(env(safe-area-inset-top) + 12px)}body.touch #gauge{bottom:calc(env(safe-area-inset-bottom) + 12px)}body.touch #map{top:calc(env(safe-area-inset-top) + 62px);left:calc(env(safe-area-inset-left) + 14px);transform:none}}
+
+/* menús */
+.ov{position:fixed;inset:0;z-index:20;display:none;align-items:flex-end;justify-content:center;padding:calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px)}
+.ov.on{display:flex}
+#garage{background:linear-gradient(180deg,rgba(7,6,12,.0) 30%,rgba(7,6,12,.85) 100%)}
+#garage .top{position:fixed;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top) + 14px) 16px;display:flex;align-items:center;gap:12px}
+#garage .top .logo{font-size:30px;margin:0}
+#garage .top small{display:block;color:var(--tx2);font-size:11.5px;font-weight:600}
+.card{width:min(760px,100%);padding:16px}
+#ships{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.sh{text-align:left;padding:12px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid var(--ln);transition:.2s}
+.sh.on{border-color:var(--c);background:color-mix(in srgb,var(--c) 10%,transparent);box-shadow:0 0 0 1px var(--c) inset,0 0 22px color-mix(in srgb,var(--c) 30%,transparent)}
+.sh b{display:block;font-size:15px;font-weight:800}
+.sh small{display:block;color:var(--tx2);font-size:11px;margin:2px 0 8px;min-height:2.6em}
+.st{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--tx3);font-weight:700;margin-top:4px}
+.st span{width:54px}
+.st i{flex:1;height:4px;border-radius:3px;background:linear-gradient(90deg,var(--c) calc(var(--v)*100%),rgba(255,255,255,.08) 0)}
+.rowx{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.go{flex:1;min-width:180px;height:50px;border-radius:14px;font-weight:900;font-size:16px;letter-spacing:.12em;background:linear-gradient(90deg,var(--m),#a43cff 50%,var(--c));color:#fff;box-shadow:0 8px 30px rgba(255,43,214,.35)}
+.go:active{transform:scale(.98)}
+.sel{display:flex;align-items:center;gap:8px;height:50px;padding:0 12px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid var(--ln);color:var(--tx2);font-weight:700;font-size:12px}
+.sel select{color:var(--tx);font-weight:800;background:transparent;outline:none}
+.sel select option{background:#16131f}
+.lnk{color:var(--tx2);font-size:12px;font-weight:700;padding:8px 4px}
+#pause{align-items:center;background:rgba(7,6,12,.55)}
+#pause .card{max-width:520px;max-height:100%;overflow:auto}
+.tabs{display:flex;gap:6px;margin-bottom:14px}
+.tabs button{flex:1;height:36px;border-radius:10px;background:rgba(255,255,255,.04);font-weight:800;color:var(--tx2)}
+.tabs button.on{background:rgba(255,255,255,.12);color:var(--tx)}
+.tab{display:none}.tab.on{display:block}
+.opt{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 2px;border-bottom:1px solid var(--ln);font-weight:700}
+.opt small{display:block;color:var(--tx3);font-weight:600;font-size:11px}
+.opt input[type=range]{width:150px;accent-color:var(--m)}
+.sw{position:relative;width:44px;height:26px;flex:none}
+.sw input{opacity:0;position:absolute;inset:0;margin:0;cursor:pointer}
+.sw i{position:absolute;inset:0;border-radius:20px;background:rgba(255,255,255,.12);transition:.2s;pointer-events:none}
+.sw i:after{content:"";position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s}
+.sw input:checked+i{background:var(--m)}.sw input:checked+i:after{transform:translateX(18px)}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:7px 14px;font-size:12.5px;color:var(--tx2)}
+.keys kbd{font:800 11px Urbanist,system-ui;color:var(--tx);background:rgba(255,255,255,.08);border:1px solid var(--ln);border-radius:6px;padding:3px 7px;white-space:nowrap;justify-self:start}
+#credits{list-style:none;margin:0;padding:0}
+#credits li{padding:8px 0;border-bottom:1px solid var(--ln)}
+#credits a{font-weight:800;text-decoration:none}
+#credits span{display:block;color:var(--tx3);font-size:11px;font-weight:600}
+.note{color:var(--tx3);font-size:11px;line-height:1.5;margin-top:10px}
+.pbtns{display:flex;gap:10px;margin-top:16px}
+.pbtns button,.pbtns a{flex:1;height:44px;border-radius:12px;background:rgba(255,255,255,.07);font-weight:800;display:grid;place-items:center;text-decoration:none}
+.pbtns .pri{background:linear-gradient(90deg,var(--m),var(--c));color:#fff}
+@media (max-width:600px){#ships{grid-template-columns:1fr;gap:8px}.sh{display:grid;grid-template-columns:1fr 1fr;column-gap:12px}.sh small{grid-column:1;min-height:0;margin-bottom:0}.sh b{grid-column:1}.sh .st{grid-column:2}.sh .st:nth-of-type(1){grid-row:1}.sh .st:nth-of-type(2){grid-row:2}.sh .st:nth-of-type(3){grid-row:3}.sh b{grid-row:1}.sh small{grid-row:2/4}}
+</style>
+</head>
+<body data-menu="garage">
+<canvas id="c" tabindex="0"></canvas>
+
+<div id="load"><div class="in">
+  <h1 class="logo">NEÓN</h1>
+  <p>Ciudad abierta · vuelo libre</p>
+  <div class="bar"><b></b></div>
+  <small>Cargando modelos…</small>
+</div></div>
+
+<!-- HUD -->
+<div class="hud" id="tl">
+  <a class="ib pn pe" href="../" aria-label="Volver a Diapps"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></a>
+  <div><span id="dist">—</span><small id="clock">22:30</small></div>
+</div>
+<div class="hud" id="tr">
+  <button class="ib pn pe" id="bRace" aria-label="Carrera de anillos" title="Carrera (F)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><ellipse cx="12" cy="12" rx="5" ry="8"/><path d="M12 4v16"/></svg></button>
+  <button class="ib pn pe" id="bLights" aria-label="Luces" title="Luces (L)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6a6 6 0 0 0 0 12"/><path d="M14 8h7M14 12h7M14 16h7"/></svg></button>
+  <button class="ib pn pe" id="bCam" aria-label="Cámara" title="Cámara (V)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
+  <button class="ib pn pe" id="bPause" aria-label="Menú" title="Menú (Esc)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 6v12M15 6v12"/></svg></button>
+</div>
+<div class="hud pn" id="race"><b>0:00.00</b><span>Anillo 1/12</span><em></em></div>
+<svg class="hud" id="arrow" viewBox="0 0 24 24"><path d="M12 2l7 14-7-4-7 4z" fill="#FFD23F"/></svg>
+<div class="hud pn" id="toast"></div>
+<div class="hud pn" id="gauge">
+  <div class="sp"><span id="spd">0</span><small>KM/H</small></div>
+  <div class="col">
+    <div class="row"><span>Altitud</span><b id="alt">0 m</b></div>
+    <div class="row"><span>Turbo</span></div><div class="meter" id="boost"><i></i></div>
+    <div class="meter" id="hp" title="Casco"><i></i></div>
+  </div>
+</div>
+<div class="hud" id="map"><canvas id="mm" width="300" height="300"></canvas><span id="fps"></span></div>
+
+<!-- táctil -->
+<div class="tc">
+  <div class="stick l" data-stick="l"><span>DIRECCIÓN</span><i></i></div>
+  <div class="stick r" data-stick="r"><span>ACELERAR</span><i></i></div>
+  <div class="btns"><button data-hold="up" aria-label="Subir">▲</button><button data-hold="down" aria-label="Bajar">▼</button><button class="tb" data-hold="boost">TURBO</button></div>
+</div>
+
+<!-- hangar -->
+<div class="ov on" id="garage">
+  <div class="top"><a class="ib pn" href="../" aria-label="Volver a Diapps"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></a>
+    <div><h1 class="logo">NEÓN</h1><small>Elige tu nave y despega</small></div></div>
+  <div class="card pn">
+    <div id="ships"></div>
+    <div class="rowx">
+      <label class="sel">Calidad <select id="quality"><option value="bajo">Baja</option><option value="medio">Media</option><option value="alto">Alta</option><option value="ultra">Ultra (reflejos en vivo)</option></select></label>
+      <button class="go" id="go">DESPEGAR</button>
+    </div>
+  </div>
+</div>
+
+<!-- pausa -->
+<div class="ov" id="pause"><div class="card pn">
+  <div class="tabs"><button class="on" data-tab="tAj">Ajustes</button><button data-tab="tCt">Controles</button><button data-tab="tCr">Créditos</button></div>
+  <div class="tab on" id="tAj">
+    <div class="opt"><div>Hora del día<small>De noche brilla el neón</small></div><input type="range" id="hour" min="0" max="23.9" step="0.1"></div>
+    <div class="opt"><div>Ciclo día / noche<small>Un día cada 10 minutos</small></div><label class="sw"><input type="checkbox" id="auto"><i></i></label></div>
+    <div class="opt"><div>Lluvia<small>Calles mojadas, relámpagos</small></div><label class="sw"><input type="checkbox" id="rain"><i></i></label></div>
+    <div class="opt"><div>Sonido</div><label class="sw"><input type="checkbox" id="snd"><i></i></label></div>
+    <div class="opt"><div>Invertir nariz<small>Arriba = bajar la nariz</small></div><label class="sw"><input type="checkbox" id="inv"><i></i></label></div>
+  </div>
+  <div class="tab" id="tCt">
+    <div class="keys">
+      <kbd>W / S</kbd><span>Acelerar / frenar y reversa</span>
+      <kbd>A / D</kbd><span>Girar (la nave se inclina sola)</span>
+      <kbd>↑ / ↓</kbd><span>Subir / bajar la nariz</span>
+      <kbd>Espacio / C</kbd><span>Subir / bajar en vertical</span>
+      <kbd>Q / E</kbd><span>Deslizar de lado</span>
+      <kbd>Shift</kbd><span>Turbo</span>
+      <kbd>X</kbd><span>Freno de aire</span>
+      <kbd>Arrastrar mouse</kbd><span>Mirar alrededor</span>
+      <kbd>V · L · F</kbd><span>Cámara · luces · carrera de anillos</span>
+      <kbd>R · T · H</kbd><span>Lluvia · hora · ocultar interfaz</span>
+      <kbd>Gamepad</kbd><span>RT/LT acelerar/frenar, stick izq. dirigir, A/B altura, X turbo, LB/RB deslizar, Y cámara</span>
+      <kbd>Táctil</kbd><span>Stick izquierdo dirige, derecho acelera y desliza; ▲ ▼ altura</span>
+    </div>
+  </div>
+  <div class="tab" id="tCr">
+    <ul id="credits"></ul>
+    <p class="note">Modelos de Sketchfab con licencia CC BY 4.0; se optimizaron (texturas WebP de 1024 px, materiales convertidos a metal/rugosidad). La ciudad, el clima, la física y los efectos son procedurales. Motor: Three.js r160 (MIT).</p>
+  </div>
+  <div class="pbtns"><button id="toGarage">Hangar</button><button class="pri" id="resume">Seguir volando</button></div>
+</div></div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
