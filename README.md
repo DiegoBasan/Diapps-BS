@@ -63,5 +63,5 @@ En pantallas de 1100px o más: el inicio se vuelve un mega dashboard que resume 
 - `compa/models/robot.glb`: "RobotExpressive" de Tomás Laulhé (Quaternius), CC0, con modificaciones de Don McCurdy.
 - `compa/models/sedan.glb` y `box.glb`: Car Kit de Kenney, CC0.
 - `linea/models/tractor.glb`: Car Kit de Kenney, CC0.
-- `shared/vendor/maplibre`: MapLibre GL JS 4.7.1 (BSD-3). Mapas: © colaboradores de OpenStreetMap (ODbL), estilos de OpenFreeMap y CARTO. Búsqueda: Photon (komoot). Rutas: servidor de demostración de OSRM. Gasolineras: Overpass API.
+- `shared/vendor/maplibre`: MapLibre GL JS 4.7.1 (BSD-3). Mapas: © colaboradores de OpenStreetMap (ODbL), estilos de OpenFreeMap y CARTO. Búsqueda: Photon (komoot). Rutas: OSRM (servidor de FOSSGIS routing.openstreetmap.de y demo de OSRM). Gasolineras: Overpass API.
 - `shared/vendor/three`: Three.js r160 (MIT), con addons de posprocesado (GTAO) y RoomEnvironment.
