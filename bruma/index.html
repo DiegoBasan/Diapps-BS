@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Bruma</title>
+<meta name="description" content="Maneja un Jetta A6 gris por una ciudad con niebla, lluvia y luces de sodio. Reflejos en el asfalto mojado y niebla volumétrica.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Bruma">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0B1513">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800;900&display=swap">
+<style>
+/* Bruma: interfaz mínima sobre la escena para no romper la atmósfera */
+:root{--bg:#0B1513;--pn:rgba(10,18,16,.55);--ln:rgba(210,235,225,.10);--tx:#E4EEEA;--tx2:#93A8A0;--tx3:#5E716A;--acc:#FF5A2A;--teal:#8FB3A6}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+html,body{margin:0;background:var(--bg);color:var(--tx);font-family:Urbanist,system-ui,sans-serif;overscroll-behavior:none}
+body{overflow:hidden;height:100vh;height:100dvh;touch-action:none}
+button,select{font:inherit;color:inherit;border:0;background:none;cursor:pointer;padding:0}
+#view,#view canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+.pn{background:var(--pn);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--ln);border-radius:14px}
+.ib{width:40px;height:40px;border-radius:12px;display:grid;place-items:center}
+.ib svg{width:20px;height:20px}
+
+#load{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:radial-gradient(120% 90% at 50% 0%,#5d7f75 0%,#22403a 40%,#0B1513 85%);transition:opacity 1s,visibility 1s}
+#load.gone{opacity:0;visibility:hidden}
+#load .in{width:min(340px,84vw);text-align:center}
+.logo{font-weight:900;font-size:58px;letter-spacing:.32em;margin:0 0 4px;padding-left:.32em;color:#dbe9e3;text-shadow:0 0 30px rgba(143,179,166,.5)}
+#load p{margin:0 0 26px;color:var(--tx2);font-size:13px;letter-spacing:.06em}
+.bar{height:3px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}
+.bar b{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--teal),#e8f2ee);transition:width .3s}
+#load small{display:block;margin-top:12px;color:var(--tx3);font-size:11.5px}
+
+/* HUD */
+.hud{position:fixed;z-index:5;transition:opacity .5s}
+body.menu .hud,body.menu .tc{opacity:0;pointer-events:none}
+#tl{left:calc(env(safe-area-inset-left) + 14px);top:calc(env(safe-area-inset-top) + 12px);display:flex;gap:10px;align-items:center}
+#place{font-weight:700;font-size:13.5px;letter-spacing:.03em;text-shadow:0 1px 10px rgba(0,0,0,.7)}
+#fps{display:block;font-size:10px;color:var(--tx3);font-weight:600}
+#tr{right:calc(env(safe-area-inset-right) + 14px);top:calc(env(safe-area-inset-top) + 12px);display:flex;gap:8px}
+#dash{right:calc(env(safe-area-inset-right) + 20px);bottom:calc(env(safe-area-inset-bottom) + 18px);text-align:right;text-shadow:0 2px 14px rgba(0,0,0,.6)}
+#spd{display:block;font-size:56px;font-weight:300;line-height:.9;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+#dash small{font-size:10.5px;font-weight:700;letter-spacing:.2em;color:var(--tx2)}
+#dash .row{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:8px}
+#gear{font-weight:800;font-size:15px;min-width:30px;text-align:center;padding:3px 7px;border-radius:7px;border:1px solid var(--ln)}
+#rpm{--r:0;width:120px;height:3px;border-radius:2px;background:linear-gradient(90deg,#dfe9e5 calc(var(--r)*100%),rgba(255,255,255,.12) 0)}
+#rpm.red{background:linear-gradient(90deg,var(--acc) calc(var(--r)*100%),rgba(255,255,255,.12) 0)}
+#toast{left:50%;top:22%;transform:translate(-50%,6px);padding:9px 16px;font-weight:700;font-size:13px;opacity:0;transition:.35s}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+
+/* táctil */
+.tc{display:none;position:fixed;z-index:6;transition:opacity .5s}
+body.touch .tc{display:block}
+#tSteer{position:fixed;left:calc(env(safe-area-inset-left) + 16px);bottom:calc(env(safe-area-inset-bottom) + 18px);width:min(44vw,250px);height:110px;border-radius:55px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);touch-action:none}
+#tSteer i{position:absolute;left:50%;top:50%;width:84px;height:84px;margin:-42px;border-radius:50%;border:7px solid rgba(230,240,236,.55);box-sizing:border-box;transition:transform .05s}
+#tSteer i:after{content:"";position:absolute;left:50%;top:-2px;width:6px;height:14px;margin-left:-3px;border-radius:3px;background:var(--acc)}
+.pedals{position:fixed;right:calc(env(safe-area-inset-right) + 18px);bottom:calc(env(safe-area-inset-bottom) + 96px);display:flex;gap:12px;align-items:flex-end}
+.pedals [data-pedal]{--p:0;width:64px;border-radius:14px;background:linear-gradient(0deg,rgba(255,255,255,.22) calc(var(--p)*100%),rgba(255,255,255,.06) 0);border:1px solid rgba(255,255,255,.16);font-size:10px;font-weight:800;letter-spacing:.1em;color:var(--tx2);display:flex;align-items:flex-start;justify-content:center;padding-top:8px;touch-action:none}
+[data-pedal=brake]{height:96px}[data-pedal=gas]{height:140px}
+#tHand{position:fixed;right:calc(env(safe-area-inset-right) + 168px);bottom:calc(env(safe-area-inset-bottom) + 96px);width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.16);font-size:9px;font-weight:800;color:var(--tx2);touch-action:none}
+#tHand.on{background:rgba(255,90,42,.4)}
+body.touch #dash{bottom:auto;top:calc(env(safe-area-inset-top) + 60px)}
+body.touch #spd{font-size:40px}
+
+/* menú */
+#menu{position:fixed;inset:0;z-index:20;display:none;align-items:flex-end;justify-content:center;padding:calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 20px);background:linear-gradient(180deg,rgba(11,21,19,0) 40%,rgba(11,21,19,.8) 100%)}
+body.menu #menu{display:flex}
+#menu .top{position:fixed;left:0;right:0;top:0;padding:calc(env(safe-area-inset-top) + 14px) 18px;display:flex;align-items:center;gap:12px}
+#menu .top .logo{font-size:26px;margin:0;letter-spacing:.3em}
+#menu .top small{display:block;color:var(--tx2);font-size:11.5px;font-weight:600}
+.card{width:min(560px,100%);padding:16px}
+.card h2{margin:0 0 2px;font-size:20px;font-weight:800}
+.card .sub{color:var(--tx2);font-size:12.5px;margin:0 0 14px}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.sel{display:flex;flex-direction:column;gap:3px;padding:9px 12px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid var(--ln);font-size:10.5px;font-weight:700;color:var(--tx2);letter-spacing:.06em}
+.sel select{color:var(--tx);font-size:14px;font-weight:800;background:transparent;outline:none;letter-spacing:0}
+.sel select option{background:#13201d}
+.sw{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid var(--ln);font-size:13px;font-weight:700}
+.go{width:100%;height:52px;border-radius:14px;font-weight:900;font-size:15px;letter-spacing:.3em;background:#E4EEEA;color:#0B1513;margin-top:2px}
+.keys{font-size:11.5px;color:var(--tx3);line-height:1.6;margin-top:12px}
+.keys b{color:var(--tx2)}
+details{margin-top:10px;font-size:11.5px;color:var(--tx3)}
+details summary{cursor:pointer;color:var(--tx2);font-weight:700}
+details li{margin:3px 0}details a{color:var(--tx2)}
+</style>
+</head>
+<body class="menu">
+<div id="view"></div>
+<div id="load"><div class="in"><h1 class="logo">BRUMA</h1><p>Jetta A6 · ciudad en niebla</p><div class="bar"><b></b></div><small>Iniciando motor gráfico…</small></div></div>
+
+<div class="hud" id="tl"><a class="ib pn" href="../" aria-label="Volver a Diapps"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></a>
+  <div><span id="place">—</span><span id="fps"></span></div></div>
+<div class="hud" id="tr">
+  <button class="ib pn" id="bLights" aria-label="Luces"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6a6 6 0 0 0 0 12"/><path d="M14 8h7M14 12h7M14 16h7"/></svg></button>
+  <button class="ib pn" id="bCam" aria-label="Cámara"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
+  <button class="ib pn" id="bMenu" aria-label="Menú"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 6v12M15 6v12"/></svg></button>
+</div>
+<div class="hud" id="dash"><span id="spd">0</span><small>KM/H</small><div class="row"><div id="rpm"></div><span id="gear">D1</span></div></div>
+<div class="hud pn" id="toast"></div>
+<span id="api" hidden></span>
+
+<div class="tc">
+  <div id="tSteer"><i></i></div>
+  <button id="tHand">FRENO<br>MANO</button>
+  <div class="pedals"><div data-pedal="brake">FRENO</div><div data-pedal="gas">GAS</div></div>
+</div>
+
+<div id="menu">
+  <div class="top"><a class="ib pn" href="../" aria-label="Volver a Diapps"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></a>
+    <div><h1 class="logo">BRUMA</h1><small>Volkswagen Jetta A6 · gris plata</small></div></div>
+  <div class="card pn">
+    <h2>Ciudad en niebla</h2>
+    <p class="sub">Maneja libre por avenidas mojadas. Tracción delantera, 2.5 L de 5 cilindros, Tiptronic de 6.</p>
+    <div class="opts">
+      <label class="sel">CALIDAD<select id="quality"><option value="bajo">Baja</option><option value="medio">Media</option><option value="alto">Alta</option><option value="ultra">Ultra</option></select></label>
+      <label class="sel">CLIMA<select id="weather"><option value="bruma">Bruma y lluvia</option><option value="noche">Noche</option><option value="seco">Seco, nublado</option></select></label>
+    </div>
+    <label class="sw">Sonido<input type="checkbox" id="sound"></label>
+    <div style="height:10px"></div>
+    <button class="go" id="go">MANEJAR</button>
+    <p class="keys"><b>W/S</b> acelerar · frenar (detenido: reversa) · <b>A/D</b> volante · <b>Espacio</b> freno de mano · <b>C</b> cámara · <b>L</b> luces · <b>R</b> volver al carril · <b>Esc</b> menú · Gamepad: RT/LT y stick</p>
+    <details><summary>Créditos de modelos (Sketchfab, CC BY 4.0)</summary><ul id="credits"></ul><p>Motor: Three.js r186 (MIT) con WebGPU. Texturas de calle y fachadas tomadas de los mismos modelos.</p></details>
+  </div>
+</div>
+<script>
+/* créditos de los modelos */
+const CR=[["Volkswagen jetta a6", "ljuancarlos71", "volkswagen-jetta-a6-03bb488e10724501ae8d6f97ceaf8aa5"], ["2014 Toyota Corolla E180 EU (with interior)", "Armored Wave", "2014-toyota-corolla-e180-eu-with-interior-36f95efb0585464cae43a25a3b3392e8"], ["Procedural Hong Kong building", "uday", "procedural-hong-kong-building-528a732e84c44fd49c4726f341014a23"], ["LOW POLY - ASIAN TOWER BLOCK", "Colin.Greenall", "low-poly-asian-tower-block-694adf5094fa41f99a245ed822293f47"], ["LOW POLY - SOVIET  APARTMENT BUILDING 8K", "Colin.Greenall", "low-poly-soviet-apartment-building-8k-05229ac1d1f94e6c8cacaad91110c602"], ["[FREE]  Atlanta, Corperate Office Building", "99.Miles", "free-atlanta-corperate-office-building-d96380fb001345cca9a9be121f3e43d5"], ["[FREE] London Skyscraper", "99.Miles", "free-london-skyscraper-52b73f6ea18a440cb42734840d5edc72"], ["Brutalist Skyscraper Tower by Jungle Jim", "Jungle Jim", "brutalist-skyscraper-tower-by-jungle-jim-a3433dc7e4b847a280aaae161533b5f8"], ["Cyberpunk Background Appartment building", "Jungle Jim", "cyberpunk-background-appartment-building-65be0ddf5ca6423ba2ce907ae6d09680"], ["Asian Shop Pack Free Gameready", "abhayexe", "asian-shop-pack-free-gameready-2f603ad8d5c640f7b9794f6916f9fbdd"], ["Street Lamp", "bez_glaza", "street-lamp-6881aa1e84b047d79860fa9297e05e22"], ["Low Detail Animated Crowd", "Shahriar Shahrabi", "low-detail-animated-crowd-4fe76fdec12d456f9b0db06b45cc53d6"], ["Hong Kong monster building 2", "Pasha", "hong-kong-monster-building-2-e5aec5eb2f674f77a23d61ad42dd05da"], ["Hong kong monster building 3", "Pasha", "hong-kong-monster-building-3-8ad38d2c3cdd49aea07017379c31d238"], ["Hong Kong buildings Alley-2k+ followers:)", "Pasha", "hong-kong-buildings-alley-2k-followers-8192b1cd4a8144c88163c43a3a6abb3f"], ["Modular street + pavement wet LP", "Dawid", "modular-street-pavement-wet-lp-c26aff37a7a948db96f5d35c81e4745c"], ["Modular City Road Pack – Game Ready", "Salah3D", "modular-city-road-pack-game-ready-d9df5cfa079f4da8a18ef1372c00d01c"]];
+document.getElementById("credits").innerHTML=CR.map(c=>`<li><a href="https://sketchfab.com/3d-models/${c[2]}" target="_blank" rel="noopener">${c[0]}</a> — ${c[1]}</li>`).join("");
+</script>
+<script type="module" src="app.js"></script>
+</body>
+</html>

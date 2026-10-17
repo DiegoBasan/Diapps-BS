@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#A9C9BD"/><stop offset=".55" stop-color="#5E847A"/><stop offset="1" stop-color="#16231F"/></linearGradient>
+    <linearGradient id="fog" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8FB3A6" stop-opacity="0"/><stop offset="1" stop-color="#8FB3A6" stop-opacity=".55"/></linearGradient>
+    <filter id="g" x="-50%" y="-200%" width="200%" height="500%"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="512" height="512" fill="url(#sky)"/>
+  <path d="M300 512V70l40-30 30 30v60l40 40v342z" fill="#2E4741" opacity=".75"/>
+  <path d="M200 512V150l30-20 26 20v362z" fill="#3B5850" opacity=".6"/>
+  <path d="M0 512V40h70v80h40v392z" fill="#14201D"/>
+  <path d="M420 512V120h60v-40h32v432z" fill="#18262A"/>
+  <rect y="300" width="512" height="212" fill="url(#fog)"/>
+  <path d="M120 512 L236 330 L276 330 L392 512z" fill="#0F1816" opacity=".85"/>
+  <g filter="url(#g)"><rect x="186" y="402" width="52" height="11" rx="5" fill="#FF3B1F"/><rect x="274" y="402" width="52" height="11" rx="5" fill="#FF3B1F"/></g>
+  <rect x="190" y="450" width="132" height="24" rx="8" fill="#FF3B1F" opacity=".18" filter="url(#g)"/>
+</svg>
