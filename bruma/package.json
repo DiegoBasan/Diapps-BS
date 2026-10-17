@@ -1,0 +1,15 @@
+{
+  "name": "bruma",
+  "private": true,
+  "description": "Bruma: manejo libre de noche en una ciudad con niebla. El código fuente está en src/ y se empaqueta en app.js.",
+  "scripts": {
+    "build": "esbuild src/main.js --bundle --format=esm --minify --target=es2022 --outfile=app.js --legal-comments=none",
+    "watch": "esbuild src/main.js --bundle --format=esm --target=es2022 --outfile=app.js --watch"
+  },
+  "dependencies": {
+    "three": "0.186.1"
+  },
+  "devDependencies": {
+    "esbuild": "0.24.2"
+  }
+}

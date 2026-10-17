@@ -17,6 +17,7 @@ https://diegobasan.github.io/Diapps-BS/
 | `/ruta/` | Ruta: navegación en tiempo real con tu ubicación (búsqueda, rutas alternativas, indicaciones por voz, recálculo, gasolineras, costo del viaje y km al Jetta). |
 | `/papeles/` | Papeles: carpetas de documentos en un carrusel 3D, con fotos/PDF guardados en el dispositivo y fechas de vencimiento. |
 | `/neon/` | Neón: juego de mundo abierto. Vuelas una nave futurista por una ciudad procedural infinita (ventanas, neón y anuncios por shader, niebla de altura, lluvia, día/noche, bloom, GTAO, reflejos en vivo), con tráfico aéreo, drones patrulla y carreras de anillos. Modelos de Sketchfab. |
+| `/bruma/` | Bruma: manejo libre de un Jetta A6 gris en una ciudad con niebla y lluvia. Three.js r186 con WebGPU (o WebGL2): reflejos en pantalla sobre el asfalto mojado, niebla volumétrica iluminada por faroles y faros, TRAA, GTAO y bloom. Física de vehículo con suspensión, llantas, ABS y control de tracción. Edificios, autos y texturas de Sketchfab. |
 | `/finanzas/` | Mis Finanzas: gastos, presupuesto, regla 50/30/20, mapa de gasto y asistente local. |
 
 ## Agregar un proyecto
@@ -48,6 +49,11 @@ La IA solo interpreta qué canción se escribió; si no está en Cifra Club, gen
 Para desplegar: en Netlify → Add new project → Import from GitHub → este repo, con **Base directory** `riff-api`.
 La app usa `https://diapps-riff.netlify.app` por defecto; otra dirección se cambia en Riff → menú → Búsqueda con IA.
 
+## Bruma: compilar
+
+`bruma/` usa Three.js r186 (WebGPU) empaquetado con esbuild. El código está en `bruma/src/` y el resultado en
+`bruma/app.js`, que es el que se publica. Después de cambiar algo en `src/`: `cd bruma && npm install && npm run build`.
+
 ## Cuenta y respaldo (`shared/nube.js`)
 
 Firebase Authentication (correo y contraseña) + Firestore por REST, sin SDK. Cada app guarda su documento en
@@ -66,4 +72,5 @@ En pantallas de 1100px o más: el inicio se vuelve un mega dashboard que resume 
 - `linea/models/tractor.glb`: Car Kit de Kenney, CC0.
 - `shared/vendor/maplibre`: MapLibre GL JS 4.7.1 (BSD-3). Mapas: © colaboradores de OpenStreetMap (ODbL), estilos de OpenFreeMap y CARTO. Búsqueda: Photon (komoot). Rutas: OSRM (servidor de FOSSGIS routing.openstreetmap.de y demo de OSRM). Gasolineras: Overpass API.
 - `neon/models/*.glb`: 11 modelos de Sketchfab con licencia CC BY 4.0 (naves, autos voladores, pirámide, rascacielos, letreros de neón y dron). Autores y enlaces en `neon/models/CREDITOS.md` y en el menú del juego → Créditos.
+- `bruma/models/*.glb` y `bruma/textures/`: modelos de Sketchfab con licencia CC BY 4.0 (Jetta A6, Corolla, edificios, farol, multitud, calle mojada y fachadas). Autores y enlaces en `bruma/models/CREDITOS.md` y en el menú del juego.
 - `shared/vendor/three`: Three.js r160 (MIT), con addons de posprocesado (GTAO, bloom) y RoomEnvironment.
